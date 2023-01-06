@@ -4,7 +4,7 @@ project('c++ crater-id', 'cpp',
 add_global_arguments('-DSOME_TOKEN=value', language : 'cpp')
 # glib_dep = dependency('glib-2.0')
 
-inc = include_directories('include')
+incdir = include_directories('include')
 
 subdir('include')
 subdir('src')
@@ -16,5 +16,5 @@ pkg_mod.generate(
                  version : '1.0',
                  name : 'libcid',
                  filebase : 'cid',
-                 description : 'A Library for crater identification.'
+                 description : 'A C++ library for crater identification.'
 )
