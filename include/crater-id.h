@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <tuple>
 
 enum columns {
     CRATER_ID,
@@ -55,13 +56,18 @@ bool readLunarCraterEntry(  const std::string,
                             const float = 1000.0);
 
 std::vector<lunar_crater> runCraterReader(const std::string,
-                                     const char =',',
-                                     const float =1.2,
-                                     const float =0.9,
-                                     const uint =1e6);
+                                          const char =',',
+                                          const float =1.2,
+                                          const float =0.9,
+                                          const uint =10);
 
 std::tuple<float, char> reinterpret_lat(const float);
 std::tuple<float, char> reinterpret_lon(const float);
 std::tuple<std::string, std::string> reinterpret_latlon(const float, const float);
 void printLunarCratersInfo(const lunar_crater);
 bool readLunarCraterEntry(const std::string, const char);
+template <typename T>
+void Permutation(std::vector<T>);
+template <typename T>
+std::vector<std::vector<T>> Combination(const std::vector<T>, const int);
+std::ostream& operator<<(std::ostream&, const lunar_crater&);
