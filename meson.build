@@ -1,4 +1,5 @@
 project('c++ crater-id', 'cpp',
+  default_options : ['c_std=c17', 'cpp_std=c++17'],
   version : '1.0.0',
   license : 'MIT')
 add_global_arguments('-DSOME_TOKEN=value', language : 'cpp')
