@@ -3,6 +3,7 @@
 #include <math.h>
 #include <vector>
 #include <algorithm>
+#include <numeric>
 #include "crater-id.h"
 
 template <typename T>
@@ -19,6 +20,10 @@ template <typename R, typename T>
 Point LLHtoECEF(const R crater, const T alt);
 float vectorNorm(const Point pt);
 void normalizeVector(Point& pt);
+template<typename Iter_T>
+long double vectorNorm(Iter_T first, Iter_T last);
+template<typename T>
+T vectorNorm(std::vector<T> vec);
 float dot(const Point pt1, const Point pt2);
 float angularPseudodistance(const Point point1, const Point point2);
 float angularDistance(const Point point1, const Point point2);
@@ -58,4 +63,14 @@ Point latlon2unitVector(const T lat, const T lon) {
 template <typename T>
 Point latlon2unitVector(const T crater) {
     return latlon2unitVector(crater.lat, crater.lon);
+}
+
+template<typename Iter_T>
+long double vectorNorm(Iter_T first, Iter_T last) {
+  return sqrt(inner_product(first, last, first, 0.0L));
+}
+
+template<typename T>
+T vectorNorm(const std::vector<T> vec) {
+    return vectorNorm(vec.begin(), vec.end());
 }

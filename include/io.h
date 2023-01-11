@@ -8,9 +8,9 @@
 #include "structs.h"
 
 template <typename T>
-void printVector(std::vector<T>);
+void printVector(const std::vector<T>, const std::string="");
 template <typename T>
-void printVectorOfVectors(std::vector<std::vector<T>>);
+void printVectorOfVectors(const std::vector<std::vector<T>>);
 template <typename T>
 void makeUnique(T&);
 template <typename T>
@@ -75,8 +75,8 @@ void runCraterReader(const std::string fname,
         std::cout<<"Could not open the file: "<<fname<<std::endl;
 
     std::cout<<craters.size() 
-             <<"craters in database."
-             <<std::endl<<std::endl;
+             <<" craters in database."
+             <<std::endl;
     
     // uint count = 0;
     // uint n_print = 6;
@@ -86,4 +86,22 @@ void runCraterReader(const std::string fname,
     //     if(++count >= n_print)
     //         break;
     // }
+}
+
+template <typename T>
+void printVector(const std::vector<T> vec, const std::string prepend) {
+    std::cout << prepend;
+    for(auto& idx : vec) {
+        std::cout << idx << ", ";
+    }
+    std::cout << std::endl;
+}
+
+template <typename T>
+void printVectorOfVectors(const std::vector<std::vector<T>> vec) {
+    std::cout << "Printing vector of vectors: " << std::endl;
+    for(auto& combo : vec) {
+        printVector(combo);
+    }
+    std::cout << std::endl;
 }

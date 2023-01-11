@@ -1,24 +1,6 @@
 #include "io.h"
 #include "structs.h"
 
-template <typename T>
-void printVector(std::vector<T> vec) {
-    // std::cout << "Printing vector: " << std::endl;
-    for(auto& idx : vec) {
-        std::cout << idx << ", ";
-    }
-    std::cout << std::endl;
-}
-
-template <typename T>
-void printVectorOfVectors(std::vector<std::vector<T>> vec) {
-    std::cout << "Printing vector of vectors: " << std::endl;
-    for(auto& combo : vec) {
-        printVector(combo);
-    }
-    std::cout << std::endl;
-}
-
 bool readLunarCraterEntry(const std::string entry, 
                           lunar_crater& crater,
                           const char sep, 
