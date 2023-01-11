@@ -1,4 +1,4 @@
-cid_sources = ['main.cpp', 'conics.cpp']
+cid_sources = ['main.cpp', 'conics.cpp', 'io.cpp', 'crater-id.cpp', 'combinatorics.cpp', 'vector_math.cpp']
 boost_dep = dependency('boost')
 executable( 'demo', 
             cid_sources, 

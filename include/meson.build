@@ -1,1 +1,1 @@
-install_headers('crater-id.h')
+install_headers('structs.h', 'io.h', 'crater-id.h', 'combinatorics.h', 'vector_math.h', 'conics.h')
