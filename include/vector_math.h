@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <numeric>
+#include <Eigen/Dense>
 #include "crater-id.h"
 
 template <typename T>
@@ -11,22 +12,22 @@ T deg2rad(const T deg);
 template <typename T>
 T rad2deg(const T rad);
 template <typename T>
-Point latlon2unitVector(const T lat, const T lon);
+Eigen::Vector3f latlon2unitVector(const T lat, const T lon);
 template <typename T>
-Point latlon2unitVector(const T crater);
+Eigen::Vector3f latlon2unitVector(const T crater);
 template <typename T>
-Point llarToWorld(const T crater, float alt, float rad=1.0);
+Eigen::Vector3f llarToWorld(const T crater, float alt, float rad=1.0);
 template <typename R, typename T>
-Point LLHtoECEF(const R crater, const T alt);
-float vectorNorm(const Point pt);
-void normalizeVector(Point& pt);
-template<typename Iter_T>
-long double vectorNorm(Iter_T first, Iter_T last);
-template<typename T>
-T vectorNorm(std::vector<T> vec);
-float dot(const Point pt1, const Point pt2);
-float angularPseudodistance(const Point point1, const Point point2);
-float angularDistance(const Point point1, const Point point2);
+Eigen::Vector3f LLHtoECEF(const R crater, const T alt);
+// float vectorNorm(const Eigen::Vector3f& pt);
+// void normalizeVector(Eigen::Vector3f& pt);
+// template<typename Iter_T>
+// long float vectorNorm(Iter_T first, Iter_T last);
+// template<typename T>
+// T vectorNorm(std::vector<T> vec);
+float vdot(const Eigen::Vector3f& pt1, const Eigen::Vector3f& pt2);
+float angularPseudodistance(const Eigen::Vector3f& point1, const Eigen::Vector3f& point2);
+float angularDistance(const Eigen::Vector3f& point1, const Eigen::Vector3f& point2);
 template <typename T>
 float latlon_dist(const T crater1, const T crater2);
 template <typename T>
@@ -35,8 +36,20 @@ template <typename T>
 void makeUnique(T& vec);
 template <typename T>
 std::vector<uint> getRange(std::vector<T> vec);
+Eigen::Matrix3f normalizeDeterminant(const Eigen::Matrix3f& mtx);
+Eigen::Matrix3f crossMatrix(const Eigen::Vector3f&);
 
 /**** Template definitions ****/
+
+template <typename T, typename A>
+int arg_max(std::vector<T, A> const& vec) {
+  return static_cast<int>(std::distance(vec.begin(), max_element(vec.begin(), vec.end())));
+}
+
+template <typename T, typename A>
+int arg_min(std::vector<T, A> const& vec) {
+  return static_cast<int>(std::distance(vec.begin(), min_element(vec.begin(), vec.end())));
+}
 
 template <typename T>
 T deg2rad(const T deg) {
@@ -48,20 +61,20 @@ T rad2deg(const T rad) {
 }
 
 template <typename T>
-Point latlon2unitVector(const T lat, const T lon) {
+Eigen::Vector3f latlon2unitVector(const T lat, const T lon) {
     float lat_rad = deg2rad(lat);
     float lon_rad = deg2rad(lon);
 
-    Point point;
-    point.x = cos(lat_rad) * cos(lon_rad);
-    point.y = cos(lat_rad) * sin(lon_rad);
-    point.z = sin(lat_rad);
+    Eigen::Vector3f point;
+    point << cos(lat_rad) * cos(lon_rad),
+             cos(lat_rad) * sin(lon_rad),
+             sin(lat_rad);
 
     return point;
 }
 
 template <typename T>
-Point latlon2unitVector(const T crater) {
+Eigen::Vector3f latlon2unitVector(const T crater) {
     return latlon2unitVector(crater.lat, crater.lon);
 }
 

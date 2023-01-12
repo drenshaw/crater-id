@@ -28,7 +28,7 @@ void runCraterReader(const std::string,
                      const char =',',
                      const float =1.2,
                      const float =0.9,
-                     const uint =200);
+                     const uint =100);
 template <typename T>
 std::tuple<float, char> stringify_lat(const T crater);
 template <typename T>

@@ -37,7 +37,7 @@ void specialCombination(const std::vector<T> choices,
     // angle = acos(dot(a,b)) == cos(angle) = dot(a,b)
     const N min_dot_prod = cos(max_angle_rad);
 
-    Point pt1, pt2;
+    Eigen::Vector3f pt1, pt2;
     // std::vector<std::tuple<T, T>> valid_craters;
     std::string lat1, lat2, lon1, lon2;
     T current_choice, next_choice;
@@ -69,7 +69,7 @@ std::vector<std::tuple<T, T>> specialCombination(const std::vector<T> choices,
     // angle = acos(dot(a,b)) == cos(angle) = dot(a,b)
     const N min_dot_prod = cos(max_angle_rad);
 
-    Point pt1, pt2;
+    Eigen::Vector3f pt1, pt2;
     std::vector<std::tuple<T, T>> valid_craters;
     std::string lat1, lat2, lon1, lon2;
     T current_choice, next_choice;

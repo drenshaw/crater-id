@@ -1,7 +1,7 @@
 #include "vector_math.h"
 
 template <typename T>
-Point llarToWorld(const T crater, float alt, float rad) {
+Eigen::Vector3f llarToWorld(const T crater, float alt, float rad) {
 
     const T lat = crater.lat;
     const T lon = crater.lon;
@@ -9,16 +9,16 @@ Point llarToWorld(const T crater, float alt, float rad) {
     T f  = 0;                              // flattening
     T ls = atan2(pow(1 - f, 2) * tan(lat));    // lambda
 
-    Point point;
-    point.x = rad * cos(ls) * cos(lon) + alt * cos(lat) * cos(lon);
-    point.y = rad * cos(ls) * sin(lon) + alt * cos(lat) * sin(lon);
-    point.z = rad * sin(ls) + alt * sin(lat);
+    Eigen::Vector3f point;
+    point << rad * cos(ls) * cos(lon) + alt * cos(lat) * cos(lon),
+             rad * cos(ls) * sin(lon) + alt * cos(lat) * sin(lon),
+             rad * sin(ls) + alt * sin(lat);
 
     return point;
 }
 
 template <typename R, typename T>
-Point LLHtoECEF(const R crater, const T alt) {
+Eigen::Vector3f LLHtoECEF(const R crater, const T alt) {
     // see http://www.mathworks.de/help/toolbox/aeroblks/llatoecefposition.html
 
     const T lat = crater.lat;
@@ -31,47 +31,24 @@ Point LLHtoECEF(const R crater, const T alt) {
     T C      = 1/sqrt(pow(cosLat,2) + FF * pow(sinLat,2));
     T S      = C * FF;
 
-    Point point;
-    point.x = (rad * C + alt)*cosLat * cos(lon);
-    point.y = (rad * C + alt)*cosLat * sin(lon);
-    point.z = (rad * S + alt)*sinLat;
+    Eigen::Vector3f point;
+    point << (rad * C + alt)*cosLat * cos(lon),
+             (rad * C + alt)*cosLat * sin(lon),
+             (rad * S + alt)*sinLat;
 
     return point;
 }
 
-float vectorNorm(const Point pt) {
-    return sqrt(pt.x*pt.x + pt.y*pt.y + pt.z*pt.z);
+float vdot(const Eigen::Vector3f& point1, const Eigen::Vector3f& point2) {
+    return point1.dot(point2);
 }
 
-void normalizeVector(Point& pt) {
-    float norm = vectorNorm(pt);
-    pt.x /= norm;
-    pt.y /= norm;
-    pt.z /= norm;
+float angularPseudodistance(const Eigen::Vector3f& point1, const Eigen::Vector3f& point2) {
+    return vdot(point1, point2);
 }
 
-// template<typename Iter_T>
-// long double vectorNorm(Iter_T first, Iter_T last) {
-//   return sqrt(inner_product(first, last, first, 0.0L));
-// }
-
-// template<typename T>
-// void vectorNorm(std::vector<T> vec) {
-//     // std::cout << "Norm: " << vectorNorm(vec.begin(), vec.end());
-// //   return sqrt(inner_product(vec.begin(), vec.end(), vec.begin(), 0.0L));
-//     // return 0.;
-// }
-
-float dot(const Point pt1, const Point pt2) {
-    return pt1.x*pt2.x + pt1.y*pt2.y + pt1.z*pt2.z;
-}
-
-float angularPseudodistance(const Point point1, const Point point2) {
-    return dot(point1, point2);
-}
-
-float angularDistance(const Point point1, const Point point2) {
-    return acos(dot(point1, point2));
+float angularDistance(const Eigen::Vector3f& point1, const Eigen::Vector3f& point2) {
+    return acos(vdot(point1, point2));
 }
 
 template <typename T>
@@ -81,9 +58,9 @@ float latlon_dist(const T crater1, const T crater2) {
 
 template <typename T>
 float latlon_dist(const T lat1, const T lon1, const T lat2, const T lon2) {
-    Point point1 = latlon2unitVector(lat1, lon1);
+    Eigen::Vector3f point1 = latlon2unitVector(lat1, lon1);
     // normalizeVector(point1);
-    Point point2 = latlon2unitVector(lat2, lon2);
+    Eigen::Vector3f point2 = latlon2unitVector(lat2, lon2);
     // normalizeVector(point2);
     return angularDistance(point1, point2);
 }
@@ -106,4 +83,38 @@ std::vector<uint> getRange(std::vector<T> vec) {
         vec_range.push_back(idx);
     }
     return vec_range;
+}
+
+Eigen::Matrix3f normalizeDeterminant(const Eigen::Matrix3f& mtx) {
+    // using approach from Matrix Cookbook
+    // https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
+    // get the determinant
+    uint ncol = mtx.cols();
+    float det_mtx = mtx.determinant();
+    if(abs(det_mtx)<1e-20) {
+        std::cerr << "Matrix is singular/nearly singular." << std::endl;
+        return mtx;
+    }
+    // we want the determinant of A to be 1
+    // 1 = det(c*A) = d^n*det(A), where n=3 for 3x3 matrix
+    // so solve the equation d^3 - 1/det(A) = 0
+    // d = roots([1 0 0 -1/detC]);
+    // strip out imaginary roots
+    // d = d(imag(d)==0);
+    // assert that we only have one real root
+    // assert(length(d)==1)
+    float d = pow(abs(1./det_mtx), 1./ncol);
+    // d*mtx should now have a determinant of 1
+    Eigen::Matrix3f mtx_normalized = d*mtx;
+    int sign = signbit(mtx_normalized.determinant());
+    // assert(abs(det(A_norm)-1)<sqrt(eps))
+    return sign? -mtx_normalized : mtx_normalized;
+}
+
+Eigen::Matrix3f crossMatrix(const Eigen::Vector3f& v) {
+    Eigen::Matrix3f v_cross(3, 3);
+    v_cross << 0, -v(2), v(1),
+              v(2), 0, -v(0),
+              -v(1), v(0), 0;
+    return v_cross;
 }
