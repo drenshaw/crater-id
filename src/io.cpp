@@ -4,10 +4,10 @@
 bool readLunarCraterEntry(const std::string entry, 
                           lunar_crater& crater,
                           const char sep, 
-                          const float max_ell,
-                          const float min_arc,
-                          const float min_diam,
-                          const float max_diam) {
+                          const double max_ell,
+                          const double min_arc,
+                          const double min_diam,
+                          const double max_diam) {
     // lunar_crater crater;
     std::string lat, lon, diam, ecc, n_pts;
     std::stringstream str(entry);
@@ -54,27 +54,27 @@ bool readMartianCraterEntry(const std::string entry) {
 }
 
 template <typename T>
-std::tuple<float, char> stringify_lat(const T crater) {
+std::tuple<double, char> stringify_lat(const T crater) {
     return stringify_lat(crater.lat);
 }
 
 template <typename T>
-std::tuple<float, char> stringify_lon(const T crater) {
+std::tuple<double, char> stringify_lon(const T crater) {
     return stringify_lon(crater.lon);
 }
 
-std::tuple<float, char> stringify_lat(const float lat) {
+std::tuple<double, char> stringify_lat(const double lat) {
     char n_or_s;
-    float re_lat;
-    // tuple<float, std::string> re_lat;
+    double re_lat;
+    // tuple<double, std::string> re_lat;
     n_or_s = (lat > 0)?'N':'S';
     re_lat = abs(lat);
     return {re_lat, n_or_s};
 }
 
-std::tuple<float, char> stringify_lon(const float lon) {
+std::tuple<double, char> stringify_lon(const double lon) {
     char e_or_w;
-    float re_lon = lon;
+    double re_lon = lon;
     if(re_lon > 180)
         re_lon -= 360;
     e_or_w = (re_lon < 0)?'W':'E';
@@ -82,8 +82,8 @@ std::tuple<float, char> stringify_lon(const float lon) {
     return {abs(re_lon), e_or_w};
 }
 
-std::string stringify_latlon(const float lat, const float lon) {
-    float re_lat, re_lon;
+std::string stringify_latlon(const double lat, const double lon) {
+    double re_lat, re_lon;
     char n_or_s, e_or_w;
     std::string str_lat, str_lon;
     std::tie(re_lat, n_or_s) = stringify_lat(lat);

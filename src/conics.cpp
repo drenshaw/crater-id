@@ -1,48 +1,50 @@
-#include <math.h>
 
 #include "conics.h"
 
-Conic::Conic(const float semimajor_axis, 
-             const float semiminor_axis, 
-             const float x_center, 
-             const float y_center, 
-             const float angle) {
+Conic::Conic(const double semimajor_axis, 
+             const double semiminor_axis, 
+             const double x_center, 
+             const double y_center, 
+             const double angle) {
     semimajor_axis_ = semimajor_axis;
     semiminor_axis_ = semiminor_axis;
     x_center_ = x_center;
     y_center_ = y_center;
     angle_ = angle;
+    locus_ = Geom2Locus();
 }
-Conic::Conic(const std::tuple<float, float, float, float, float>& geom_tup) {
+Conic::Conic(const std::tuple<double, double, double, double, double>& geom_tup) {
     semimajor_axis_ = std::get<0>(geom_tup);
     semiminor_axis_ = std::get<1>(geom_tup);
     x_center_       = std::get<2>(geom_tup);
     y_center_       = std::get<3>(geom_tup);
     angle_          = std::get<4>(geom_tup);
+    locus_          = Geom2Locus();
 }
-Conic::Conic(const std::vector<float>& geom_vec) {
+Conic::Conic(const std::vector<double>& geom_vec) {
     setGeometricParameters(geom_vec);
 }
 
-void Conic::setGeometricParameters(const std::vector<float>& geom_vec) {
+void Conic::setGeometricParameters(const std::vector<double>& geom_vec) {
     semimajor_axis_ = geom_vec[0];
     semiminor_axis_ = geom_vec[1];
     x_center_       = geom_vec[2];
     y_center_       = geom_vec[3];
     angle_          = geom_vec[4];
+    locus_          = Geom2Locus();
 }
 
-void Conic::setImplicitParameters(const std::vector<float>& impl_params) {
-    std::vector<float> geom_params = Implicit2Geom(impl_params);
+void Conic::setImplicitParameters(const std::vector<double>& impl_params) {
+    std::vector<double> geom_params = Implicit2Geom(impl_params);
     setGeometricParameters(geom_params);
 }
 
-void Conic::setLocus(const Eigen::Matrix3f& locus) {
-    std::vector<float> geom_params = Locus2Geom(locus);
+void Conic::setLocus(const Eigen::Matrix3d& locus) {
+    std::vector<double> geom_params = Locus2Geom(locus);
     setGeometricParameters(geom_params);
 }
 
-void Conic::NormalizeImplicitParameters(std::vector<float>& impl_params) {
+void Conic::NormalizeImplicitParameters(std::vector<double>& impl_params) {
     auto vecNorm = vectorNorm(impl_params);
     // std::cout << "Vector norm: " << vecNorm << std::endl;
     for(auto& element : impl_params) {
@@ -50,24 +52,24 @@ void Conic::NormalizeImplicitParameters(std::vector<float>& impl_params) {
     }
 }
 
-std::vector<float> Conic::getGeom() {
+std::vector<double> Conic::getGeom() {
     return {semimajor_axis_, semiminor_axis_, x_center_, y_center_, angle_};
 }
 
-std::vector<float> Conic::getImplicit() {
+std::vector<double> Conic::getImplicit() {
     return Geom2Implicit();
 }
 
-Eigen::Matrix3f Conic::getLocus() {
-    return Geom2Locus();
+Eigen::Matrix3d Conic::getLocus() {
+    return locus_;
 }
 
-Eigen::Matrix3f Conic::getEnvelope() {
+Eigen::Matrix3d Conic::getEnvelope() {
     return getMatrixAdjugate(Geom2Locus());
 }
 
-std::vector<float> Conic::Locus2Implicit(const Eigen::Matrix3f& locus) {
-    std::vector<float> coeff;
+std::vector<double> Conic::Locus2Implicit(const Eigen::Matrix3d& locus) {
+    std::vector<double> coeff;
     coeff.reserve(6);
     coeff.push_back(locus.coeff(0,0));
     coeff.push_back(2*locus.coeff(0,1));
@@ -78,11 +80,11 @@ std::vector<float> Conic::Locus2Implicit(const Eigen::Matrix3f& locus) {
     return coeff;
 }
 
-std::vector<float> Conic::Implicit2Geom(const std::vector<float>& impl_params){
-    float numerator, denominator_a, denominator_b;
-    float B2_minus_4AC, xc, yc, phi;
-    float semimajor_axis, semiminor_axis, amc2, b2;
-    float A, B, C, D, E, F;
+std::vector<double> Conic::Implicit2Geom(const std::vector<double>& impl_params){
+    double numerator, denominator_a, denominator_b;
+    double B2_minus_4AC, xc, yc, phi;
+    double semimajor_axis, semiminor_axis, amc2, b2;
+    double A, B, C, D, E, F;
     A = impl_params[0];
     B = impl_params[1];
     C = impl_params[2];
@@ -116,15 +118,15 @@ std::vector<float> Conic::Implicit2Geom(const std::vector<float>& impl_params){
     return {semimajor_axis, semiminor_axis, xc, yc, phi};
 }
 
-Eigen::Matrix3f Conic::Geom2Locus() {
-    const std::vector<float> impl_params = Geom2Implicit();
+Eigen::Matrix3d Conic::Geom2Locus() {
+    const std::vector<double> impl_params = Geom2Implicit();
     // return normalize_determinant(Implicit2Locus(impl_params))
     return Implicit2Locus(impl_params);
  }
 
-Eigen::Matrix3f Conic::Implicit2Locus(const std::vector<float>& impl_params) {
-    Eigen::Matrix3f locus_mtx(3,3);
-    float A, B, C, D, E, F;
+Eigen::Matrix3d Conic::Implicit2Locus(const std::vector<double>& impl_params) {
+    Eigen::Matrix3d locus_mtx(3,3);
+    double A, B, C, D, E, F;
     A = impl_params[0];
     B = impl_params[1];
     C = impl_params[2];
@@ -138,32 +140,32 @@ Eigen::Matrix3f Conic::Implicit2Locus(const std::vector<float>& impl_params) {
     return locus_mtx;
 }
 
- std::vector<float> Conic::Locus2Geom(const Eigen::Matrix3f& locus) {
-    const std::vector<float> impl_params = Locus2Implicit(locus);
+ std::vector<double> Conic::Locus2Geom(const Eigen::Matrix3d& locus) {
+    const std::vector<double> impl_params = Locus2Implicit(locus);
     return Implicit2Geom(impl_params);
  }
 
 
-std::vector<float> Conic::Geom2Implicit() {
+std::vector<double> Conic::Geom2Implicit() {
     // unpack geometric parameters
-    float a   = semimajor_axis_;
-    float b   = semiminor_axis_;
-    float xc  = x_center_;
-    float yc  = y_center_;
-    float phi = angle_;
+    double a   = semimajor_axis_;
+    double b   = semiminor_axis_;
+    double xc  = x_center_;
+    double yc  = y_center_;
+    double phi = angle_;
 
     // perform some computations beforehand
-    float a2 = pow(a, 2);
-    float b2 = pow(b, 2);
-    float sin_phi = sin(phi);
-    float cos_phi = cos(phi);
-    float xc_2 = pow(xc, 2);
-    float yc_2 = pow(yc, 2);
-    float sin_phi_2 = pow(sin_phi, 2);
-    float cos_phi_2 = pow(cos_phi, 2);
+    double a2 = pow(a, 2);
+    double b2 = pow(b, 2);
+    double sin_phi = sin(phi);
+    double cos_phi = cos(phi);
+    double xc_2 = pow(xc, 2);
+    double yc_2 = pow(yc, 2);
+    double sin_phi_2 = pow(sin_phi, 2);
+    double cos_phi_2 = pow(cos_phi, 2);
 
     // Populuate each coefficient
-    std::vector<float> coeff;
+    std::vector<double> coeff;
     coeff.reserve(6);
     coeff.push_back( a2*sin_phi_2 + b2*cos_phi_2);
     coeff.push_back( 2*(b2-a2)*sin_phi*cos_phi);
@@ -177,49 +179,50 @@ std::vector<float> Conic::Geom2Implicit() {
     return coeff;
 }
 
-bool Conic::ConicIntersectionLines(const Eigen::Matrix3f& Aj, 
-                                   std::tuple<Eigen::Vector3f, Eigen::Vector3f>& gh) {
-    Eigen::Matrix3f Ai = getLocus();
+bool Conic::ConicIntersectionLines(const Eigen::Matrix3d& Aj, 
+                                   std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) {
+    Eigen::Matrix3d Ai = getLocus();
     return IntersectionLines(Ai, Aj, gh);
 }
 
 bool Conic::ConicIntersectionLines(Conic& conicB, 
-                                   std::tuple<Eigen::Vector3f, Eigen::Vector3f>& gh) {
-    Eigen::Matrix3f Ai = getLocus();
-    Eigen::Matrix3f Aj = getLocus();
+                                   std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) {
+    Eigen::Matrix3d Ai = getLocus();
+    Eigen::Matrix3d Aj = getLocus();
     return IntersectionLines(Ai, Aj, gh);
 }
 
-Eigen::Vector2f Conic::getCenter() {
-    Eigen::Vector2f center;
+Eigen::Vector2d Conic::getCenter() {
+    Eigen::Vector2d center;
     center << x_center_, y_center_;
     return center;
 }
 
-Eigen::Vector2f Conic::getSemiAxes() {
-    Eigen::Vector2f axes;
+Eigen::Vector2d Conic::getSemiAxes() {
+    Eigen::Vector2d axes;
     axes << semimajor_axis_, semiminor_axis_;
     return axes;
 }
 
-std::vector<float> convertEigenVectorToVector(const Eigen::Vector3f& eig) {
-    std::vector<float> regVec;
+std::vector<double> convertEigenVectorToVector(const Eigen::Vector3d& eig) {
+    std::vector<double> regVec;
     regVec.resize(eig.size());
-    Eigen::Vector3f::Map(&regVec[0], eig.size()) = eig;
+    Eigen::Vector3d::Map(&regVec[0], eig.size()) = eig;
     return regVec;
 }
 
 template <typename T>
 bool vectorContainsNaN(const std::vector<T> vec) {
-    return std::any_of(vec.begin(), vec.end(), [](float i){return std::isnan(i);});
+    return std::any_of(vec.begin(), vec.end(), [](double i){return std::isnan(i);});
 }
 
-bool vectorContainsNaN(const Eigen::Vector3f& eV) {
-    std::vector<float> vec = convertEigenVectorToVector(eV);
+bool vectorContainsNaN(const Eigen::Vector3d& eV) {
+    std::vector<double> vec = convertEigenVectorToVector(eV);
     return vectorContainsNaN(vec);
 }
 
-Eigen::Matrix3f getMatrixAdjugate(const Eigen::Matrix3f& mtx) {
+Eigen::Matrix3d getMatrixAdjugate(const Eigen::Matrix3d& mtx) {
+    Eigen::Matrix3d mtx_adj = Eigen::Matrix3d(3, 3);
 
     // get elements of A
     const auto a_11 = mtx.coeff(0, 0);
@@ -245,103 +248,102 @@ Eigen::Matrix3f getMatrixAdjugate(const Eigen::Matrix3f& mtx) {
     const auto mtx_adj31 = mtx_adj13;
     const auto mtx_adj32 = mtx_adj23;
     const auto mtx_adj33 = a_11*a_22 - a_12*a_12;
-    Eigen::Matrix3f mtx_adj = Eigen::Matrix3f(3, 3);
     mtx_adj << mtx_adj11, mtx_adj12, mtx_adj13,
                mtx_adj21, mtx_adj22, mtx_adj23, 
                mtx_adj31, mtx_adj32, mtx_adj33;
     return mtx_adj;
 }
 
-bool IntersectConics(const Eigen::Matrix3f& Ai, 
-                     const Eigen::Matrix3f& Aj, 
-                     const float eig,
-                     std::tuple<Eigen::Vector3f, Eigen::Vector3f>& gh) {
-    float eps = 1e-16;
-    Eigen::Matrix3f Bij(3, 3), Bij_star(3, 3);
-    Eigen::Vector3f bkk_eig(3);
+bool IntersectConics(const Eigen::Matrix3d& Ai, 
+                     const Eigen::Matrix3d& Aj, 
+                     const double eig,
+                     std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) {
+    double eps = 1e-16;
+    Eigen::Matrix3d Bij(3, 3), Bij_star(3, 3);
+    Eigen::Vector3d bkk_eig(3);
     Bij = eig*Ai + Aj;
     Bij_star = getMatrixAdjugate(Bij);
 
     bkk_eig = Bij_star.diagonal();
-    std::vector<float> bkk = convertEigenVectorToVector(bkk_eig);
+    std::vector<double> bkk = convertEigenVectorToVector(bkk_eig);
     // eq 86: all diagonal entries of Bij_star are negative
-    if ( std::any_of(bkk.begin(), bkk.end(), [&eps](float i){return i>eps;}) ) {
-        std::cout << "bkk contains positive numbers: " << bkk_eig << std::endl;
+    if ( std::any_of(bkk.begin(), bkk.end(), [&eps](double i){return i>eps;}) ) {
+        // std::cout << "bkk contains positive numbers: \n" << bkk_eig << std::endl;
         return false;
     }
     int min_idx = arg_min(bkk);
 
     // eq 87
-    Eigen::Vector3f z = -Bij_star.row(min_idx)/sqrt(-bkk[min_idx]);
-    Eigen::Matrix3f D = Bij + crossMatrix(z);
-    Eigen::Matrix3f Dabs = D.cwiseAbs();
+    Eigen::Vector3d z = -Bij_star.row(min_idx)/sqrt(-bkk[min_idx]);
+    Eigen::Matrix3d D = Bij + crossMatrix(z);
+    Eigen::Matrix3d Dabs = D.cwiseAbs();
     
-    Eigen::Matrix3f::Index maxRow,maxCol;
+    Eigen::Matrix3d::Index maxRow,maxCol;
     Dabs.maxCoeff(&maxRow, &maxCol);
 
     // pg 44 of Christian, Derksen, Watkins [2020]
     // g is non-zero column of D, h is non-zero row of D
-    Eigen::Vector3f g = D.col(maxCol);
-    Eigen::Vector3f h = D.row(maxRow);
+    Eigen::Vector3d g = D.col(maxCol);
+    Eigen::Vector3d h = D.row(maxRow);
     
-    std::vector<float> gVec = convertEigenVectorToVector(g);
-    std::vector<float> hVec = convertEigenVectorToVector(h);
+    std::vector<double> gVec = convertEigenVectorToVector(g);
+    std::vector<double> hVec = convertEigenVectorToVector(h);
     if ( vectorContainsNaN(gVec) ) {
-        std::cout << "g vector contains nan's: " << g << std::endl;
+        std::cout << "g vector contains NaN's: " << g << std::endl;
         return false;
     }
     if ( vectorContainsNaN(hVec) ) {
-        std::cout << "hs vector contains nan's: " << h << std::endl;
+        std::cout << "h vector contains NaN's: " << h << std::endl;
         return false;
     }
     gh = {g, h};
     return true;
 }
 
-bool IntersectionLines(const Eigen::Matrix3f& Ai, 
-                            const Eigen::Matrix3f& Aj,
-                            std::tuple<Eigen::Vector3f, Eigen::Vector3f>& gh) {
+bool IntersectionLines(const Eigen::Matrix3d& Ai, 
+                            const Eigen::Matrix3d& Aj,
+                            std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) {
     // eq 77
-    Eigen::Matrix3f combined = Aj*-Ai.inverse();
-    Eigen::EigenSolver<Eigen::Matrix3f> eigensolver(combined);
-    // Eigen::Matrix3cf eigenvectors = eigensolver.eigenvectors();
-    Eigen::Vector3cf eigenvalues = eigensolver.eigenvalues();
-    std::vector<float> real_eigens;
+    Eigen::Matrix3d combined = Aj*-Ai.inverse();
+    Eigen::EigenSolver<Eigen::Matrix3d> eigensolver(combined);
+    // Eigen::Matrix3cd eigenvectors = eigensolver.eigenvectors();
+    Eigen::Vector3cd eigenvalues = eigensolver.eigenvalues();
+    std::vector<double> real_eigens;
     for(long int idx = 0; idx < eigenvalues.rows(); idx++) {
         if(eigenvalues(idx).imag() == 0) {
             real_eigens.push_back(eigenvalues(idx).real());
         }
     }
-    printVector(real_eigens, "Real eigenvalues: ");
+    // printVector(real_eigens, "Real eigenvalues: ");
 
-    Eigen::Vector3f g, h;
-    // std::tuple<Eigen::Vector3f, Eigen::Vector3f> gh;
+    Eigen::Vector3d g, h;
+    // std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
     for(const auto& e_val : real_eigens) {
         if(IntersectConics(Ai, Aj, e_val, gh)) {
             std::tie(g, h) = gh;
-            std::cout << " g: " << g << std::endl;
-            std::cout << " h: " << h << std::endl;
+            // std::cout << " - g: \n" << g << std::endl;
+            // std::cout << " - h: \n" << h << std::endl;
             return true;
         }
     }
     return false;
 }
 
-bool ChooseIntersection(const std::tuple<Eigen::Vector3f, Eigen::Vector3f>& gh, 
-                                   const Eigen::Vector2f& centerA, 
-                                   const Eigen::Vector2f& centerB,
-                                   Eigen::Vector3f& l) {
-    Eigen::Vector3f g, h;
+bool ChooseIntersection(const std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh, 
+                                   const Eigen::Vector2d& centerA, 
+                                   const Eigen::Vector2d& centerB,
+                                   Eigen::Vector3d& l) {
+    Eigen::Vector3d g, h;
     std::tie(g, h) = gh;
     // convert centers to homogeneous coordinates
-    Eigen::Vector3f centerAHom = centerA.homogeneous();
-    Eigen::Vector3f centerBHom = centerB.homogeneous();
+    Eigen::Vector3d centerAHom = centerA.homogeneous();
+    Eigen::Vector3d centerBHom = centerB.homogeneous();
     // get line connecting the two centers
-    Eigen::Vector3f lineOfCenters = centerAHom.cross(centerBHom);
+    Eigen::Vector3d lineOfCenters = centerAHom.cross(centerBHom);
     // get point where lineOfCenters and g intersect
-    Eigen::Vector3f gIntersect = g.cross(lineOfCenters);
+    Eigen::Vector3d gIntersect = g.cross(lineOfCenters);
     // get point where lineOfCenters and h intersect
-    Eigen::Vector3f hIntersect = h.cross(lineOfCenters);
+    Eigen::Vector3d hIntersect = h.cross(lineOfCenters);
 
     // std::cout << " Gint: " << std::endl << gIntersect << std::endl;
     // std::cout << " Hint: " << std::endl << hIntersect << std::endl;
@@ -352,21 +354,21 @@ bool ChooseIntersection(const std::tuple<Eigen::Vector3f, Eigen::Vector3f>& gh,
     // normalize hIntersect
     hIntersect = hIntersect.array()/hIntersect.array()[2];
 
-    float xmax, xmin, ymax, ymin;
+    double xmax, xmin, ymax, ymin;
     xmax = (centerA(0)>centerB(0)) ? centerA(0) : centerB(0);
     xmin = (centerA(0)<centerB(0)) ? centerA(0) : centerB(0);
     ymax = (centerA(1)>centerB(1)) ? centerA(1) : centerB(1);
     ymin = (centerA(1)<centerB(1)) ? centerA(1) : centerB(1);
     bool g_fits, h_fits;
 
-    std::cout << "Center A:\n" << centerA << std::endl;
-    std::cout << "Center B:\n" << centerB << std::endl;
-    std::cout << "xvals:\n" << xmin << ", " << xmax << std::endl;
-    std::cout << "yvals:\n" << ymin << ", " << ymax << std::endl;
+    // std::cout << "Center A:\n" << centerA << std::endl;
+    // std::cout << "Center B:\n" << centerB << std::endl;
+    // std::cout << "xvals:\n" << xmin << ", " << xmax << std::endl;
+    // std::cout << "yvals:\n" << ymin << ", " << ymax << std::endl;
 
 
-    std::cout << " gIintersect: " << std::endl << gIntersect << std::endl;
-    std::cout << " hIintersect: " << std::endl << hIntersect << std::endl;
+    // std::cout << " gIintersect: " << std::endl << gIntersect << std::endl;
+    // std::cout << " hIintersect: " << std::endl << hIntersect << std::endl;
     g_fits = gIntersect(0)>xmin && gIntersect(0)<xmax && gIntersect(1)>ymin && gIntersect(1)<ymax;
     h_fits = hIntersect(0)>xmin && hIntersect(0)<xmax && hIntersect(1)>ymin && hIntersect(1)<ymax;
     if (!(g_fits ^ h_fits)) {
@@ -375,7 +377,7 @@ bool ChooseIntersection(const std::tuple<Eigen::Vector3f, Eigen::Vector3f>& gh,
         return false;
     }
     l = g_fits ? g : h;
-    std::cout << "ChooseIntersection chose " << (g_fits ? "g\n" : "h\n") << l << std::endl;
+    // std::cout << "ChooseIntersection chose " << (g_fits ? "g\n" : "h\n") << l << std::endl;
     return true;
 }
 
@@ -386,48 +388,81 @@ bool ChooseIntersection(const std::tuple<Eigen::Vector3f, Eigen::Vector3f>& gh,
 //     return lab
 
 // def compute_invariant(line1, line2, locus_i):
-bool computeInvariant(const Eigen::Vector3f& line1, 
-                      const Eigen::Vector3f& line2, 
-                      const Eigen::Matrix3f& locus,
-                      float& invariant) {
+bool computeInvariant(const Eigen::Vector3d& line1, 
+                      const Eigen::Vector3d& line2, 
+                      const Eigen::Matrix3d& locus,
+                      double& invariant) {
     // if(vectorContainsNaN(line1) || vectorContainsNaN(line2)) {
     //     std::cerr << "One of the lines contains a NaN." << std::endl;
     //     return false;
     // }
-    Eigen::Matrix3f envelope = getMatrixAdjugate(locus);
+    Eigen::Matrix3d envelope = getMatrixAdjugate(locus);
     // the numerator can be negative
-    Eigen::RowVector3f line1T = line1.transpose();
-    Eigen::RowVector3f line2T = line2.transpose();
-    std::cout << "Line1T: \n" << line1T << std::endl;
-    Eigen::MatrixXf numerator = line1T * envelope * line2;
-    float numeratord = numerator.value();
-    std::cout << "Numerator: " << numeratord << std::endl;
+    Eigen::RowVector3d line1T = line1.transpose();
+    Eigen::RowVector3d line2T = line2.transpose();
+    Eigen::MatrixXd numerator = line1T * envelope * line2;
+    double numeratord = numerator.value();
     // the denominator is quadratic in both terms, so never negative
-    Eigen::MatrixXf l1tel1 = line1T*envelope*line1;
-    Eigen::MatrixXf l2tel2 = line2T*envelope*line2;
-    float l1tel1d = l1tel1.value();
-    float l2tel2f = l2tel2.value();
-    float denominator = sqrt(l1tel1d*l2tel2f);
+    Eigen::MatrixXd l1tel1 = line1T*envelope*line1;
+    Eigen::MatrixXd l2tel2 = line2T*envelope*line2;
+    double l1tel1d = l1tel1.value();
+    double l2tel2f = l2tel2.value();
+    double denominator = sqrt(l1tel1d*l2tel2f);
     // calculate the invariant, eqns 95-97
     invariant = acosh(abs(numeratord)/denominator);
-    return false;
+    return true;
 }
 
-
-// def compute_invariant_triad(locus_a, locus_b, locus_c):
-//     conic_a = geo.Conic(locus=locus_a)
-//     conic_b = geo.Conic(locus=locus_b)
-//     conic_c = geo.Conic(locus=locus_c)
-
-//     center_a = conic_a.get_geom_array()[2:4]
-//     center_b = conic_b.get_geom_array()[2:4]
-//     center_c = conic_c.get_geom_array()[2:4]
-//     lab = conic_intersection(locus_a, locus_b, center_a, center_b)
-//     lbc = conic_intersection(locus_b, locus_c, center_b, center_c)
-//     lca = conic_intersection(locus_c, locus_a, center_c, center_a)
-
-//     // Compute invariants
-//     Ja = compute_invariant(lab, lca, locus_a)
-//     Jb = compute_invariant(lbc, lab, locus_b)
-//     Jc = compute_invariant(lca, lbc, locus_c)
-//     return np.array([Ja, Jb, Jc])
+bool computeCraterTriadInvariants(Conic& A, Conic& B, Conic& C,
+                                  std::vector<double>& invariants) {
+    std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh_ij, gh_jk, gh_ki;
+    Eigen::Vector3d lij, ljk, lki;
+    double invA, invB, invC;
+    Eigen::Matrix3d locusA = A.getLocus();
+    Eigen::Matrix3d locusB = B.getLocus();
+    Eigen::Matrix3d locusC = C.getLocus();
+    Eigen::Vector2d centerA = A.getCenter();
+    Eigen::Vector2d centerB = B.getCenter();
+    Eigen::Vector2d centerC = C.getCenter();
+    
+    if(!IntersectionLines(locusA, locusB, gh_ij)) {
+        std::cerr<<"IntersectionLines error ij\n";
+        return false;
+    }
+    if(!IntersectionLines(locusB, locusC, gh_jk)) {
+        std::cerr<<"IntersectionLines error jk\n";
+        return false;
+    }
+    if(!IntersectionLines(locusC, locusA, gh_ki)) {
+        std::cerr<<"IntersectionLines error ki\n";
+        return false;
+    }
+    if(!ChooseIntersection(gh_ij, centerA, centerB, lij)) {
+        std::cerr<<"ChooseIntersection error ij\n";
+        return false;
+    }
+    if(!ChooseIntersection(gh_jk, centerB, centerC, ljk)) {
+        std::cerr<<"ChooseIntersection error jk\n";
+        return false;
+    }
+    if(!ChooseIntersection(gh_ki, centerC, centerA, lki)) {
+        std::cerr<<"ChooseIntersection error ki\n";
+        return false;
+    }
+    if(!computeInvariant(lij, lki, locusA, invA)) {
+        std::cerr<<"computeInvariant error A\n";
+        return false;
+    }
+    if(!computeInvariant(ljk, lij, locusB, invB)) {
+        std::cerr<<"computeInvariant error B\n";
+        return false;
+    }
+    if(!computeInvariant(lki, ljk, locusC, invC)) {
+        std::cerr<<"computeInvariant error C\n";
+        return false;
+    }
+    invariants.push_back(invA);
+    invariants.push_back(invB);
+    invariants.push_back(invC);
+    return true;
+}

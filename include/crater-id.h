@@ -32,12 +32,12 @@ std::ostream& operator<<(std::ostream& os, const Point& point);
 // Point latlon2unitVector(const T crater);
 // template <typename R, typename T>
 // Point LLHtoECEF(const R, const T);
-// float vectorNorm(const Point pt);
+// double vectorNorm(const Point pt);
 // void normalizeVector(Point&);
-// float dot(const Point, const Point);
-// float angularDistance(const Point, const Point);
-// float angularPseudodistance(const Point, const Point);
+// double dot(const Point, const Point);
+// double angularDistance(const Point, const Point);
+// double angularPseudodistance(const Point, const Point);
 // template <typename T>
-// float latlon_dist(const T, const T, const T, const T);
+// double latlon_dist(const T, const T, const T, const T);
 // template <typename T>
-// float latlon_dist(const T, const T);
+// double latlon_dist(const T, const T);
