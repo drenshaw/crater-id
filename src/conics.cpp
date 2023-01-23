@@ -221,7 +221,53 @@ bool vectorContainsNaN(const Eigen::Vector3d& eV) {
     return vectorContainsNaN(vec);
 }
 
-Eigen::Matrix3d getMatrixAdjugate(const Eigen::Matrix3d& mtx) {
+double getCofactor(const Eigen::MatrixXd& matrix, size_t cf_row, size_t cf_col) {
+    size_t nrow = matrix.rows();
+    size_t ncol = matrix.cols();
+    size_t i = 0, j = 0;
+    Eigen::MatrixXd cf_temp(nrow-1, ncol-1);
+ 
+    // Looping for each element of the matrix
+    for (size_t irow = 0; irow < nrow; irow++) {
+        for (size_t icol = 0; icol < ncol; icol++) {
+            //  Copying into temporary matrix only those
+            //  element which are not in given row and
+            //  column
+            if (irow != cf_row && icol != cf_col) {
+                cf_temp(i, j++) = matrix(irow, icol);
+ 
+                // Row is filled, so increase row index and reset col index
+                if (j == nrow - 1) {
+                    j = 0;
+                    i++;
+                }
+            }
+        }
+    }
+    return cf_temp.determinant();
+}
+
+Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix) {
+    size_t nrow = matrix.rows();
+    size_t ncol = matrix.cols();
+    Eigen::MatrixXd cofactor_matrix(nrow, ncol);
+    int cofactor_sign;
+    for(size_t row=0;row<nrow; row++) {
+        for(size_t col=0; col<ncol; col++) {
+            cofactor_sign = (row+col)%2==0 ? 1 : -1;
+            cofactor_matrix(row, col) = cofactor_sign*getCofactor(matrix, row, col);
+        }
+    }
+    return cofactor_matrix;
+}
+
+Eigen::MatrixXd getMatrixAdjugate(const Eigen::MatrixXd& matrix) {
+    Eigen::MatrixXd mtx_adj = getCofactorMatrix(matrix);
+    // Matrix adjugate is the transpose of the cofactor matrix
+    return mtx_adj.transpose();
+}
+
+Eigen::Matrix3d get3x3SymmetricMatrixAdjugate(const Eigen::Matrix3d& mtx) {
     Eigen::Matrix3d mtx_adj = Eigen::Matrix3d(3, 3);
 
     // get elements of A
@@ -465,4 +511,45 @@ bool computeCraterTriadInvariants(Conic& A, Conic& B, Conic& C,
     invariants.push_back(invB);
     invariants.push_back(invC);
     return true;
+}
+
+Eigen::Matrix3d getENUFrame(const Eigen::Vector3d& surface_point) {
+    Eigen::Vector3d u_north_pole(3), u_surface_point(3), ui, ei, ni;
+    Eigen::Matrix3d enu_frame(3, 3);
+    double eps = 1e-6;
+    u_north_pole << 0., 0., 1.;
+    normalizeVector(surface_point, u_surface_point);
+    // std::cout << "ENU: \n" << surface_point << "\n" << u_surface_point << std::endl;
+    if((u_north_pole - u_surface_point).norm() < eps) {
+        ui = u_north_pole;
+        ei << 1, 0, 0;
+        ni << 0, 1, 0;
+    }
+    else if((-u_north_pole - u_surface_point).norm() < eps) {
+        ui = -u_north_pole;
+        ei << -1, 0, 0;
+        ni << 0, -1, 0;
+    }
+    else {
+        ui = u_surface_point;
+        ei = u_north_pole.cross(ui);
+        ni = ui.cross(ei);
+    }
+    enu_frame << ei, ni, ui;
+    return enu_frame;
+}
+
+Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d& position, const Eigen::Matrix3d& T_e2m) {
+    Eigen::Matrix3d h_m(3,3);
+    Eigen::Vector3d u_north_pole = {0., 0., 1.};
+    // // form transformation matrix
+    // // eq. 34 from Christian, Derksen, Watkins [2020]
+    h_m << T_e2m.col(0), T_e2m.col(1), position;
+    // express matrix in homogeneous form (eq. 40)
+    // std::cout << "u_north = \n" << u_north_pole.row(0) << std::endl;
+    Eigen::MatrixXd h_k(4,3);
+    h_k << h_m.row(0), h_m.row(1), h_m.row(2), u_north_pole.transpose();
+    // std::cout << "hm = \n" << h_m << std::endl;
+    // std::cout << "hk = \n" << h_k << std::endl;
+    return h_k;
 }

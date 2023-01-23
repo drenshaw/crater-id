@@ -16,6 +16,10 @@ Eigen::Vector3d latlon2unitVector(const T lat, const T lon);
 template <typename T>
 Eigen::Vector3d latlon2unitVector(const T crater);
 template <typename T>
+void operator /(Eigen::Vector3d& vec, T divisor);
+template <typename T>
+void operator *(Eigen::Vector3d& vec, T scalar);
+template <typename T>
 Eigen::Vector3d llarToWorld(const T crater, double alt, double rad=1.0);
 template <typename R, typename T>
 Eigen::Vector3d LLHtoECEF(const R crater, const T alt);
@@ -38,6 +42,11 @@ template <typename T>
 std::vector<uint> getRange(std::vector<T> vec);
 Eigen::Matrix3d normalizeDeterminant(const Eigen::Matrix3d& mtx);
 Eigen::Matrix3d crossMatrix(const Eigen::Vector3d&);
+void normalizeVector(Eigen::Vector3d&);
+void normalizeVector(const Eigen::Vector3d&, Eigen::Vector3d&);
+Eigen::Vector3d normalizeVector(const Eigen::Vector3d&);
+template <typename T>
+T vectorNorm(const Eigen::Vector3d&);
 
 /**** Template definitions ****/
 
@@ -86,4 +95,9 @@ long double vectorNorm(Iter_T first, Iter_T last) {
 template<typename T>
 T vectorNorm(const std::vector<T> vec) {
     return vectorNorm(vec.begin(), vec.end());
+}
+
+template <typename T>
+T vectorNorm(const Eigen::Vector3d& vec) {
+  return vec/vec.norm();
 }

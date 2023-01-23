@@ -1,7 +1,13 @@
-cid_sources = ['main.cpp', 'conics.cpp', 'io.cpp', 'crater-id.cpp', 'combinatorics.cpp', 'vector_math.cpp']
+cid_sources = ['main.cpp', 
+               'conics.cpp', 
+               'quadrics.cpp',
+               'io.cpp', 
+               'crater-id.cpp', 
+               'combinatorics.cpp', 
+               'vector_math.cpp']
 boost_dep = dependency('boost')
 eigen_dep = dependency('eigen3')
-vtk_dep = dependency('vtk', required: false)
+vtk_dep = dependency('libspatialindex', required: false)
 executable( 'demo', 
             cid_sources, 
             include_directories:incdir, 

@@ -1,6 +1,27 @@
 #include "vector_math.h"
 
 template <typename T>
+void operator /(Eigen::Vector3d& vec, T divisor) {
+    size_t siz = vec.size();
+    // for(auto& item : vec) {
+    for(size_t i=0; i<siz; i++) {
+        vec(i) /= divisor;
+        // item /= divisor;
+    }
+}
+
+template <typename T>
+void operator *(Eigen::Vector3d& vec, T scalar) {
+    size_t siz = vec.size();
+    // for(auto& item : vec) {
+    //     item *= scalar;
+    // }
+    for(size_t i=0; i<siz; i++) {
+        vec(i) *= scalar;
+    }
+}
+
+template <typename T>
 Eigen::Vector3d llarToWorld(const T crater, double alt, double rad) {
 
     const T lat = crater.lat;
@@ -117,4 +138,17 @@ Eigen::Matrix3d crossMatrix(const Eigen::Vector3d& v) {
               v(2), 0, -v(0),
               -v(1), v(0), 0;
     return v_cross;
+}
+
+void normalizeVector(Eigen::Vector3d& vec) {
+    vec /= vec.norm();
+}
+
+void normalizeVector(const Eigen::Vector3d& inVec, Eigen::Vector3d& outVec) {
+    outVec = inVec;
+    normalizeVector(outVec);
+}
+
+Eigen::Vector3d normalizeVector(const Eigen::Vector3d& inVec) {
+    return inVec / inVec.norm();
 }

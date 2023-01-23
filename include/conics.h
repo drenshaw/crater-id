@@ -5,7 +5,6 @@
 #include <vector>
 #include <math.h>
 #include <Eigen/Dense>
-#include "/usr/local/include/vtk-9.2/vtk3DS.h"
 
 #include "vector_math.h"
 
@@ -59,7 +58,10 @@ class ConicMatrix {
     ConicMatrix();
 }; 
 
-Eigen::Matrix3d getMatrixAdjugate(const Eigen::Matrix3d&);
+double getCofactor(const Eigen::MatrixXd& matrix, int p, int q);
+Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix);
+Eigen::MatrixXd getMatrixAdjugate(const Eigen::MatrixXd&);
+Eigen::Matrix3d get3x3SymmetricMatrixAdjugate(const Eigen::Matrix3d&);
 bool IntersectionLines(const Eigen::Matrix3d&, 
                        const Eigen::Matrix3d&,
                        std::tuple<Eigen::Vector3d, Eigen::Vector3d>&);
@@ -73,6 +75,8 @@ bool computeInvariant(const Eigen::Vector3d&,
                       const Eigen::Vector3d&, 
                       const Eigen::Matrix3d&,
                       double&);
-bool computeCraterTriadInvariants(Conic& A, Conic& B, Conic& C,
-                                  std::vector<double>& invariants);
-void cylinder();
+bool computeCraterTriadInvariants(Conic&, Conic&, Conic&,
+                                  std::vector<double>&);
+Eigen::Matrix3d getENUFrame(const Eigen::Vector3d&);
+void generateQuadricFromRadiusNormal();
+Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d&, const Eigen::Matrix3d& T_e2m);

@@ -18,17 +18,17 @@ std::vector<uint> getRange(std::vector<T>);
 bool readLunarCraterEntry(  const std::string, 
                             lunar_crater&,
                             const char, 
-                            const double = 1.2, 
-                            const double = 0.9,
-                            const double = 60.0,
-                            const double = 1000.0);
+                            const double=1.2, 
+                            const double=0.9,
+                            const double=50.0,
+                            const double=1000.0);
 template <typename T>
 void runCraterReader(const std::string,
                      std::vector<T>&,
-                     const char =',',
-                     const double =1.2,
-                     const double =0.9,
-                     const uint =100);
+                     const char=',',
+                     const double=1.2,
+                     const double=0.9,
+                     const uint=200);
 template <typename T>
 std::tuple<double, char> stringify_lat(const T crater);
 template <typename T>
