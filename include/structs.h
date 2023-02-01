@@ -1,4 +1,5 @@
-#pragma once
+#ifndef STRUCTS_H
+#define STRUCTS_H
 
 #include <string>
 
@@ -52,3 +53,5 @@ typedef struct Point {
     double y;
     double z;
 } Point;
+
+#endif

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COMBINATORICS_H
+#define COMBINATORICS_H
 
 #include <iostream>
 #include <vector>
@@ -91,3 +92,5 @@ std::vector<std::tuple<T, T>> specialCombination(const std::vector<T> choices,
     std::cout << "Valid combinations: " << valid_craters.size() << std::endl;
     return valid_craters;
 }
+
+#endif

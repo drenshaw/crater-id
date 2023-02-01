@@ -93,11 +93,6 @@ std::string stringify_latlon(const double lat, const double lon) {
     return (str_lat + " " + str_lon);
 }
 
-template <typename T>
-std::string stringify_latlon(const T crater) {
-    return stringify_latlon(crater.lat, crater.lon);
-}
-
 void printLunarCratersInfo(const lunar_crater crater) {
     // const char cout_sep = '\n';
     const std::string cout_sep = "\n\t";

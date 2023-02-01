@@ -1,4 +1,5 @@
-#pragma once
+#ifndef IO_H
+#define IO_H
 
 #include <iostream>
 #include <fstream>
@@ -105,3 +106,10 @@ void printVectorOfVectors(const std::vector<std::vector<T>> vec) {
     }
     std::cout << std::endl;
 }
+
+template <typename T>
+std::string stringify_latlon(const T crater) {
+    return stringify_latlon(crater.lat, crater.lon);
+}
+
+#endif

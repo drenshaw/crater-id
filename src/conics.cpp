@@ -204,6 +204,14 @@ Eigen::Vector2d Conic::getSemiAxes() {
     return axes;
 }
 
+Eigen::Vector3d getNorthPoleUnitVector() {
+    return Eigen::Vector3d::UnitZ();
+}
+
+void getNorthPoleUnitVector(Eigen::Vector3d& north_pole) {
+    north_pole = getNorthPoleUnitVector();
+}
+
 std::vector<double> convertEigenVectorToVector(const Eigen::Vector3d& eig) {
     std::vector<double> regVec;
     regVec.resize(eig.size());
@@ -352,7 +360,6 @@ bool IntersectionLines(const Eigen::Matrix3d& Ai,
     // eq 77
     Eigen::Matrix3d combined = Aj*-Ai.inverse();
     Eigen::EigenSolver<Eigen::Matrix3d> eigensolver(combined);
-    // Eigen::Matrix3cd eigenvectors = eigensolver.eigenvectors();
     Eigen::Vector3cd eigenvalues = eigensolver.eigenvalues();
     std::vector<double> real_eigens;
     for(long int idx = 0; idx < eigenvalues.rows(); idx++) {
@@ -360,15 +367,10 @@ bool IntersectionLines(const Eigen::Matrix3d& Ai,
             real_eigens.push_back(eigenvalues(idx).real());
         }
     }
-    // printVector(real_eigens, "Real eigenvalues: ");
-
     Eigen::Vector3d g, h;
-    // std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
     for(const auto& e_val : real_eigens) {
         if(IntersectConics(Ai, Aj, e_val, gh)) {
             std::tie(g, h) = gh;
-            // std::cout << " - g: \n" << g << std::endl;
-            // std::cout << " - h: \n" << h << std::endl;
             return true;
         }
     }
@@ -391,9 +393,6 @@ bool ChooseIntersection(const std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh,
     // get point where lineOfCenters and h intersect
     Eigen::Vector3d hIntersect = h.cross(lineOfCenters);
 
-    // std::cout << " Gint: " << std::endl << gIntersect << std::endl;
-    // std::cout << " Hint: " << std::endl << hIntersect << std::endl;
-
     // normalize gIntersect
     gIntersect = gIntersect.array()/gIntersect.array()[2];
 
@@ -406,15 +405,7 @@ bool ChooseIntersection(const std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh,
     ymax = (centerA(1)>centerB(1)) ? centerA(1) : centerB(1);
     ymin = (centerA(1)<centerB(1)) ? centerA(1) : centerB(1);
     bool g_fits, h_fits;
-
-    // std::cout << "Center A:\n" << centerA << std::endl;
-    // std::cout << "Center B:\n" << centerB << std::endl;
-    // std::cout << "xvals:\n" << xmin << ", " << xmax << std::endl;
-    // std::cout << "yvals:\n" << ymin << ", " << ymax << std::endl;
-
-
-    // std::cout << " gIintersect: " << std::endl << gIntersect << std::endl;
-    // std::cout << " hIintersect: " << std::endl << hIntersect << std::endl;
+    
     g_fits = gIntersect(0)>xmin && gIntersect(0)<xmax && gIntersect(1)>ymin && gIntersect(1)<ymax;
     h_fits = hIntersect(0)>xmin && hIntersect(0)<xmax && hIntersect(1)>ymin && hIntersect(1)<ymax;
     if (!(g_fits ^ h_fits)) {
@@ -423,17 +414,9 @@ bool ChooseIntersection(const std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh,
         return false;
     }
     l = g_fits ? g : h;
-    // std::cout << "ChooseIntersection chose " << (g_fits ? "g\n" : "h\n") << l << std::endl;
     return true;
 }
 
-
-// def conic_intersection(locus_a, locus_b, center_a, center_b):
-//     gab, hab = conic_intersection_lines(locus_a, locus_b)
-//     lab = choose_conic_intersection_line(gab, hab, center_a, center_b)
-//     return lab
-
-// def compute_invariant(line1, line2, locus_i):
 bool computeInvariant(const Eigen::Vector3d& line1, 
                       const Eigen::Vector3d& line2, 
                       const Eigen::Matrix3d& locus,
@@ -517,7 +500,7 @@ Eigen::Matrix3d getENUFrame(const Eigen::Vector3d& surface_point) {
     Eigen::Vector3d u_north_pole(3), u_surface_point(3), ui, ei, ni;
     Eigen::Matrix3d enu_frame(3, 3);
     double eps = 1e-6;
-    u_north_pole << 0., 0., 1.;
+    u_north_pole = getNorthPoleUnitVector();
     normalizeVector(surface_point, u_surface_point);
     // std::cout << "ENU: \n" << surface_point << "\n" << u_surface_point << std::endl;
     if((u_north_pole - u_surface_point).norm() < eps) {
@@ -541,15 +524,41 @@ Eigen::Matrix3d getENUFrame(const Eigen::Vector3d& surface_point) {
 
 Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d& position, const Eigen::Matrix3d& T_e2m) {
     Eigen::Matrix3d h_m(3,3);
-    Eigen::Vector3d u_north_pole = {0., 0., 1.};
-    // // form transformation matrix
-    // // eq. 34 from Christian, Derksen, Watkins [2020]
+    Eigen::Vector3d u_north_pole = getNorthPoleUnitVector();
+    // form transformation matrix
+    // eq. 34 from Christian, Derksen, Watkins [2020]
     h_m << T_e2m.col(0), T_e2m.col(1), position;
     // express matrix in homogeneous form (eq. 40)
-    // std::cout << "u_north = \n" << u_north_pole.row(0) << std::endl;
     Eigen::MatrixXd h_k(4,3);
     h_k << h_m.row(0), h_m.row(1), h_m.row(2), u_north_pole.transpose();
-    // std::cout << "hm = \n" << h_m << std::endl;
-    // std::cout << "hk = \n" << h_k << std::endl;
     return h_k;
+}
+
+Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, const Eigen::Vector3d& desired_location) {
+    Eigen::Matrix3d T_m2c = getENUFrame(desired_location - camera_position);
+    Eigen::Matrix3d z_rot;
+    eulerToQuaternion(0., 0., M_PI, z_rot);
+    return z_rot * T_m2c.transpose();
+}
+
+Eigen::Quaterniond eulerToQuaternion(const double roll,
+                                     const double pitch,
+                                     const double yaw) {
+    Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitX());
+    Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitY());
+    Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
+
+    Eigen::Quaterniond q = yawAngle * pitchAngle * rollAngle;
+    return q;
+}
+
+void eulerToQuaternion(const double roll,
+                       const double pitch,
+                       const double yaw,
+                       Eigen::Matrix3d& dcm) {
+    Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitX());
+    Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitY());
+    Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
+
+    dcm = yawAngle * pitchAngle * rollAngle;
 }

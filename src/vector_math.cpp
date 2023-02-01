@@ -106,27 +106,27 @@ std::vector<uint> getRange(std::vector<T> vec) {
     return vec_range;
 }
 
-Eigen::Matrix3d normalizeDeterminant(const Eigen::Matrix3d& mtx) {
+Eigen::MatrixXd normalizeDeterminant(const Eigen::MatrixXd& mtx) {
     // using approach from Matrix Cookbook
     // https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
     // get the determinant
+    Eigen::MatrixXd mtx_normalized(mtx.rows(), mtx.cols());
     uint ncol = mtx.cols();
-    double det_mtx = mtx.determinant();
+    //get location of maximum
+    // Eigen::Index maxRow, maxCol;
+    double maxVal = 1/mtx.maxCoeff();
+    mtx_normalized = mtx*maxVal;
+    double det_mtx = mtx_normalized.determinant();
     if(abs(det_mtx)<1e-20) {
         std::cerr << "Matrix is singular/nearly singular." << std::endl;
-        return mtx;
+        return mtx*maxVal;
     }
     // we want the determinant of A to be 1
     // 1 = det(c*A) = d^n*det(A), where n=3 for 3x3 matrix
     // so solve the equation d^3 - 1/det(A) = 0
-    // d = roots([1 0 0 -1/detC]);
-    // strip out imaginary roots
-    // d = d(imag(d)==0);
-    // assert that we only have one real root
-    // assert(length(d)==1)
     double d = pow(abs(1./det_mtx), 1./ncol);
-    // d*mtx should now have a determinant of 1
-    Eigen::Matrix3d mtx_normalized = d*mtx;
+    // d*mtx should now have a determinant of +1
+    mtx_normalized *= d;
     int sign = signbit(mtx_normalized.determinant());
     // assert(abs(det(A_norm)-1)<sqrt(eps))
     return sign? -mtx_normalized : mtx_normalized;

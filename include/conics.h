@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CONICS_H
+#define CONICS_H
 
 #include <iostream>
 #include <tuple>
@@ -10,7 +11,8 @@
 
 class Conic {
     public:
-        Conic(const double=0, const double=0, const double=0, const double=0, const double=0);
+        Conic(const double=0, const double=0, const double=0, 
+              const double=0, const double=0);
         Conic(const std::tuple<double, double, double, double, double>&);
         Conic(const std::vector<double>&);
         void setGeometricParameters(const std::vector<double>&);
@@ -58,6 +60,8 @@ class ConicMatrix {
     ConicMatrix();
 }; 
 
+Eigen::Vector3d getNorthPoleUnitVector();
+void getNorthPoleUnitVector(Eigen::Vector3d&);
 double getCofactor(const Eigen::MatrixXd& matrix, int p, int q);
 Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix);
 Eigen::MatrixXd getMatrixAdjugate(const Eigen::MatrixXd&);
@@ -65,8 +69,11 @@ Eigen::Matrix3d get3x3SymmetricMatrixAdjugate(const Eigen::Matrix3d&);
 bool IntersectionLines(const Eigen::Matrix3d&, 
                        const Eigen::Matrix3d&,
                        std::tuple<Eigen::Vector3d, Eigen::Vector3d>&);
-bool ChooseIntersection(const std::tuple<Eigen::Vector3d, Eigen::Vector3d>&, 
-                        const Eigen::Vector2d&, const Eigen::Vector2d&, Eigen::Vector3d&);
+bool ChooseIntersection(const std::tuple<Eigen::Vector3d, 
+                        Eigen::Vector3d>&, 
+                        const Eigen::Vector2d&, 
+                        const Eigen::Vector2d&, 
+                        Eigen::Vector3d&);
 bool IntersectConics(const Eigen::Matrix3d&, 
                      const Eigen::Matrix3d&, 
                      const double,
@@ -79,4 +86,13 @@ bool computeCraterTriadInvariants(Conic&, Conic&, Conic&,
                                   std::vector<double>&);
 Eigen::Matrix3d getENUFrame(const Eigen::Vector3d&);
 void generateQuadricFromRadiusNormal();
-Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d&, const Eigen::Matrix3d& T_e2m);
+Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d&, 
+                                                    const Eigen::Matrix3d& T_e2m);
+Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, 
+                                       const Eigen::Vector3d& desired_location);
+Eigen::Quaterniond eulerToQuaternion(const double roll, const double pitch, const double yaw);
+void eulerToQuaternion(const double roll,
+                       const double pitch,
+                       const double yaw,
+                       Eigen::Matrix3d& dcm);                           
+#endif

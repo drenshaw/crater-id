@@ -4,5 +4,6 @@ install_headers('structs.h',
                 'combinatorics.h',
                 'vector_math.h', 
                 'conics.h',
-                'quadrics.h'
+                'quadrics.h',
+                'visuals.h',
                 )

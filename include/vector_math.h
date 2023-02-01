@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VECTOR_MATH
+#define VECTOR_MATH
 
 #include <math.h>
 #include <vector>
@@ -40,7 +41,7 @@ template <typename T>
 void makeUnique(T& vec);
 template <typename T>
 std::vector<uint> getRange(std::vector<T> vec);
-Eigen::Matrix3d normalizeDeterminant(const Eigen::Matrix3d& mtx);
+Eigen::MatrixXd normalizeDeterminant(const Eigen::MatrixXd& mtx);
 Eigen::Matrix3d crossMatrix(const Eigen::Vector3d&);
 void normalizeVector(Eigen::Vector3d&);
 void normalizeVector(const Eigen::Vector3d&, Eigen::Vector3d&);
@@ -101,3 +102,5 @@ template <typename T>
 T vectorNorm(const Eigen::Vector3d& vec) {
   return vec/vec.norm();
 }
+
+#endif
