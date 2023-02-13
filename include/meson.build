@@ -6,4 +6,5 @@ install_headers('structs.h',
                 'conics.h',
                 'quadrics.h',
                 'visuals.h',
+                'camera.h',
                 )

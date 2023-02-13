@@ -14,10 +14,6 @@ cpp = meson.get_compiler('cpp')
 # dir_base = meson.current_source_dir()
 # dir_lib = join_paths(dir_base, 'lib')
 
-# mylib_inc = include_directories('include', 'src')
-# lib_vtk = cpp.find_library('vtk-9.2', dirs: ['/usr/local/lib','/usr/local','/usr/local/include'], required: false)
-# lib_glfw = cpp.find_library('glfw3', dirs: dir_lib, required: true)
-
 subdir('include')
 subdir('src')
 subdir('test')

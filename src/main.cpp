@@ -3,6 +3,7 @@
 #include <spatialindex/capi/sidx_api.h>
 #include <boost/geometry.hpp>
 #include <boost/geometry/index/rtree.hpp>
+#include <boost/program_options.hpp>
 #include "structs.h"
 #include "crater-id.h"
 #include "combinatorics.h"
@@ -10,12 +11,47 @@
 #include "conics.h"
 #include "quadrics.h"
 #include "visuals.h"
+#include "camera.h"
+
 // #include <vtk3DS.h>
 // #include <vtkActor.h>
 // #include "gnuplot-iostream.h"
+namespace po = boost::program_options;
+using namespace boost::program_options;
 
+void on_age(int age)
+{
+  std::cout << "On age: " << age << '\n';
+}
 
-int main() {
+int main(int argc, char** argv) {
+  try
+  {
+    boost::program_options::options_description desc
+        ("\nMandatory arguments marked with '*'.\n"
+           "Invocation : <program> --host <hostname> --port <port> <web_app_name> <web_app_schema_file> \nAgruments");
+    // po::options_description tester_options("Tester options");
+    // boost::program_options::options_description desc{"Options"};
+    // desc.add_options()
+    //   ("help,h", "Help screen");
+    //   ("pi", value<float>()->default_value(3.14f), "Pi")
+    //   ("age", value<int>()->notifier(on_age), "Age");
+
+    // variables_map vm;
+    // store(parse_command_line(argc, argv, desc), vm);
+    // notify(vm);
+
+    // if (vm.count("help"))
+    //   std::cout << desc << '\n';
+    // else if (vm.count("age"))
+    //   std::cout << "Age: " << vm["age"].as<int>() << '\n';
+    // else if (vm.count("pi"))
+    //   std::cout << "Pi: " << vm["pi"].as<float>() << '\n';
+  }
+  catch (const error &ex)
+  {
+    std::cerr << ex.what() << '\n';
+  }
     // VIS::Other();
     // VIS::Sphere();
     // VIS::Cone();
@@ -111,7 +147,7 @@ int main() {
                   << "\t" << craters[j]
                   << "\t" << craters[k]
                   << std::endl;
-        if(t_count > 50) {
+        if(t_count > 10) {
             break;
         }
     }
@@ -135,6 +171,9 @@ int main() {
     double maxVal = locus.cwiseAbs().maxCoeff();
     maxVal = locus(0, 0);
     std::cout << "QLocus:\n" << locus/maxVal/2.5 << std::endl;
+
+    std::vector<double> intrin = {10, 10, 511.5, 241.5, 0};
+    Camera cam(intrin);
 
 
     // // Conic conicA(10, 7, -100, -50, 0);

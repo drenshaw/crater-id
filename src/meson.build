@@ -1,6 +1,7 @@
 cid_sources = ['main.cpp', 
                'conics.cpp', 
                'quadrics.cpp',
+               'camera.cpp',
                'io.cpp', 
                'crater-id.cpp', 
                'combinatorics.cpp', 
