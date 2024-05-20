@@ -1,4 +1,5 @@
-#pragma once
+#ifndef STRUCTS_H
+#define STRUCTS_H
 
 #include <string>
 
@@ -28,27 +29,29 @@ enum columns {
 
 typedef struct martian_crater {
     std::string crater_id;
-	float  lat;
-	float  lon;
-	float  diam;
-    float  ecc;
+	double  lat;
+	double  lon;
+	double  diam;
+    double  ecc;
     uint   npts;
     std::string crater_name;
 } martian_crater;
 
 typedef struct lunar_crater {
     std::string crater_id;
-	float  lat;
-	float  lon;
-	float  diam;
-	float  ecc;
-	float  ell;
-	float  arc;
+	double  lat;
+	double  lon;
+	double  diam;
+	double  ecc;
+	double  ell;
+	double  arc;
 	uint   npts;
 } lunar_crater;
 
 typedef struct Point {
-    float x;
-    float y;
-    float z;
+    double x;
+    double y;
+    double z;
 } Point;
+
+#endif

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COMBINATORICS_H
+#define COMBINATORICS_H
 
 #include <iostream>
 #include <vector>
@@ -31,13 +32,13 @@ void specialCombination(const std::vector<T> choices,
                         std::vector<std::tuple<uint, uint>>& valid_craters,
                         const N max_angle_deg) {
     const uint n = choices.size();
-    // const float max_angle_deg = 30.;
+    // const double max_angle_deg = 30.;
     const N max_angle_rad = deg2rad(max_angle_deg);
     // trig function are expensive in loops, so use the max dot product
     // angle = acos(dot(a,b)) == cos(angle) = dot(a,b)
     const N min_dot_prod = cos(max_angle_rad);
 
-    Point pt1, pt2;
+    Eigen::Vector3d pt1, pt2;
     // std::vector<std::tuple<T, T>> valid_craters;
     std::string lat1, lat2, lon1, lon2;
     T current_choice, next_choice;
@@ -63,13 +64,13 @@ template <typename T, typename N>
 std::vector<std::tuple<T, T>> specialCombination(const std::vector<T> choices, 
                                                  const N max_angle_deg) {
     const uint n = choices.size();
-    // const float max_angle_deg = 30.;
+    // const double max_angle_deg = 30.;
     const N max_angle_rad = deg2rad(max_angle_deg);
     // trig function are expensive in loops, so use the max dot product
     // angle = acos(dot(a,b)) == cos(angle) = dot(a,b)
     const N min_dot_prod = cos(max_angle_rad);
 
-    Point pt1, pt2;
+    Eigen::Vector3d pt1, pt2;
     std::vector<std::tuple<T, T>> valid_craters;
     std::string lat1, lat2, lon1, lon2;
     T current_choice, next_choice;
@@ -91,3 +92,5 @@ std::vector<std::tuple<T, T>> specialCombination(const std::vector<T> choices,
     std::cout << "Valid combinations: " << valid_craters.size() << std::endl;
     return valid_craters;
 }
+
+#endif
