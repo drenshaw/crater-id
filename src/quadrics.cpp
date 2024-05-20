@@ -87,7 +87,10 @@ Eigen::Matrix4d generateQuadricFromRadiusNormal(const Eigen::Vector3d& position,
     // eq 40 of Christian, Derksen, and Watkins [2020]
     Eigen::Matrix4d quadric_envelope = conicEnvelopeToQuadricEnvelope(conic_envelope, h_k);
     Eigen::Matrix4d quadric_locus = getMatrixAdjugate(quadric_envelope);
-    // bool success = normalizeDeterminant(quadric_locus);
+    bool success = normalizeDeterminant(quadric_locus);
+    if(!success){
+      std::cout << "PROBLEMS!\n";
+    }
     return quadric_locus;
 }
 

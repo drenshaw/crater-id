@@ -21,11 +21,12 @@ void operator *(Eigen::Vector3d& vec, T scalar) {
   }
 }
 
-double getCofactor(const Eigen::MatrixXd& matrix, size_t cf_row, size_t cf_col) {
+template <typename Derived, int size>
+Derived getCofactor(const Eigen::Matrix<Derived, size, size>& matrix, size_t cf_row, size_t cf_col) {
   size_t nrow = matrix.rows();
   size_t ncol = matrix.cols();
   size_t i = 0, j = 0;
-  Eigen::MatrixXd cf_temp(nrow-1, ncol-1);
+  Eigen::MatrixX<Derived> cf_temp(nrow-1, ncol-1);
 
   // Looping for each element of the matrix
   for (size_t irow = 0; irow < nrow; irow++) {
@@ -47,10 +48,11 @@ double getCofactor(const Eigen::MatrixXd& matrix, size_t cf_row, size_t cf_col) 
   return cf_temp.determinant();
 }
 
-Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix) {
+template <typename Derived, int size>
+Eigen::Matrix<Derived, size, size> getCofactorMatrix(const Eigen::Matrix<Derived, size, size>& matrix) {
   size_t nrow = matrix.rows();
   size_t ncol = matrix.cols();
-  Eigen::MatrixXd cofactor_matrix(nrow, ncol);
+  Eigen::MatrixX<Derived> cofactor_matrix(nrow, ncol);
   int cofactor_sign;
   for(size_t row=0;row<nrow; row++) {
     for(size_t col=0; col<ncol; col++) {
@@ -61,13 +63,15 @@ Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix) {
   return cofactor_matrix;
 }
 
-Eigen::MatrixXd getMatrixAdjugate(const Eigen::MatrixXd& matrix) {
-  Eigen::MatrixXd mtx_adj = getCofactorMatrix(matrix);
+template <typename Derived, int size>
+Eigen::Matrix<Derived, size, size> getMatrixAdjugate(const Eigen::Matrix<Derived, size, size>& matrix) {
+  Eigen::MatrixX<Derived> mtx_adj = getCofactorMatrix(matrix);
   // Matrix adjugate is the transpose of the cofactor matrix
   return mtx_adj.transpose();
 }
 
-Eigen::Matrix3d get3x3SymmetricMatrixAdjugate(const Eigen::Matrix3d& mtx) {
+template <typename Derived, int size>
+Eigen::Matrix<Derived, size, size> get3x3SymmetricMatrixAdjugate(const Eigen::Matrix<Derived, size, size>& mtx) {
   Eigen::Matrix3d mtx_adj = Eigen::Matrix3d(3, 3);
 
   // get elements of A
@@ -185,9 +189,9 @@ std::vector<uint> getRange(std::vector<T> vec) {
   return vec_range;
 }
 
-// template <typename T>
-// bool normalizeDeterminant(Eigen::DenseBase<T>& mtx) {
-bool normalizeDeterminant(Eigen::Matrix4d& mtx) {
+template <typename T, int size>
+bool normalizeDeterminant(Eigen::Matrix<T, size, size>& mtx) {
+// bool normalizeDeterminant(Eigen::Matrix4d& mtx) {
   // using approach from Matrix Cookbook
   // https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
   // get the determinant

@@ -13,10 +13,14 @@
 
 #define EPS (10 * std::numeric_limits<T>::epsilon())
 
-double getCofactor(const Eigen::MatrixXd& matrix, int p, int q);
-Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix);
-Eigen::MatrixXd getMatrixAdjugate(const Eigen::MatrixXd&);
-Eigen::Matrix3d get3x3SymmetricMatrixAdjugate(const Eigen::Matrix3d&);
+template <typename Derived, int size>
+Derived getCofactor(const Eigen::Matrix<Derived, size, size>& matrix, size_t cf_row, size_t cf_col);
+template <typename Derived, int size>
+Eigen::Matrix<Derived, size, size> getCofactorMatrix(const Eigen::Matrix<Derived, size, size>& matrix);
+template <typename Derived, int size>
+Eigen::Matrix<Derived, size, size> getMatrixAdjugate(const Eigen::Matrix<Derived, size, size>& matrix);
+template <typename Derived, int size>
+Eigen::Matrix<Derived, size, size> get3x3SymmetricMatrixAdjugate(const Eigen::Matrix<Derived, size, size>& mtx);
 
 template <typename T>
 T deg2rad(const T deg);
@@ -51,7 +55,8 @@ template <typename T>
 void makeUnique(T& vec);
 template <typename T>
 std::vector<uint> getRange(std::vector<T> vec);
-bool normalizeDeterminant(Eigen::MatrixXd& mtx);
+template <typename T, int size>
+bool normalizeDeterminant(Eigen::Matrix<T, size, size>& mtx);
 Eigen::Matrix3d crossMatrix(const Eigen::Vector3d&);
 void normalizeVector(Eigen::Vector3d&);
 void normalizeVector(const Eigen::Vector3d&, Eigen::Vector3d&);
