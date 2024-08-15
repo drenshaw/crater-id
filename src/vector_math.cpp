@@ -62,6 +62,7 @@ Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix) {
 }
 
 Eigen::MatrixXd getMatrixAdjugate(const Eigen::MatrixXd& matrix) {
+  // TODO: ensure that row and column counts are equal
   Eigen::MatrixXd mtx_adj = getCofactorMatrix(matrix);
   // Matrix adjugate is the transpose of the cofactor matrix
   return mtx_adj.transpose();
