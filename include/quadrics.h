@@ -5,7 +5,6 @@
 #include "conics.h"
 #include "vector_math.h"
 
-
 class Quadric {
     public:
         Quadric(const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal, const std::string id="");
@@ -39,9 +38,11 @@ class Quadric {
         friend std::ostream& operator<<(std::ostream& os, const Quadric&);
 };
 
-Eigen::Matrix4d generateQuadricFromRadiusNormal(const Eigen::Vector3d& position, const Eigen::Vector3d&, double radius);
+Eigen::Matrix4d generateQuadricFromRadiusNormal(const Eigen::Vector3d& position, const double radius);
 Eigen::Matrix4d conicEnvelopeToQuadricEnvelope(const Eigen::Matrix3d& conic_envelope, 
                                                const Eigen::MatrixXd& h_k);
-std::tuple<Eigen::Vector4d, Eigen::Vector3d> surfacePointToPlane(const Eigen::Matrix3d& T_e2m, const Eigen::Vector3d& surface_point);
+std::tuple<Eigen::Vector4d, Eigen::Vector3d> 
+surfacePointToPlane(const Eigen::Matrix3d& T_e2m, 
+                    const Eigen::Vector3d& surface_point);
 
 #endif

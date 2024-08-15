@@ -30,11 +30,11 @@ Conic::Conic(const std::vector<double>& geom_vec) {
   setGeometricParameters(geom_vec);
 }
 
-void Conic::set_id() {
+void Conic::setID() {
   id_ = next_id++;
 }
 
-int Conic::get_id() {
+int Conic::getID() {
   return id_;
 }
 
@@ -43,14 +43,14 @@ void Conic::conic(const double semimajor_axis,
                   const double x_center, 
                   const double y_center, 
                   const double angle) {
-  set_id();
+  setID();
   semimajor_axis_ = semimajor_axis;
   semiminor_axis_ = semiminor_axis;
   x_center_ = x_center;
   y_center_ = y_center;
   angle_ = angle;
-  implicit_ = Geom2Implicit();
-  locus_ = Geom2Locus();
+  // implicit_ = Geom2Implicit();
+  // locus_ = Geom2Locus();
   }
 
 bool Conic::operator==(const Conic& other_conic) {
@@ -59,6 +59,14 @@ bool Conic::operator==(const Conic& other_conic) {
           almost_equal(x_center_, other_conic.x_center_) &&
           almost_equal(y_center_, other_conic.y_center_) &&
           almost_equal(angle_, other_conic.angle_);
+}
+
+bool Conic::operator!=(const Conic& other_conic) {
+  return  !almost_equal(semimajor_axis_, other_conic.semimajor_axis_) ||
+          !almost_equal(semiminor_axis_, other_conic.semiminor_axis_) ||
+          !almost_equal(x_center_, other_conic.x_center_) ||
+          !almost_equal(y_center_, other_conic.y_center_) ||
+          !almost_equal(angle_, other_conic.angle_);
 }
 
 void Conic::setGeometricParameters(const std::vector<double>& geom_vec) {
@@ -100,7 +108,7 @@ std::vector<double> Conic::getImplicit() {
 }
 
 Eigen::Matrix3d Conic::getLocus() {
-  return locus_;
+  return Geom2Locus();
 }
 
 Eigen::Matrix3d Conic::getEnvelope() {
@@ -182,7 +190,7 @@ Eigen::Matrix3d Conic::Implicit2Locus(const std::vector<double>& impl_params) {
 Eigen::Matrix3d Conic::Implicit2Locus() {
   Eigen::Matrix3d locus_mtx(3,3);
   double A, B, C, D, E, F;
-  const std::vector<double>& impl_params = implicit_;
+  const std::vector<double>& impl_params = Geom2Implicit();
   A = impl_params[0];
   B = impl_params[1];
   C = impl_params[2];

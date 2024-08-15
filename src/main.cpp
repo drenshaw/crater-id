@@ -13,6 +13,9 @@
 #include <boost/log/trivial.hpp>
 #include <Eigen/src/LU/InverseImpl.h>
 
+#define BOOST_LOG_DYN_LINK 1
+// #include <boost/log/utility/setup/console.hpp>
+
 #include "structs.h"
 #include "crater-id.h"
 #include "combinatorics.h"
@@ -22,9 +25,14 @@
 #include "visuals.h"
 #include "camera.h"
 
-// #include <vtk3DS.h>
-// #include <vtkActor.h>
-// #include "gnuplot-iostream.h"
+#define RUN_ADJUGATE 0
+#define RUN_VTK 0
+#define RUN_RTREE 0
+#define RUN_TRIADS 0
+#define RUN_LOGGING 1
+#define RUN_QUADRICS 1
+#define RUN_CONICS 0
+#define RUN_INVARIANTS 0
 
 void plot_ellipse(cv::Mat& image, Conic& ellipse, const cv::Scalar color=cv::Scalar(0, 255, 0)) {
   cv::Point center;
@@ -38,7 +46,7 @@ void plot_ellipse(cv::Mat& image, Conic& ellipse, const cv::Scalar color=cv::Sca
   float font_scale = 1; // scale factor from base size
   int thickness = 1; //in pixels
   cv::Scalar text_color(color[1], color[2], color[1]);
-  cv::putText(image, std::to_string(ellipse.get_id()), center, font, font_scale,
+  cv::putText(image, std::to_string(ellipse.getID()), center, font, font_scale,
               text_color, thickness, true);
 }
 
@@ -62,11 +70,16 @@ void print_triads(const std::vector<std::tuple<uint, uint, uint>> triads,
   }
 }
 
-// namespace logging = boost::log;
-// void init_logging() {     
-//   logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::warning);
-// }
+#if RUN_LOGGING
+namespace logging = boost::log;
+namespace keywords = boost::log::keywords;
+void init_logging() {     
+  // logging::add_console_log(std::clog, keywords::format = "%TimeStamp%: %Message%");
+  // logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::warning);
+}
+#endif
 
+#if RUN_ADJUGATE
 template <typename Derived, int size>
 Derived getCofactorTemplate(const Eigen::Matrix<Derived, size, size>& matrix, size_t cf_row, size_t cf_col) {
   size_t nrow = matrix.rows();
@@ -108,36 +121,47 @@ Eigen::Matrix<Derived, size, size> getCofactorMatrixTemplate(const Eigen::Matrix
   }
   return cofactor_matrix;
 }
+#endif
 
 
 int main(int argc, char** argv) {
-  Eigen::MatrixXd m1 = Eigen::MatrixXd::Random(4,4);
-  Eigen::MatrixXd m2 = Eigen::MatrixXd::Random(5,5);
-  Eigen::MatrixXd madj = getMatrixAdjugate(m1);
-  Eigen::MatrixXd madj2 = getCofactorMatrixTemplate(m2).transpose();
-  double det = m1.determinant();
-  Eigen::MatrixXd invv = m1.inverse();
-  Eigen::MatrixXd m4 = det*invv;
-  Eigen::MatrixXd m5 = det*m1.adjoint();
-  std::cout << std::endl << madj << std::endl;
-  Eigen::MatrixXd res = madj - m4;
-  
-  double prec = sqrt(Eigen::NumTraits<double>::epsilon());
-  if(madj.isApprox(m4, prec)) {
-  // if(res.isApproxToConstant(0.0)) {
-  // if(res.norm() > prec) {
-  // if(madj.isApprox(m4)) {
-    std::cout << "Limits exceeded: "
-    << std::endl << res << std::endl 
-    << "\tNorm: " << res.norm() << std::endl
-    << "\tEpsilon: " << prec << std::endl;
-  }
-  return 0;
+#if RUN_ADJUGATE
+    Eigen::MatrixXd m1 = Eigen::MatrixXd::Random(4,4);
+    Eigen::MatrixXd m2 = Eigen::MatrixXd::Random(5,5);
+    Eigen::MatrixXd madj = getMatrixAdjugate(m1);
+    Eigen::MatrixXd madj2 = getCofactorMatrixTemplate(m2).transpose();
+    double det = m1.determinant();
+    Eigen::MatrixXd invv = m1.inverse();
+    Eigen::MatrixXd m4 = det*invv;
+    Eigen::MatrixXd m5 = det*m1.adjoint();
+    // std::cout << "Matrix adjugate: \n" << std::endl << madj << std::endl;
+    Eigen::MatrixXd res = madj - m4;
+    
+    double prec = sqrt(Eigen::NumTraits<double>::epsilon());
+    if(!madj.isApprox(m4, prec)) {
+    // if(res.isApproxToConstant(0.0)) {
+    // if(res.norm() > prec) {
+    // if(madj.isApprox(m4)) {
+      std::cout << "Limits exceeded: "
+      << std::endl << res << std::endl 
+      << "\tNorm: " << res.norm() << std::endl
+      << "\tEpsilon: " << prec << std::endl;
+    }
+#endif
 
+#if RUN_LOGGING
   // init_logging();
+    // BOOST_LOG_TRIVIAL(trace) << "A trace severity message";
+    // BOOST_LOG_TRIVIAL(debug) << "A debug severity message";
+    // BOOST_LOG_TRIVIAL(info) << "An informational severity message";
+    // BOOST_LOG_TRIVIAL(warning) << "A warning severity message";
+    // BOOST_LOG_TRIVIAL(error) << "An error severity message";
+    // BOOST_LOG_TRIVIAL(fatal) << "A fatal severity message";
   // BOOST_LOG_TRIVIAL(error) << "Testing the log error";
+#endif
+#if RUN_VTK
   // VIS::Other();
-  // VIS::Sphere();
+  VIS::Sphere();
   // VIS::Cone();
   // VIS::Ellipsoid();
   // VIS::Cylinder();
@@ -145,11 +169,11 @@ int main(int argc, char** argv) {
   // VIS::HyperboloidTwoSheets();
   // VIS::HyperbolicParaboloid();
   // VIS::EllipticParaboloid();
+#endif
 
-
-  std::string fname;
+#if RUN_RTREE
   const std::string degrees = "°";
-/*  // RTree
+  // RTree
   std::vector<Rect> objects;
   objects.push_back(Rect(0, 0, 2, 2));
   objects.push_back(Rect(5, 5, 7, 7));
@@ -194,9 +218,10 @@ int main(int argc, char** argv) {
   for(auto& res : result_n) {
     std::cout << std::get<1>(res) << std::get<0>(res) << std::endl;
   }
-*/
+#endif
     
-
+#if RUN_TRIADS
+  std::string fname;
   // Crater Reading
   // cout<<"Enter crater file name: ";
   // cin>>fname;
@@ -216,6 +241,7 @@ int main(int argc, char** argv) {
   
   std::vector<std::tuple<uint, uint, uint>> triads;
   formTriads(valids, triads);
+
   std::cout << triads.size() << " valid triads found." << std::endl;
   // uint idx = 0;
   // for(const auto& [i, j, k]: triads) {
@@ -224,35 +250,43 @@ int main(int argc, char** argv) {
 
   int max_iter = 10;
   print_triads(triads, craters, max_iter);
+#endif
   
+#if RUN_QUADRICS
+  /* QUADRICS */
   // lunar_crater crater = craters[0];
   // double radius = crater.diam/2;
+  double radius = 30.0;
   // double r_radius_rim = calculateCraterRimFromRadius(radius);
-  Eigen::Vector3d position = {2., 1.25, -1.25};
+  // Eigen::Vector3d position = {2.3, 1.25, -1.75};
+  Eigen::Vector3d position = {0, 1, 2};
+  // Eigen::Vector3d position = {0, 0, 0}; // should fail assert in quadric constructor
   // Eigen::Vector3d orientation = {4., 2.5, -1.5};
+  Eigen::Vector3d orientation = {1, 0, 0};
   // orientation.normalize();
   // double lat = crater.lat;
   // double lon = crater.lon;
   // Quadric quad("TestQuadric", position, radius);
   // Quadric quad("LatLonQuadric", lat, lon, radius);
-  Quadric quad("SmallQuadric", position, 3.0);
+  Quadric quad("SmallQuadric", position, radius, orientation);
   // std::cout << "Location: (" << r_radius_rim*latlon2unitVector(lat, lon).transpose() << ")" << std::endl;
   std::cout << quad << std::endl;
 
   Eigen::Matrix4d locus = quad.getLocus();
   // locus(3,3) = 0;
   double maxVal = locus.cwiseAbs().maxCoeff();
-  maxVal = locus(0, 0);
-  std::cout << "QLocus:\n" << locus/maxVal/2.5 << std::endl;
+  // maxVal = locus(0, 0);
+  std::cout << "QLocus:\n" << locus/maxVal << std::endl;
+#endif
 
+#if RUN_CONICS
   std::vector<double> intrin = {10, 10, 511.5, 241.5, 0};
   Camera cam(intrin);
 
   cv::Mat image(500, 500, CV_8UC3,
                 cv::Scalar(50, 50, 50));
   if (!image.data) {
-    std::cout << "Could not open or "
-              << "find the image\n";
+    std::cout << "Could not open or find the image\n";
     return 0;
   }
 
@@ -273,9 +307,15 @@ int main(int argc, char** argv) {
   // Showing image inside a window
   cv::imshow("Output", image);
   cv::waitKey(0);
+  assert(conicA == conicA);
+  assert(!(conicA == conicB));
+  assert(conicA != conicB);
   std::cout << "Does this match? It should: " << (conicA == conicA) << std::endl;
   std::cout << "Does this match? It shouldn't: " << (conicA == conicB) << std::endl;
   std::cout << "IDs? " << conicA.get_id() << " | " << conicB.get_id() << std::endl;
+#endif
+
+
   int sz[3] = {2,2,2};
   cv::Mat L(3,sz, CV_8UC(1), cv::Scalar::all(0));
   std::cout << L.size() << std::endl;
@@ -290,7 +330,8 @@ int main(int argc, char** argv) {
   // // test << 1,2,3, 4,5,6, 7,8,9;
   // Eigen::MatrixXd adjugate = getMatrixAdjugate(test);
   // // std::cout << "Adjugate:\n" << adjugate << std::endl;
-/*  // Invariants 
+
+#if RUN_INVARIANTS
   // Invariants
   std::vector<double> invariantsABC, invariantsBCD, invariantsCDA, invariantsDAB;
   if(!computeCraterTriadInvariants(conicA, conicB, conicC, invariantsABC)) {
@@ -305,11 +346,12 @@ int main(int argc, char** argv) {
   if(!computeCraterTriadInvariants(conicD, conicA, conicB, invariantsDAB)) {
     std::cerr << "Error in `computeCraterTriadInvariants`" << std::endl;
   }
-  printVector(invariantsABC, "Invariants: ");
-  printVector(invariantsBCD, "Invariants: ");
-  printVector(invariantsCDA, "Invariants: ");
-  printVector(invariantsDAB, "Invariants: ");
-*/
+  printVector(invariantsABC, "Invariants ABC: ");
+  printVector(invariantsBCD, "Invariants BCD: ");
+  printVector(invariantsCDA, "Invariants CDA: ");
+  printVector(invariantsDAB, "Invariants DAB: ");
+#endif
+
     return 0;
 }
 

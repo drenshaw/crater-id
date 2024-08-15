@@ -1,6 +1,5 @@
 #include "quadrics.h"
 
-
 Quadric::Quadric(const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal, const std::string id)
 {
     MakeQuadric(position, radius, surface_normal, id);
@@ -24,16 +23,20 @@ Quadric::Quadric(const std::string id, const Eigen::Vector3d& position, const do
 }
 void Quadric::MakeQuadric(const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal, const std::string id) {
     surface_point_ = position;
+    assert(("The surface normal is not defined or ==0.", surface_normal.norm() != 0));
     surface_normal_ = surface_normal;
     surface_normal_.normalize();
     radius_ = radius;
     id_ = id;
-    T_e2m_= getQuadricTransformationMatrix();
+    T_e2m_ = getQuadricTransformationMatrix();
+    std::cout << "T_e2m: (determinant " << T_e2m_.determinant() << ")\n" << T_e2m_ << std::endl;
     Conic conic(radius, radius, 0, 0, 0);
     locus_ = generateQuadricLocus();
+    std::cout << "Locus \n" << locus_ << std::endl;
     envelope_ = getMatrixAdjugate(locus_);
     std::tie(plane_, plane_normal_) = surfacePointToPlane(T_e2m_, surface_point_);
 }
+// assumes that the surface normal of the crater is in line with the position wrt Moon center
 void Quadric::MakeQuadric(const Eigen::Vector3d& position, const double radius, const std::string id) {
     Eigen::Vector3d surface_normal = position.normalized();
     MakeQuadric(position, radius, surface_normal, id);
@@ -49,7 +52,7 @@ void Quadric::MakeQuadric(const double lat, const double lon, const double radiu
         
 Eigen::Matrix4d Quadric::generateQuadricLocus() {
     Eigen::Matrix4d quadric_locus;
-    return generateQuadricFromRadiusNormal(surface_point_, surface_normal_, radius_);
+    return generateQuadricFromRadiusNormal(surface_point_, radius_);
 }
 
 Eigen::Matrix3d Quadric::getQuadricTransformationMatrix() {
@@ -78,7 +81,7 @@ std::tuple<Eigen::Vector4d, Eigen::Vector3d> surfacePointToPlane(const Eigen::Ma
     return {plane, plane_normal};
 }
 
-Eigen::Matrix4d generateQuadricFromRadiusNormal(const Eigen::Vector3d& position, const Eigen::Vector3d&, double radius) {
+Eigen::Matrix4d generateQuadricFromRadiusNormal(const Eigen::Vector3d& position, const double radius) {
     Conic conic(radius, radius, 0, 0, 0);
     Eigen::Matrix3d conic_envelope = conic.getEnvelope();
 

@@ -35,3 +35,6 @@
 # VS Code settings
 *.code-workspace
 .vscode/
+
+builddir/
+subprojects/*

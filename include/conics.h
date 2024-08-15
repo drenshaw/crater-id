@@ -28,6 +28,7 @@ class Conic {
     Conic(const std::tuple<double, double, double, double, double>&);
     Conic(const std::vector<double>&);
     bool operator==(const Conic&);
+    bool operator!=(const Conic& other_conic);
     void setGeometricParameters(const std::vector<double>&);
     void setImplicitParameters(const std::vector<double>& impl_params);
     void setLocus(const Eigen::Matrix3d& locus);
@@ -39,7 +40,7 @@ class Conic {
     void getSemiAxes(Eigen::Vector2d& semiaxes);
     void getSemiAxes(cv::Point& semiaxes);
     double getAngle();
-    int get_id();
+    int getID();
     std::vector<double> getGeom();
     std::vector<double> getImplicit();
     Eigen::Matrix3d getLocus();
@@ -67,10 +68,10 @@ class Conic {
     double y_center_;
     double angle_;
     unsigned int id_;
-    void set_id();
+    void setID();
     void conic(const double, const double, const double, const double, const double);
-    Eigen::Matrix3d locus_;
-    std::vector<double> implicit_;
+    // Eigen::Matrix3d locus_;
+    // std::vector<double> implicit_;
     // std::tuple<double, double, double, double, double> geom;
 };
 
