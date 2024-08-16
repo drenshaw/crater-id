@@ -37,16 +37,16 @@
 void plot_ellipse(cv::Mat& image, Conic& ellipse, const cv::Scalar color=cv::Scalar(0, 255, 0)) {
   cv::Point center;
   Eigen::Vector2d semiaxes;
-  ellipse.getCenter(center);
-  ellipse.getSemiAxes(semiaxes);
+  ellipse.GetCenter(center);
+  ellipse.GetSemiAxes(semiaxes);
   cv::Size axes(semiaxes[0], semiaxes[1]);
-  double angle = ellipse.getAngle();
+  double angle = ellipse.GetAngle();
   cv::ellipse(image, center, axes, angle, 0, 360, color, -1, cv::LINE_AA);
   int font = cv::FONT_HERSHEY_SIMPLEX;
   float font_scale = 1; // scale factor from base size
   int thickness = 1; //in pixels
   cv::Scalar text_color(color[1], color[2], color[1]);
-  cv::putText(image, std::to_string(ellipse.getID()), center, font, font_scale,
+  cv::putText(image, std::to_string(ellipse.GetID()), center, font, font_scale,
               text_color, thickness, true);
 }
 
@@ -269,10 +269,10 @@ int main(int argc, char** argv) {
   // Quadric quad("TestQuadric", position, radius);
   // Quadric quad("LatLonQuadric", lat, lon, radius);
   Quadric quad("SmallQuadric", position, radius, orientation);
-  // std::cout << "Location: (" << r_radius_rim*latlon2unitVector(lat, lon).transpose() << ")" << std::endl;
+  // std::cout << "Location: (" << r_radius_rim*latlon2bearing(lat, lon).transpose() << ")" << std::endl;
   std::cout << quad << std::endl;
 
-  Eigen::Matrix4d locus = quad.getLocus();
+  Eigen::Matrix4d locus = quad.GetLocus();
   // locus(3,3) = 0;
   double maxVal = locus.cwiseAbs().maxCoeff();
   // maxVal = locus(0, 0);
@@ -320,7 +320,7 @@ int main(int argc, char** argv) {
   cv::Mat L(3,sz, CV_8UC(1), cv::Scalar::all(0));
   std::cout << L.size() << std::endl;
   // std::cout << L.row(0).col(0).row(0) << std::endl;
-  // // Eigen::MatrixXd locus = conicA.getLocus();
+  // // Eigen::MatrixXd locus = conicA.GetLocus();
   // // Eigen::MatrixXd envelope = getMatrixAdjugate(locus);
   // Eigen::Matrix4d test;
   // test << 5,  -2,  2,  7,

@@ -1,25 +1,25 @@
 #include "vector_math.h"
 
-template <typename T>
-void operator /(Eigen::Vector3d& vec, T divisor) {
-  size_t siz = vec.size();
-  // for(auto& item : vec) {
-  for(size_t i=0; i<siz; i++) {
-    vec(i) /= divisor;
-    // item /= divisor;
-  }
-}
+// template <typename T>
+// void operator /(Eigen::Vector3d& vec, T divisor) {
+//   size_t siz = vec.size();
+//   // for(auto& item : vec) {
+//   for(size_t i=0; i<siz; i++) {
+//     vec(i) /= divisor;
+//     // item /= divisor;
+//   }
+// }
 
-template <typename T>
-void operator *(Eigen::Vector3d& vec, T scalar) {
-  size_t siz = vec.size();
-  // for(auto& item : vec) {
-  //   item *= scalar;
-  // }
-  for(size_t i=0; i<siz; i++) {
-    vec(i) *= scalar;
-  }
-}
+// template <typename T>
+// void operator *(Eigen::Vector3d& vec, T scalar) {
+//   size_t siz = vec.size();
+//   // for(auto& item : vec) {
+//   //   item *= scalar;
+//   // }
+//   for(size_t i=0; i<siz; i++) {
+//     vec(i) *= scalar;
+//   }
+// }
 
 double getCofactor(const Eigen::MatrixXd& matrix, size_t cf_row, size_t cf_col) {
   size_t nrow = matrix.rows();
@@ -159,9 +159,9 @@ double latlon_dist(const T crater1, const T crater2) {
 
 template <typename T>
 double latlon_dist(const T lat1, const T lon1, const T lat2, const T lon2) {
-  Eigen::Vector3d point1 = latlon2unitVector(lat1, lon1);
+  Eigen::Vector3d point1 = latlon2bearing(lat1, lon1);
   // normalizeVector(point1);
-  Eigen::Vector3d point2 = latlon2unitVector(lat2, lon2);
+  Eigen::Vector3d point2 = latlon2bearing(lat2, lon2);
   // normalizeVector(point2);
   return angularDistance(point1, point2);
 }

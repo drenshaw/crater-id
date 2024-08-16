@@ -77,9 +77,9 @@ struct Rect
 // template <typename T>
 // T rad2deg(const T);
 // template <typename T>
-// Point latlon2unitVector(const T lat, const T lon);
+// Point latlon2bearing(const T lat, const T lon);
 // template <typename T>
-// Point latlon2unitVector(const T crater);
+// Point latlon2bearing(const T crater);
 // template <typename R, typename T>
 // Point LLHtoECEF(const R, const T);
 // double vectorNorm(const Point pt);

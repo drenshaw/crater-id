@@ -3,6 +3,8 @@
 
 #include <math.h>
 #include <vector>
+#include <array>
+// #include <experimental/array>
 #include <algorithm>
 #include <numeric>
 #include <Eigen/Dense>
@@ -18,18 +20,20 @@ Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix);
 Eigen::MatrixXd getMatrixAdjugate(const Eigen::MatrixXd&);
 Eigen::Matrix3d get3x3SymmetricMatrixAdjugate(const Eigen::Matrix3d&);
 
+// TODO: be careful using templates here: if an "int" is passed, we get an "int" back
 template <typename T>
-T deg2rad(const T deg);
+double deg2rad(const T deg);
 template <typename T>
-T rad2deg(const T rad);
+double rad2deg(const T rad);
 template <typename T>
-Eigen::Vector3d latlon2unitVector(const T lat, const T lon);
+Eigen::Vector3d latlon2bearing(const T lat, const T lon);
 template <typename T>
-Eigen::Vector3d latlon2unitVector(const T crater);
-template <typename T>
-void operator /(Eigen::Vector3d& vec, T divisor);
-template <typename T>
-void operator *(Eigen::Vector3d& vec, T scalar);
+Eigen::Vector3d latlon2bearing(const T crater);
+// TODO: Why did I have these overloaded operators?
+// template <typename T>
+// void operator /(Eigen::Vector3d& vec, T divisor);
+// template <typename T>
+// void operator *(Eigen::Vector3d& vec, T scalar);
 template <typename T>
 Eigen::Vector3d llarToWorld(const T crater, double alt, double rad=1.0);
 template <typename R, typename T>
@@ -71,17 +75,27 @@ int arg_min(std::vector<T, A> const& vec) {
   return static_cast<int>(std::distance(vec.begin(), min_element(vec.begin(), vec.end())));
 }
 
-template <typename T>
-T deg2rad(const T deg) {
-    return deg * M_PI/180.;
+template <typename T, size_t SIZE>
+int arg_max(std::array<T, SIZE> const& arr) {
+  return static_cast<int>(std::distance(arr.begin(), std::max_element(arr.begin(), arr.end())));
 }
-template <typename T>
-T rad2deg(const T rad) {
-    return rad * 180. / M_PI;
+
+template <typename T, size_t SIZE>
+int arg_min(std::array<T, SIZE> const& arr) {
+  return static_cast<int>(std::distance(arr.begin(), std::min_element(arr.begin(), arr.end())));
 }
 
 template <typename T>
-Eigen::Vector3d latlon2unitVector(const T lat, const T lon) {
+double deg2rad(const T deg) {
+  return static_cast<double>(deg) * M_PI/180.;
+}
+template <typename T>
+double rad2deg(const T rad) {
+  return static_cast<float>(rad) * 180. / M_PI;
+}
+
+template <typename T>
+Eigen::Vector3d latlon2bearing(const T lat, const T lon) {
     double lat_rad = deg2rad(lat);
     double lon_rad = deg2rad(lon);
 
@@ -94,16 +108,16 @@ Eigen::Vector3d latlon2unitVector(const T lat, const T lon) {
 }
 
 template <typename T>
-Eigen::Vector3d latlon2unitVector(const T crater) {
-    return latlon2unitVector(crater.lat, crater.lon);
+Eigen::Vector3d latlon2bearing(const T crater) {
+    return latlon2bearing(crater.lat, crater.lon);
 }
 
-template<typename Iter_T>
+template <typename Iter_T>
 long double vectorNorm(Iter_T first, Iter_T last) {
   return sqrt(inner_product(first, last, first, 0.0L));
 }
 
-template<typename T>
+template <typename T>
 T vectorNorm(const std::vector<T> vec) {
     return vectorNorm(vec.begin(), vec.end());
 }
@@ -111,6 +125,13 @@ T vectorNorm(const std::vector<T> vec) {
 template <typename T>
 T vectorNorm(const Eigen::Vector3d& vec) {
   return vec/vec.norm();
+}
+
+template <typename T, size_t SIZE>
+void copy_vec2array(const std::vector<T> vec, std::array<T, SIZE>& arr) {
+  // arr = std::experimental::make_array(vec);
+  std::copy_n(std::make_move_iterator(vec.begin()), SIZE, arr.begin());
+  // std::copy_n(vec.begin(), SIZE, arr.begin());
 }
 
 #endif

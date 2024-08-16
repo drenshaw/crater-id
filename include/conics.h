@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <tuple>
-#include <vector>
+#include <array>
 #include <math.h>
 #include <Eigen/Dense>
 #include <opencv2/core/core.hpp>
@@ -13,6 +13,7 @@
 
 #define GEOMETRIC_PARAM 5
 #define IMPLICIT_PARAM 6
+#define CONIC_DIM 3
 
 template <typename T>
 bool almost_equal(const T a, const T b) {
@@ -21,38 +22,46 @@ bool almost_equal(const T a, const T b) {
 
 class Conic {
   public:
-    typedef std::tuple<double, double, double, double, double, double> tuple_impl;
-    // typedef std::tuple<double, double, double, double, double, double> tuple_impl;
     Conic(const double=0, const double=0, const double=0, 
           const double=0, const double=0);
-    Conic(const std::tuple<double, double, double, double, double>&);
-    Conic(const std::vector<double>&);
-    bool operator==(const Conic&);
+    Conic(const std::array<double, GEOMETRIC_PARAM>&);
+    bool operator==(Conic& other_conic);
     bool operator!=(const Conic& other_conic);
-    void setGeometricParameters(const std::vector<double>&);
-    void setImplicitParameters(const std::vector<double>& impl_params);
-    void setLocus(const Eigen::Matrix3d& locus);
+    void SetGeometricParameters(const std::array<double, GEOMETRIC_PARAM>&);
+    void SetGeometricParameters(const std::vector<double>&);
+    void SetGeometricParameters(const double, 
+                                const double, 
+                                const double, 
+                                const double, 
+                                const double);
+    void SetImplicitParameters(const std::array<double, IMPLICIT_PARAM>&);
+    void SetLocus(const Eigen::Matrix3d& locus);
     void NormalizeImplicitParameters(std::vector<double>&);
-    Eigen::Vector2d getCenter();
-    void getCenter(Eigen::Vector2d& center);
-    void getCenter(cv::Point& center);
-    Eigen::Vector2d getSemiAxes();
-    void getSemiAxes(Eigen::Vector2d& semiaxes);
-    void getSemiAxes(cv::Point& semiaxes);
-    double getAngle();
-    int getID();
-    std::vector<double> getGeom();
-    std::vector<double> getImplicit();
-    Eigen::Matrix3d getLocus();
-    Eigen::Matrix3d getEnvelope();
+    void NormalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>&);
+    Eigen::Vector2d GetCenter();
+    double GetCenterX();
+    double GetCenterY();
+    void GetCenter(Eigen::Vector2d& center);
+    void GetCenter(cv::Point& center);
+    double GetSemiMajorAxis();
+    double GetSemiMinorAxis();
+    Eigen::Vector2d GetSemiAxes();
+    void GetSemiAxes(Eigen::Vector2d& semiaxes);
+    void GetSemiAxes(cv::Point& semiaxes);
+    double GetAngle();
+    int GetID();
+    std::array<double, GEOMETRIC_PARAM> GetGeom();
+    std::array<double, IMPLICIT_PARAM> GetImplicit();
+    Eigen::Matrix3d GetLocus();
+    Eigen::Matrix3d GetEnvelope();
     // Eigen::Matrix3d getMatrixAdjugate(const Eigen::Matrix3d&);
-    std::vector<double> Locus2Implicit(const Eigen::Matrix3d&);
-    std::vector<double> Implicit2Geom(const std::vector<double>&);
+    std::array<double, IMPLICIT_PARAM> Locus2Implicit(const Eigen::Matrix3d&);
+    std::array<double, GEOMETRIC_PARAM> Implicit2Geom(const std::array<double, IMPLICIT_PARAM>&);
     Eigen::Matrix3d Geom2Locus();
-    Eigen::Matrix3d Implicit2Locus(const std::vector<double>&);
+    Eigen::Matrix3d Implicit2Locus(const std::array<double, IMPLICIT_PARAM>&);
     Eigen::Matrix3d Implicit2Locus();
-    std::vector<double> Locus2Geom(const Eigen::Matrix3d&);
-    std::vector<double> Geom2Implicit();
+    std::array<double, GEOMETRIC_PARAM> Locus2Geom(const Eigen::Matrix3d&);
+    std::array<double, IMPLICIT_PARAM> Geom2Implicit();
     bool ConicIntersectionLines(const Eigen::Matrix3d&, 
                                 std::tuple<Eigen::Vector3d, Eigen::Vector3d>&);
     bool ConicIntersectionLines(Conic&,
@@ -69,10 +78,15 @@ class Conic {
     double angle_;
     unsigned int id_;
     void setID();
-    void conic(const double, const double, const double, const double, const double);
-    // Eigen::Matrix3d locus_;
-    // std::vector<double> implicit_;
-    // std::tuple<double, double, double, double, double> geom;
+    void MakeConic( const double semimajor_axis, 
+                const double semiminor_axis, 
+                const double x_center, 
+                const double y_center, 
+                const double angle);
+    void MakeConic(const std::array<double, GEOMETRIC_PARAM>& geom_arr);
+    void MakeConic(const std::vector<double>& geom_vec);
+
+    friend std::ostream& operator<<(std::ostream& os, const Conic&);
 };
 
 class ConicImplicit {
@@ -87,8 +101,8 @@ class ConicMatrix {
   ConicMatrix();
 }; 
 
-Eigen::Vector3d getNorthPoleUnitVector();
-void getNorthPoleUnitVector(Eigen::Vector3d&);
+Eigen::Vector3d GetNorthPoleUnitVector();
+void GetNorthPoleUnitVector(Eigen::Vector3d&);
 bool IntersectionLines(const Eigen::Matrix3d&, 
                        const Eigen::Matrix3d&,
                        std::tuple<Eigen::Vector3d, Eigen::Vector3d>&);
@@ -105,10 +119,10 @@ bool computeInvariant(const Eigen::Vector3d&,
                       const Eigen::Vector3d&, 
                       const Eigen::Matrix3d&,
                       double&);
-bool computeCraterTriadInvariants(Conic&, Conic&, Conic&,
-                                  std::vector<double>&);
+bool computeCraterTriadInvariants(const Conic&, const Conic&, const Conic&,
+                                  std::array<double, CONIC_DIM>&);
 Eigen::Matrix3d getENUFrame(const Eigen::Vector3d&);
-void generateQuadricFromRadiusNormal();
+void GenerateQuadricFromRadiusNormal();
 Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d&, 
                                                     const Eigen::Matrix3d& T_e2m);
 Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, 

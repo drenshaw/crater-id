@@ -1,22 +1,47 @@
-vtk_dep = dependency('VTK', required: true)
-gtest_proj = subproject('gtest')
-# gtest_dep = dependency('gtest', required: true)
-gtest_dep = gtest_proj.get_variable('gtest_main_dep')
-# gtest_dep = dependency('gtest', fallback : ['gtest', 'gtest_dep'])
-exe = executable('gtest_project', 'cidtest.cpp',
-  dependencies : [gtest_dep],
-  install : true)
+# vtk_dep = dependency('VTK', required: true)
+# gtest_proj = subproject('gtest')
+# gtest_dep = gtest_proj.get_variable('gtest_main_dep')
+# # gtest_dep = dependency('gtest', required: true)
+# gtest_dep = gtest_proj.get_variable('gtest_main_dep')
+# # gtest_dep = dependency('gtest', fallback : ['gtest', 'gtest_dep'])
+# exe = executable('gtest_project', 'cidtest.cpp',
+#   dependencies : [gtest_dep],
+#   install : true)
 
-test('basic', exe)
+# test('basic', exe)
+
+gtest_dep = dependency('gtest', required : false)
+if not gtest_dep.found()
+  error('MESON_SKIP_TEST: gtest not installed.')
+endif
+# gtest_nomain = dependency('gtest', main : false, method : 'system')
+
+# # e = executable('testprog', 'test.cc', dependencies : [gtest_dep])
+# # test('gtest test', e, protocol : 'gtest')
+
+# e = executable('testprog_nomain', 'cidtest.cpp', dependencies : [gtest_nomain])
+# test('gtest nomain test', e, protocol : 'gtest')
+
+# catch_dep = dependency('catch2', required : false)
+# if not catch_dep.found()
+#   catch_lib = subproject('catch2')
+#   catch_dep = catch_lib.get_variable('catch2_dep')
+# endif
+
+# app_files = files('conics.cpp', 'vector_math.cpp')
+test_files = files('cidtest.cpp')
 
 testexe = executable(
   'test_cid', 
-  sources:'cidtest.cpp',
+  test_files,
   include_directories : incdir,
-  dependencies: [all_deps, vtk_dep, ],
-  link_with: cidlib,
-  # source: cid_sources,
-  # link_with : cidlib,
+  dependencies: [
+    # catch_dep, 
+    gtest_dep,
+    cv_dep,
+    # gtest_nomain,
+  ],
+  link_with : cidlib,
   # link_with : libcid,
 )
 test( 
