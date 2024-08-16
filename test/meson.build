@@ -29,7 +29,7 @@ endif
 # endif
 
 # app_files = files('conics.cpp', 'vector_math.cpp')
-test_files = files('cidtest.cpp')
+test_files = files(['test_conics.cpp', 'test_math.cpp'])
 
 testexe = executable(
   'test_cid', 
@@ -49,3 +49,6 @@ test(
   testexe,
   is_parallel:true
 )
+
+test('math', testexe, suite: 'MathTest')
+test('conic', testexe, suite: 'ConicTest')

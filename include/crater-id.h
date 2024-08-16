@@ -86,7 +86,7 @@ struct Rect
 // void normalizeVector(Point&);
 // double dot(const Point, const Point);
 // double angularDistance(const Point, const Point);
-// double angularPseudodistance(const Point, const Point);
+// double angularPseudoDistance(const Point, const Point);
 // template <typename T>
 // double latlon_dist(const T, const T, const T, const T);
 // template <typename T>

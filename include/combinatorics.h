@@ -51,7 +51,7 @@ void specialCombination(const std::vector<T> choices,
             next_choice = choices[j];
             pt2 = latlon2unitVector(next_choice);
             // if(angularDistance(pt1, pt2) < max_angle_rad) {
-            if(angularPseudodistance(pt1, pt2) > min_dot_prod) {
+            if(angularPseudoDistance(pt1, pt2) > min_dot_prod) {
                 // count++;
                 valid_craters.push_back({i, j});
             }
@@ -83,7 +83,7 @@ std::vector<std::tuple<T, T>> specialCombination(const std::vector<T> choices,
             next_choice = choices[j];
             pt2 = latlon2unitVector(next_choice);
             // if(angularDistance(pt1, pt2) < max_angle_rad) {
-            if(angularPseudodistance(pt1, pt2) > min_dot_prod) {
+            if(angularPseudoDistance(pt1, pt2) > min_dot_prod) {
                 // count++;
                 valid_craters.push_back({current_choice, next_choice});
             }

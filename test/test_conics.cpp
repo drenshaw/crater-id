@@ -13,28 +13,6 @@ TEST_CASE( "Factorial of 0 is 1 (fail)", "[single-file]" ) {
 }
 */
 
-TEST(MathTest, deg2rad) {
-  ASSERT_EQ(deg2rad(0), 0.0) << "Basic degrees to radians failed; verify.";
-  ASSERT_LE(abs(deg2rad( 180) - 3.141592654), 0.000005) << "Basic +180 degrees to radians failed; verify.";
-  ASSERT_LE(abs(deg2rad(-180) + 3.141592654), 0.000005) << "Basic -180 degrees to radians failed; verify.";
-
-}
-
-TEST(MathTest, NorthPole) {
-  Eigen::Vector3d np = GetNorthPoleUnitVector();
-  ASSERT_EQ(np(0), 0.);
-  ASSERT_EQ(np(1), 0.);
-  ASSERT_EQ(np(2), 1.);
-}
-
-TEST(MathTest, EigenMultScalar) {
-  Eigen::Vector2d vec;
-  vec << 1,2;
-  vec *= 3;
-  ASSERT_EQ(vec(0), 3);
-  ASSERT_EQ(vec(1), 6);
-}
-
 class ConicTest : public testing::Test {
   protected:
     ConicTest() {
@@ -50,6 +28,8 @@ class ConicTest : public testing::Test {
 };
 
 TEST(ConicTest, CheckId) {
+  // TODO: Can we ensure that this test runs first of all the conic tests?
+  // TODO: Maybe the test should only ensure ID increments from one to another
   Conic conic1(100.0, 70.0, 300.0, 50.0, 0.0);
   EXPECT_EQ(conic1.GetID(), 0);
   Conic conic2(100.0, 70.0, 300.0, 50.0, 0.0);
@@ -57,11 +37,18 @@ TEST(ConicTest, CheckId) {
 }
 
 TEST(ConicTest, conic_init) {
-  std::array<double, 5> arr = {100.0, 70.0, 300.0, 50.0, 0.0};
+  std::vector<double> vec = {100.0, 70.0, 300.0, 50.0, 0.0};
+  std::array<double, GEOMETRIC_PARAM> arr;
+  copy_vec2array(vec, arr);
+
+  // TODO: make a constructor to deal with vector
+  // Conic conic_vec(vec);
   Conic conic_arr(arr);
   Conic conic_var(100.0, 70.0, 300.0, 50.0, 0.0);
+  Conic conic_empty();
   
-  // ASSERT_EQ(conic_arr, conic_var);
+  ASSERT_EQ(conic_arr, conic_var);
+  // ASSERT_EQ(conic_empty.GetSemiMajorAxis(), 0);
 }
 
 

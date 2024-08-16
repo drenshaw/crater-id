@@ -22,10 +22,12 @@ bool almost_equal(const T a, const T b) {
 
 class Conic {
   public:
-    Conic(const double=0, const double=0, const double=0, 
+  // TODO: update constructor with modern C++ member initializers
+    Conic(const double=1, const double=1, const double=0, 
           const double=0, const double=0);
     Conic(const std::array<double, GEOMETRIC_PARAM>&);
-    bool operator==(Conic& other_conic);
+    Conic(const std::vector<double>&);
+    bool operator==(const Conic& other_conic) const;
     bool operator!=(const Conic& other_conic);
     void SetGeometricParameters(const std::array<double, GEOMETRIC_PARAM>&);
     void SetGeometricParameters(const std::vector<double>&);
@@ -38,18 +40,18 @@ class Conic {
     void SetLocus(const Eigen::Matrix3d& locus);
     void NormalizeImplicitParameters(std::vector<double>&);
     void NormalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>&);
-    Eigen::Vector2d GetCenter();
-    double GetCenterX();
-    double GetCenterY();
-    void GetCenter(Eigen::Vector2d& center);
-    void GetCenter(cv::Point& center);
-    double GetSemiMajorAxis();
-    double GetSemiMinorAxis();
-    Eigen::Vector2d GetSemiAxes();
-    void GetSemiAxes(Eigen::Vector2d& semiaxes);
-    void GetSemiAxes(cv::Point& semiaxes);
-    double GetAngle();
-    int GetID();
+    Eigen::Vector2d GetCenter() const;
+    double GetCenterX() const;
+    double GetCenterY() const;
+    void GetCenter(Eigen::Vector2d& center) const;
+    void GetCenter(cv::Point& center) const;
+    double GetSemiMajorAxis() const;
+    double GetSemiMinorAxis() const;
+    Eigen::Vector2d GetSemiAxes() const;
+    void GetSemiAxes(Eigen::Vector2d& semiaxes) const;
+    void GetSemiAxes(cv::Point& semiaxes) const;
+    double GetAngle() const;
+    int GetID() const;
     std::array<double, GEOMETRIC_PARAM> GetGeom();
     std::array<double, IMPLICIT_PARAM> GetImplicit();
     Eigen::Matrix3d GetLocus();
@@ -71,11 +73,11 @@ class Conic {
     static int next_id;
 
   private:
-    double semimajor_axis_;
-    double semiminor_axis_;
-    double x_center_;
-    double y_center_;
-    double angle_;
+    double semimajor_axis_ = 1;
+    double semiminor_axis_ = 1;
+    double x_center_ = 0;
+    double y_center_ = 0;
+    double angle_ = 0;
     unsigned int id_;
     void setID();
     void MakeConic( const double semimajor_axis, 
@@ -101,8 +103,6 @@ class ConicMatrix {
   ConicMatrix();
 }; 
 
-Eigen::Vector3d GetNorthPoleUnitVector();
-void GetNorthPoleUnitVector(Eigen::Vector3d&);
 bool IntersectionLines(const Eigen::Matrix3d&, 
                        const Eigen::Matrix3d&,
                        std::tuple<Eigen::Vector3d, Eigen::Vector3d>&);

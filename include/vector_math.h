@@ -35,7 +35,7 @@ Eigen::Vector3d latlon2bearing(const T crater);
 // template <typename T>
 // void operator *(Eigen::Vector3d& vec, T scalar);
 template <typename T>
-Eigen::Vector3d llarToWorld(const T crater, double alt, double rad=1.0);
+Eigen::Vector3d llarToWorld(const T crater, double alt, double radius=1.0);
 template <typename R, typename T>
 Eigen::Vector3d LLHtoECEF(const R crater, const T alt);
 // double vectorNorm(const Eigen::Vector3d& pt);
@@ -45,7 +45,7 @@ Eigen::Vector3d LLHtoECEF(const R crater, const T alt);
 // template<typename T>
 // T vectorNorm(std::vector<T> vec);
 double vdot(const Eigen::Vector3d& pt1, const Eigen::Vector3d& pt2);
-double angularPseudodistance(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
+double angularPseudoDistance(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
 double angularDistance(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
 template <typename T>
 double latlon_dist(const T crater1, const T crater2);
@@ -62,6 +62,8 @@ void normalizeVector(const Eigen::Vector3d&, Eigen::Vector3d&);
 Eigen::Vector3d normalizeVector(const Eigen::Vector3d&);
 template <typename T>
 T vectorNorm(const Eigen::Vector3d&);
+void GetNorthPoleUnitVector(Eigen::Vector3d&);
+Eigen::Vector3d GetNorthPoleUnitVector();
 
 /**** Template definitions ****/
 
@@ -107,14 +109,20 @@ Eigen::Vector3d latlon2bearing(const T lat, const T lon) {
     return point;
 }
 
+// TODO: we don't use this currently
 template <typename T>
 Eigen::Vector3d latlon2bearing(const T crater) {
     return latlon2bearing(crater.lat, crater.lon);
 }
 
+template <typename Derived, int size>
+Derived vectorNorm(const Eigen::Vector<Derived, size>& vec) {
+  return vec/vec.norm();
+}
+
 template <typename Iter_T>
 long double vectorNorm(Iter_T first, Iter_T last) {
-  return sqrt(inner_product(first, last, first, 0.0L));
+  return sqrt(std::inner_product(first, last, first, 0.0L));
 }
 
 template <typename T>
@@ -122,16 +130,14 @@ T vectorNorm(const std::vector<T> vec) {
     return vectorNorm(vec.begin(), vec.end());
 }
 
-template <typename T>
-T vectorNorm(const Eigen::Vector3d& vec) {
-  return vec/vec.norm();
+template <typename T, size_t SIZE>
+T vectorNorm(const std::array<T, SIZE> vec) {
+    return vectorNorm(vec.begin(), vec.end());
 }
 
 template <typename T, size_t SIZE>
 void copy_vec2array(const std::vector<T> vec, std::array<T, SIZE>& arr) {
-  // arr = std::experimental::make_array(vec);
   std::copy_n(std::make_move_iterator(vec.begin()), SIZE, arr.begin());
-  // std::copy_n(vec.begin(), SIZE, arr.begin());
 }
 
 #endif

@@ -102,7 +102,7 @@ Eigen::Matrix3d get3x3SymmetricMatrixAdjugate(const Eigen::Matrix3d& mtx) {
 }
 
 template <typename T>
-Eigen::Vector3d llarToWorld(const T crater, double alt, double rad) {
+Eigen::Vector3d llarToWorld(const T crater, double alt, double radius) {
 
   const T lat = crater.lat;
   const T lon = crater.lon;
@@ -111,9 +111,9 @@ Eigen::Vector3d llarToWorld(const T crater, double alt, double rad) {
   T ls = atan2(pow(1 - f, 2) * tan(lat));    // lambda
 
   Eigen::Vector3d point;
-  point <<  rad * cos(ls) * cos(lon) + alt * cos(lat) * cos(lon),
-            rad * cos(ls) * sin(lon) + alt * cos(lat) * sin(lon),
-            rad * sin(ls) + alt * sin(lat);
+  point <<  radius * cos(ls) * cos(lon) + alt * cos(lat) * cos(lon),
+            radius * cos(ls) * sin(lon) + alt * cos(lat) * sin(lon),
+            radius * sin(ls) + alt * sin(lat);
 
   return point;
 }
@@ -124,7 +124,7 @@ Eigen::Vector3d LLHtoECEF(const R crater, const T alt) {
 
   const T lat = crater.lat;
   const T lon = crater.lon;
-  const T rad = 6378137.0;        // Radius of the Earth (in meters)
+  const T radius = 6378137.0;        // Radius of the Earth (in meters)
   const T f = 1.0/298.257223563;  // Flattening factor WGS84 Model
   T cosLat = cos(lat);
   T sinLat = sin(lat);
@@ -133,9 +133,9 @@ Eigen::Vector3d LLHtoECEF(const R crater, const T alt) {
   T S      = C * FF;
 
   Eigen::Vector3d point;
-  point <<  (rad * C + alt)*cosLat * cos(lon),
-            (rad * C + alt)*cosLat * sin(lon),
-            (rad * S + alt)*sinLat;
+  point <<  (radius * C + alt)*cosLat * cos(lon),
+            (radius * C + alt)*cosLat * sin(lon),
+            (radius * S + alt)*sinLat;
 
   return point;
 }
@@ -144,7 +144,7 @@ double vdot(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2) {
   return point1.dot(point2);
 }
 
-double angularPseudodistance(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2) {
+double angularPseudoDistance(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2) {
   return vdot(point1, point2);
 }
 
@@ -237,4 +237,12 @@ void normalizeVector(const Eigen::Vector3d& inVec, Eigen::Vector3d& outVec) {
 
 Eigen::Vector3d normalizeVector(const Eigen::Vector3d& inVec) {
   return inVec / inVec.norm();
+}
+
+Eigen::Vector3d GetNorthPoleUnitVector() {
+  return Eigen::Vector3d::UnitZ();
+}
+
+void GetNorthPoleUnitVector(Eigen::Vector3d& north_pole) {
+  north_pole = GetNorthPoleUnitVector();
 }

@@ -7,18 +7,36 @@ Conic::Conic(const double semimajor_axis,
              const double semiminor_axis, 
              const double x_center, 
              const double y_center, 
-             const double angle) {
-  MakeConic(semimajor_axis, semiminor_axis, x_center, y_center, angle);
+             const double angle) : 
+  semimajor_axis_{semimajor_axis},
+  semiminor_axis_{semiminor_axis},
+  x_center_      {x_center},
+  y_center_      {y_center},
+  angle_         {angle} {
+  setID();
 }
-Conic::Conic(const std::array<double, GEOMETRIC_PARAM>& geom_arr) {
-  MakeConic(geom_arr);
+Conic::Conic(const std::array<double, GEOMETRIC_PARAM>& geom_arr) : 
+  semimajor_axis_{geom_arr.at(0)},
+  semiminor_axis_{geom_arr.at(1)},
+  x_center_      {geom_arr.at(2)},
+  y_center_      {geom_arr.at(3)},
+  angle_         {geom_arr.at(4)} {
+    setID();
+}
+Conic::Conic(const std::vector<double>& vec) : 
+  semimajor_axis_{vec.at(0)},
+  semiminor_axis_{vec.at(1)},
+  x_center_      {vec.at(2)},
+  y_center_      {vec.at(3)},
+  angle_         {vec.at(4)} {
+    setID();
 }
 
 void Conic::setID() {
   id_ = next_id++;
 }
 
-int Conic::GetID() {
+int Conic::GetID() const {
   return id_;
 }
 
@@ -47,12 +65,12 @@ void Conic::MakeConic(const std::vector<double>& geom_vec) {
             geom_vec.at(4));
 }
 
-bool Conic::operator==(Conic& other_conic) {
-  return  almost_equal(this->GetSemiMajorAxis(), other_conic.GetSemiMajorAxis()) &&
-          almost_equal(this->GetSemiMinorAxis(), other_conic.GetSemiMinorAxis()) &&
-          almost_equal(x_center_, other_conic.x_center_) &&
-          almost_equal(y_center_, other_conic.y_center_) &&
-          almost_equal(angle_, other_conic.angle_);
+bool Conic::operator==(const Conic& other_conic) const {
+  return  almost_equal(this->semimajor_axis_, other_conic.GetSemiMajorAxis()) &&
+          almost_equal(this->semiminor_axis_, other_conic.GetSemiMinorAxis()) &&
+          almost_equal(this->x_center_, other_conic.GetCenterX()) &&
+          almost_equal(this->y_center_, other_conic.GetCenterY()) &&
+          almost_equal(this->angle_, other_conic.GetAngle());
 }
 
 bool Conic::operator!=(const Conic& other_conic) {
@@ -272,52 +290,53 @@ bool Conic::ConicIntersectionLines(Conic& conicB,
   return IntersectionLines(Ai, Aj, gh);
 }
 
-double Conic::GetCenterX() {
+double Conic::GetCenterX() const {
   return x_center_;
 }
 
-double Conic::GetCenterY() {
+double Conic::GetCenterY() const {
   return y_center_;
 }
 
-Eigen::Vector2d Conic::GetCenter() {
+Eigen::Vector2d Conic::GetCenter() const {
   Eigen::Vector2d center;
   center << x_center_, y_center_;
   return center;
 }
 
-void Conic::GetCenter(cv::Point& center) {
+void Conic::GetCenter(cv::Point& center) const {
   center.x = x_center_;
   center.y = y_center_;
 }
-void Conic::GetCenter(Eigen::Vector2d& center) {
+
+void Conic::GetCenter(Eigen::Vector2d& center) const {
   center << x_center_, y_center_;
 }
 
-double Conic::GetSemiMajorAxis() {
+double Conic::GetSemiMajorAxis() const {
   return semimajor_axis_;
 }
 
-double Conic::GetSemiMinorAxis() {
+double Conic::GetSemiMinorAxis() const {
   return semiminor_axis_;
 }
 
-Eigen::Vector2d Conic::GetSemiAxes() {
+Eigen::Vector2d Conic::GetSemiAxes() const {
   Eigen::Vector2d axes;
   axes << semimajor_axis_, semiminor_axis_;
   return axes;
 }
 
-void Conic::GetSemiAxes(Eigen::Vector2d& semiaxes) {
+void Conic::GetSemiAxes(Eigen::Vector2d& semiaxes) const {
   semiaxes << semimajor_axis_, semiminor_axis_;
 }
 
-void Conic::GetSemiAxes(cv::Point& semiaxes) {
+void Conic::GetSemiAxes(cv::Point& semiaxes) const {
   semiaxes.x = semimajor_axis_;
   semiaxes.y = semiminor_axis_;
 }
 
-double Conic::GetAngle() {
+double Conic::GetAngle() const {
   return angle_;
 }
 
@@ -330,14 +349,6 @@ std::ostream& operator<<(std::ostream& os, const Conic& conic) {
         << "\n\tCenter: (" << conic.x_center_ << " , "
         << conic.y_center_ << ") "
         << "\n\tAngle (deg): " << rad2deg(conic.angle_) << " ";
-}
-
-Eigen::Vector3d GetNorthPoleUnitVector() {
-  return Eigen::Vector3d::UnitZ();
-}
-
-void GetNorthPoleUnitVector(Eigen::Vector3d& north_pole) {
-  north_pole = GetNorthPoleUnitVector();
 }
 
 void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM> arr) {
