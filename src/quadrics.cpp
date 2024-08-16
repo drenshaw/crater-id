@@ -28,13 +28,13 @@ void Quadric::MakeQuadric(const Eigen::Vector3d& position, const double radius, 
     surface_normal_.normalize();
     radius_ = radius;
     id_ = id;
-    T_e2m_ = getQuadricTransformationMatrix();
+    T_e2m_ = GetQuadricTransformationMatrix();
     std::cout << "T_e2m: (determinant " << T_e2m_.determinant() << ")\n" << T_e2m_ << std::endl;
     Conic conic(radius, radius, 0, 0, 0);
-    locus_ = generateQuadricLocus();
+    locus_ = GenerateQuadricLocus();
     std::cout << "Locus \n" << locus_ << std::endl;
     envelope_ = getMatrixAdjugate(locus_);
-    std::tie(plane_, plane_normal_) = surfacePointToPlane(T_e2m_, surface_point_);
+    std::tie(plane_, plane_normal_) = SurfacePointToPlane(T_e2m_, surface_point_);
 }
 // assumes that the surface normal of the crater is in line with the position wrt Moon center
 void Quadric::MakeQuadric(const Eigen::Vector3d& position, const double radius, const std::string id) {
@@ -46,20 +46,20 @@ void Quadric::MakeQuadric(const double lat, const double lon, const double radiu
         std::cerr << "Invalid crater radius " << radius << "exceeds body radius\n";
     }
     double r_crater_bodycenter = calculateCraterRimFromRadius(radius);
-    Eigen::Vector3d position = r_crater_bodycenter*latlon2unitVector(lat, lon);
+    Eigen::Vector3d position = r_crater_bodycenter*latlon2bearing(lat, lon);
     MakeQuadric(position, radius, id);
 }
         
-Eigen::Matrix4d Quadric::generateQuadricLocus() {
+Eigen::Matrix4d Quadric::GenerateQuadricLocus() {
     Eigen::Matrix4d quadric_locus;
-    return generateQuadricFromRadiusNormal(surface_point_, radius_);
+    return GenerateQuadricFromRadiusNormal(surface_point_, radius_);
 }
 
-Eigen::Matrix3d Quadric::getQuadricTransformationMatrix() {
+Eigen::Matrix3d Quadric::GetQuadricTransformationMatrix() {
     return getENUFrame(surface_normal_);
 }
 
-Eigen::Matrix4d Quadric::getLocus() {
+Eigen::Matrix4d Quadric::GetLocus() {
     return locus_;
 }
 
@@ -71,9 +71,9 @@ std::ostream& operator<<(std::ostream& os, const Quadric& quad) {
         << "\n\t\tPlane: [" << quad.plane_.transpose() << "] ";
 }
 
-std::tuple<Eigen::Vector4d, Eigen::Vector3d> surfacePointToPlane(const Eigen::Matrix3d& T_e2m, 
+std::tuple<Eigen::Vector4d, Eigen::Vector3d> SurfacePointToPlane(const Eigen::Matrix3d& T_e2m, 
                                                                  const Eigen::Vector3d& surface_point) {
-    Eigen::Vector3d u_north_pole = getNorthPoleUnitVector();
+    Eigen::Vector3d u_north_pole = GetNorthPoleUnitVector();
     Eigen::Vector3d plane_normal = T_e2m * u_north_pole;
     double rho = surface_point.dot(plane_normal);
     Eigen::Vector4d plane;
@@ -81,20 +81,20 @@ std::tuple<Eigen::Vector4d, Eigen::Vector3d> surfacePointToPlane(const Eigen::Ma
     return {plane, plane_normal};
 }
 
-Eigen::Matrix4d generateQuadricFromRadiusNormal(const Eigen::Vector3d& position, const double radius) {
+Eigen::Matrix4d GenerateQuadricFromRadiusNormal(const Eigen::Vector3d& position, const double radius) {
     Conic conic(radius, radius, 0, 0, 0);
-    Eigen::Matrix3d conic_envelope = conic.getEnvelope();
+    Eigen::Matrix3d conic_envelope = conic.GetEnvelope();
 
     Eigen::Matrix3d T_enu_to_ref = getENUFrame(position);
     Eigen::MatrixXd h_k = transformSelenographicToCraterFrame(position, T_enu_to_ref);
     // eq 40 of Christian, Derksen, and Watkins [2020]
-    Eigen::Matrix4d quadric_envelope = conicEnvelopeToQuadricEnvelope(conic_envelope, h_k);
+    Eigen::Matrix4d quadric_envelope = ConicEnvelopeToQuadricEnvelope(conic_envelope, h_k);
     Eigen::Matrix4d quadric_locus = getMatrixAdjugate(quadric_envelope);
     // bool success = normalizeDeterminant(quadric_locus);
     return quadric_locus;
 }
 
-Eigen::Matrix4d conicEnvelopeToQuadricEnvelope(const Eigen::Matrix3d& conic_envelope, const Eigen::MatrixXd& h_k) {
+Eigen::Matrix4d ConicEnvelopeToQuadricEnvelope(const Eigen::Matrix3d& conic_envelope, const Eigen::MatrixXd& h_k) {
     // transformation from crater plane to selenographic plane
     // convert to homogeneous coordinates; 4x3
     return h_k * conic_envelope * h_k.transpose();

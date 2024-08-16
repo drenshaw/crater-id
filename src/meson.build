@@ -1,5 +1,4 @@
 cid_sources = [
-  'main.cpp', 
   'conics.cpp', 
   'quadrics.cpp',
   'camera.cpp',
@@ -9,6 +8,7 @@ cid_sources = [
   'vector_math.cpp',
   'visuals.cpp',
 ]
+cid_main = ['main.cpp']
 boost_dep = dependency('boost')
 eigen_dep = dependency('eigen3')
 libspatial_dep = dependency('libspatialindex')
@@ -21,7 +21,7 @@ igl_dep = cpp.find_library('libigl', dirs: '/home/dqr0509/dev/libigl/lib', requi
 all_deps = [boost_dep, eigen_dep, libspatial_dep, cv_dep, vtk_dep]
 executable( 
   'demo', 
-  cid_sources, 
+  cid_sources + cid_main, 
   include_directories:incdir, 
   dependencies : [boost_dep, eigen_dep, libspatial_dep, vtk_dep, cv_dep, igl_dep],
   override_options : ['cpp_std=c++17'])

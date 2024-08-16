@@ -1,15 +1,6 @@
 
 #include "conics.h"
 
-template <typename T>
-bool valid_vector_size(std::vector<T> vec, long unsigned int desired_size) {
-  bool match = vec.size() == desired_size;
-  if(!match) {
-    std::cerr << "Incorrect vector size: " << vec.size() << " instead of " << desired_size;
-  }
-  return match;
-}
-
 int Conic::next_id = 0;
 
 Conic::Conic(const double semimajor_axis, 
@@ -17,45 +8,48 @@ Conic::Conic(const double semimajor_axis,
              const double x_center, 
              const double y_center, 
              const double angle) {
-  conic(semimajor_axis, semiminor_axis, x_center, y_center, angle);
+  MakeConic(semimajor_axis, semiminor_axis, x_center, y_center, angle);
 }
-Conic::Conic(const std::tuple<double, double, double, double, double>& geom_tup) {
-  conic(std::get<0>(geom_tup), 
-        std::get<1>(geom_tup), 
-        std::get<2>(geom_tup), 
-        std::get<3>(geom_tup), 
-        std::get<4>(geom_tup));
-}
-Conic::Conic(const std::vector<double>& geom_vec) {
-  setGeometricParameters(geom_vec);
+Conic::Conic(const std::array<double, GEOMETRIC_PARAM>& geom_arr) {
+  MakeConic(geom_arr);
 }
 
 void Conic::setID() {
   id_ = next_id++;
 }
 
-int Conic::getID() {
+int Conic::GetID() {
   return id_;
 }
 
-void Conic::conic(const double semimajor_axis, 
-                  const double semiminor_axis, 
-                  const double x_center, 
-                  const double y_center, 
-                  const double angle) {
+void Conic::MakeConic(const double semimajor_axis, 
+                      const double semiminor_axis, 
+                      const double x_center, 
+                      const double y_center, 
+                      const double angle) {
   setID();
-  semimajor_axis_ = semimajor_axis;
-  semiminor_axis_ = semiminor_axis;
-  x_center_ = x_center;
-  y_center_ = y_center;
-  angle_ = angle;
-  // implicit_ = Geom2Implicit();
-  // locus_ = Geom2Locus();
-  }
+  SetGeometricParameters(semimajor_axis, semiminor_axis, x_center, y_center, angle);
+}
 
-bool Conic::operator==(const Conic& other_conic) {
-  return  almost_equal(semimajor_axis_, other_conic.semimajor_axis_) &&
-          almost_equal(semiminor_axis_, other_conic.semiminor_axis_) &&
+void Conic::MakeConic(const std::array<double, GEOMETRIC_PARAM>& geom_arr) {
+  MakeConic(geom_arr.at(0), 
+            geom_arr.at(1), 
+            geom_arr.at(2), 
+            geom_arr.at(3), 
+            geom_arr.at(4));
+}
+
+void Conic::MakeConic(const std::vector<double>& geom_vec) {
+  MakeConic(geom_vec.at(0), 
+            geom_vec.at(1), 
+            geom_vec.at(2), 
+            geom_vec.at(3), 
+            geom_vec.at(4));
+}
+
+bool Conic::operator==(Conic& other_conic) {
+  return  almost_equal(this->GetSemiMajorAxis(), other_conic.GetSemiMajorAxis()) &&
+          almost_equal(this->GetSemiMinorAxis(), other_conic.GetSemiMinorAxis()) &&
           almost_equal(x_center_, other_conic.x_center_) &&
           almost_equal(y_center_, other_conic.y_center_) &&
           almost_equal(angle_, other_conic.angle_);
@@ -69,75 +63,93 @@ bool Conic::operator!=(const Conic& other_conic) {
           !almost_equal(angle_, other_conic.angle_);
 }
 
-void Conic::setGeometricParameters(const std::vector<double>& geom_vec) {
-  if(!valid_vector_size(geom_vec, GEOMETRIC_PARAM)) {
-    throw std::runtime_error("Bad input to geometric parameters");
-    return;
-  }
-  conic(geom_vec[0], geom_vec[1], geom_vec[2], geom_vec[3], geom_vec[4]);
+void Conic::SetGeometricParameters(const std::array<double, GEOMETRIC_PARAM>& geom_vec) {
+  SetGeometricParameters( geom_vec.at(0), 
+                          geom_vec.at(1), 
+                          geom_vec.at(2), 
+                          geom_vec.at(3), 
+                          geom_vec.at(4));
 }
 
-void Conic::setImplicitParameters(const std::vector<double>& impl_params) {
-  if(!valid_vector_size(impl_params, IMPLICIT_PARAM)) {
-    throw std::runtime_error("Bad input to implicit parameters");
-    return;
-  }
-  std::vector<double> geom_params = Implicit2Geom(impl_params);
-  setGeometricParameters(geom_params);
+void Conic::SetGeometricParameters(const std::vector<double>& geom_vec) {
+  SetGeometricParameters( geom_vec.at(0), 
+                          geom_vec.at(1), 
+                          geom_vec.at(2), 
+                          geom_vec.at(3), 
+                          geom_vec.at(4));
 }
 
-void Conic::setLocus(const Eigen::Matrix3d& locus) {
-  std::vector<double> geom_params = Locus2Geom(locus);
-  setGeometricParameters(geom_params);
+void Conic::SetGeometricParameters( const double semimajor_axis, 
+                                    const double semiminor_axis, 
+                                    const double x_center, 
+                                    const double y_center, 
+                                    const double angle) {
+  semimajor_axis_ = semimajor_axis;
+  semiminor_axis_ = semiminor_axis;
+  x_center_ = x_center;
+  y_center_ = y_center;
+  angle_ = angle;
 }
 
-void Conic::NormalizeImplicitParameters(std::vector<double>& impl_params) {
-  auto vecNorm = vectorNorm(impl_params);
-  // std::cout << "Vector norm: " << vecNorm << std::endl;
-  for(auto& element : impl_params) {
+void Conic::SetImplicitParameters(const std::array<double, IMPLICIT_PARAM>& impl_params) {
+  std::array<double, GEOMETRIC_PARAM> geom_params = Implicit2Geom(impl_params);
+  SetGeometricParameters(geom_params);
+}
+
+void Conic::SetLocus(const Eigen::Matrix3d& locus) {
+  std::array<double, GEOMETRIC_PARAM> geom_params = Locus2Geom(locus);
+  SetGeometricParameters(geom_params);
+}
+
+void Conic::NormalizeImplicitParameters(std::vector<double>& impl_params_vec) {
+  double vecNorm = vectorNorm(impl_params_vec);
+  for(auto& element : impl_params_vec) {
       element /= vecNorm;
   }
 }
 
-std::vector<double> Conic::getGeom() {
+void Conic::NormalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>& impl_params) {
+  std::vector<double> impl_params_vec(impl_params.begin(), impl_params.end());
+  NormalizeImplicitParameters(impl_params);
+}
+
+std::array<double, GEOMETRIC_PARAM> Conic::GetGeom() {
   return {semimajor_axis_, semiminor_axis_, x_center_, y_center_, angle_};
 }
 
-std::vector<double> Conic::getImplicit() {
+std::array<double, IMPLICIT_PARAM> Conic::GetImplicit() {
   return Geom2Implicit();
 }
 
-Eigen::Matrix3d Conic::getLocus() {
+Eigen::Matrix3d Conic::GetLocus() {
   return Geom2Locus();
 }
 
-Eigen::Matrix3d Conic::getEnvelope() {
+Eigen::Matrix3d Conic::GetEnvelope() {
   return getMatrixAdjugate(Geom2Locus());
 }
 
-std::vector<double> Conic::Locus2Implicit(const Eigen::Matrix3d& locus) {
-  std::vector<double> coeff;
-  coeff.reserve(6);
-  coeff.push_back(locus.coeff(0,0));
-  coeff.push_back(2*locus.coeff(0,1));
-  coeff.push_back(locus.coeff(1,1));
-  coeff.push_back(2*locus.coeff(0,2));
-  coeff.push_back(2*locus.coeff(1,2));
-  coeff.push_back(locus.coeff(2,2));
-  return coeff;
+std::array<double, IMPLICIT_PARAM> Conic::Locus2Implicit(const Eigen::Matrix3d& locus) {
+  return {
+    locus.coeff(0,0),
+    2*locus.coeff(0,1),
+    locus.coeff(1,1),
+    2*locus.coeff(0,2),
+    2*locus.coeff(1,2),
+    locus.coeff(2,2),
+  };
 }
 
-std::vector<double> Conic::Implicit2Geom(const std::vector<double>& impl_params){
+std::array<double, GEOMETRIC_PARAM> Conic::Implicit2Geom(const std::array<double, IMPLICIT_PARAM>& impl_params){
   double numerator, denominator_a, denominator_b;
   double B2_minus_4AC, xc, yc, phi;
   double semimajor_axis, semiminor_axis, amc2, b2;
-  double A, B, C, D, E, F;
-  A = impl_params[0];
-  B = impl_params[1];
-  C = impl_params[2];
-  D = impl_params[3];
-  E = impl_params[4];
-  F = impl_params[5];
+  double A = impl_params.at(0);
+  double B = impl_params.at(1);
+  double C = impl_params.at(2);
+  double D = impl_params.at(3);
+  double E = impl_params.at(4);
+  double F = impl_params.at(5);
   // Compute discriminant for quadratic equation
   B2_minus_4AC = pow(B, 2) - 4*A*C;
   // Compute ellipse center (See Eq 4.16 in [Christian, 2010])
@@ -166,20 +178,20 @@ std::vector<double> Conic::Implicit2Geom(const std::vector<double>& impl_params)
 }
 
 Eigen::Matrix3d Conic::Geom2Locus() {
-  const std::vector<double> impl_params = Geom2Implicit();
+  const std::array<double, IMPLICIT_PARAM> impl_params = Geom2Implicit();
   // return normalize_determinant(Implicit2Locus(impl_params))
   return Implicit2Locus(impl_params);
  }
 
-Eigen::Matrix3d Conic::Implicit2Locus(const std::vector<double>& impl_params) {
+Eigen::Matrix3d Conic::Implicit2Locus(const std::array<double, IMPLICIT_PARAM>& impl_params) {
   Eigen::Matrix3d locus_mtx(3,3);
   double A, B, C, D, E, F;
-  A = impl_params[0];
-  B = impl_params[1];
-  C = impl_params[2];
-  D = impl_params[3];
-  E = impl_params[4];
-  F = impl_params[5];
+  A = impl_params.at(0);
+  B = impl_params.at(1);
+  C = impl_params.at(2);
+  D = impl_params.at(3);
+  E = impl_params.at(4);
+  F = impl_params.at(5);
   locus_mtx << A,  B/2, D/2,
               B/2,  C,  E/2,
               D/2, E/2,  F;
@@ -188,29 +200,30 @@ Eigen::Matrix3d Conic::Implicit2Locus(const std::vector<double>& impl_params) {
 }
 
 Eigen::Matrix3d Conic::Implicit2Locus() {
-  Eigen::Matrix3d locus_mtx(3,3);
-  double A, B, C, D, E, F;
-  const std::vector<double>& impl_params = Geom2Implicit();
-  A = impl_params[0];
-  B = impl_params[1];
-  C = impl_params[2];
-  D = impl_params[3];
-  E = impl_params[4];
-  F = impl_params[5];
-  locus_mtx << A,  B/2, D/2,
-              B/2,  C,  E/2,
-              D/2, E/2,  F;
+  return Implicit2Locus(Geom2Implicit());
+  // Eigen::Matrix3d locus_mtx(3,3);
+  // double A, B, C, D, E, F;
+  // const std::array<double, IMPLICIT_PARAM>& impl_params = Geom2Implicit();
+  // A = impl_params.at(0);
+  // B = impl_params.at(1);
+  // C = impl_params.at(2);
+  // D = impl_params.at(3);
+  // E = impl_params.at(4);
+  // F = impl_params.at(5);
+  // locus_mtx << A,  B/2, D/2,
+  //             B/2,  C,  E/2,
+  //             D/2, E/2,  F;
 
-  return locus_mtx;
+  // return locus_mtx;
 }
 
- std::vector<double> Conic::Locus2Geom(const Eigen::Matrix3d& locus) {
-  const std::vector<double> impl_params = Locus2Implicit(locus);
+ std::array<double, GEOMETRIC_PARAM> Conic::Locus2Geom(const Eigen::Matrix3d& locus) {
+  const std::array<double, IMPLICIT_PARAM> impl_params = Locus2Implicit(locus);
   return Implicit2Geom(impl_params);
 }
 
 
-std::vector<double> Conic::Geom2Implicit() {
+std::array<double, IMPLICIT_PARAM> Conic::Geom2Implicit() {
   // unpack geometric parameters
   double a   = semimajor_axis_;
   double b   = semiminor_axis_;
@@ -229,88 +242,116 @@ std::vector<double> Conic::Geom2Implicit() {
   double cos_phi_2 = pow(cos_phi, 2);
 
   // Populuate each coefficient
-  std::vector<double> coeff;
-  coeff.reserve(6);
-  coeff.push_back( a2*sin_phi_2 + b2*cos_phi_2);
-  coeff.push_back( 2*(b2-a2)*sin_phi*cos_phi);
-  coeff.push_back( a2*cos_phi_2 + b2*sin_phi_2);
-  coeff.push_back(-2*coeff[0]*xc - coeff[1]*yc);
-  coeff.push_back(-coeff[1]*xc - 2*coeff[2]*yc);
-  coeff.push_back( coeff[0]*xc_2 + coeff[1]*xc*yc + coeff[2]*yc_2 - a2*b2);
+  std::vector<double> coeff_vec;
+  coeff_vec.reserve(IMPLICIT_PARAM);
+  std::array<double, IMPLICIT_PARAM> coeff;
 
-//     # normalize coefficients
-  NormalizeImplicitParameters(coeff);
+  coeff_vec.push_back( a2*sin_phi_2 + b2*cos_phi_2);
+  coeff_vec.push_back( 2*(b2-a2)*sin_phi*cos_phi);
+  coeff_vec.push_back( a2*cos_phi_2 + b2*sin_phi_2);
+  coeff_vec.push_back(-2*coeff_vec[0]*xc - coeff_vec[1]*yc);
+  coeff_vec.push_back(-coeff_vec[1]*xc - 2*coeff_vec[2]*yc);
+  coeff_vec.push_back( coeff_vec[0]*xc_2 + coeff_vec[1]*xc*yc + coeff_vec[2]*yc_2 - a2*b2);
+
+  // normalize coefficients
+  NormalizeImplicitParameters(coeff_vec);
+  copy_vec2array(coeff_vec, coeff);
   return coeff;
 }
 
 bool Conic::ConicIntersectionLines(const Eigen::Matrix3d& Aj, 
                                    std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) {
-  Eigen::Matrix3d Ai = getLocus();
+  Eigen::Matrix3d Ai = GetLocus();
   return IntersectionLines(Ai, Aj, gh);
 }
 
 bool Conic::ConicIntersectionLines(Conic& conicB, 
                                    std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) {
-  Eigen::Matrix3d Ai = getLocus();
-  Eigen::Matrix3d Aj = getLocus();
+  Eigen::Matrix3d Ai = GetLocus();
+  Eigen::Matrix3d Aj = GetLocus();
   return IntersectionLines(Ai, Aj, gh);
 }
 
-Eigen::Vector2d Conic::getCenter() {
+double Conic::GetCenterX() {
+  return x_center_;
+}
+
+double Conic::GetCenterY() {
+  return y_center_;
+}
+
+Eigen::Vector2d Conic::GetCenter() {
   Eigen::Vector2d center;
   center << x_center_, y_center_;
   return center;
 }
 
-void Conic::getCenter(cv::Point& center) {
+void Conic::GetCenter(cv::Point& center) {
   center.x = x_center_;
   center.y = y_center_;
 }
-void Conic::getCenter(Eigen::Vector2d& center) {
+void Conic::GetCenter(Eigen::Vector2d& center) {
   center << x_center_, y_center_;
 }
 
-Eigen::Vector2d Conic::getSemiAxes() {
+double Conic::GetSemiMajorAxis() {
+  return semimajor_axis_;
+}
+
+double Conic::GetSemiMinorAxis() {
+  return semiminor_axis_;
+}
+
+Eigen::Vector2d Conic::GetSemiAxes() {
   Eigen::Vector2d axes;
   axes << semimajor_axis_, semiminor_axis_;
   return axes;
 }
 
-void Conic::getSemiAxes(Eigen::Vector2d& semiaxes) {
+void Conic::GetSemiAxes(Eigen::Vector2d& semiaxes) {
   semiaxes << semimajor_axis_, semiminor_axis_;
 }
 
-void Conic::getSemiAxes(cv::Point& semiaxes) {
+void Conic::GetSemiAxes(cv::Point& semiaxes) {
   semiaxes.x = semimajor_axis_;
   semiaxes.y = semiminor_axis_;
 }
 
-double Conic::getAngle() {
+double Conic::GetAngle() {
   return angle_;
 }
 
-Eigen::Vector3d getNorthPoleUnitVector() {
+std::ostream& operator<<(std::ostream& os, const Conic& conic) {
+    return os 
+        << "Conic-> \tID: '" << conic.id_ << "'"
+        << "\n\tSemi axes: " 
+        << conic.semimajor_axis_ << " | "
+        << conic.semiminor_axis_
+        << "\n\tCenter: (" << conic.x_center_ << " , "
+        << conic.y_center_ << ") "
+        << "\n\tAngle (deg): " << rad2deg(conic.angle_) << " ";
+}
+
+Eigen::Vector3d GetNorthPoleUnitVector() {
   return Eigen::Vector3d::UnitZ();
 }
 
-void getNorthPoleUnitVector(Eigen::Vector3d& north_pole) {
-  north_pole = getNorthPoleUnitVector();
+void GetNorthPoleUnitVector(Eigen::Vector3d& north_pole) {
+  north_pole = GetNorthPoleUnitVector();
 }
 
-std::vector<double> convertEigenVectorToVector(const Eigen::Vector3d& eig) {
-  std::vector<double> regVec;
-  regVec.resize(eig.size());
-  Eigen::Vector3d::Map(&regVec[0], eig.size()) = eig;
-  return regVec;
+void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM> arr) {
+  Eigen::Vector3d::Map(&arr[0], eig.size()) = eig;
 }
 
-template <typename T>
-bool vectorContainsNaN(const std::vector<T> vec) {
-  return std::any_of(vec.begin(), vec.end(), [](double i){return std::isnan(i);});
+template <typename T, size_t SIZE>
+bool vectorContainsNaN(const std::array<T, SIZE> vec) {
+  return std::any_of(vec.begin(), vec.end(), [](T i){return std::isnan(i);});
 }
 
 bool vectorContainsNaN(const Eigen::Vector3d& eV) {
-  std::vector<double> vec = convertEigenVectorToVector(eV);
+  std::array<double, CONIC_DIM> vec;
+  convertEigenVectorToVector(eV, vec);
   return vectorContainsNaN(vec);
 }
 
@@ -325,16 +366,21 @@ bool IntersectConics(const Eigen::Matrix3d& Ai,
   Bij_star = getMatrixAdjugate(Bij);
 
   bkk_eig = Bij_star.diagonal();
-  std::vector<double> bkk = convertEigenVectorToVector(bkk_eig);
+  std::array<double, CONIC_DIM> bkk;
+  convertEigenVectorToVector(bkk_eig, bkk);
   // eq 86: all diagonal entries of Bij_star are negative
   if ( std::any_of(bkk.begin(), bkk.end(), [&eps](double i){return i>eps;}) ) {
       // std::cout << "bkk contains positive numbers: \n" << bkk_eig << std::endl;
       return false;
   }
   int min_idx = arg_min(bkk);
+  // int min_idx = std::min_element(bkk.begin(), bkk.end()) - bkk.begin();
+  // int min_idx = std::distance(bkk.begin(), std::min_element(bkk.begin(), bkk.end()));
+  // int min_elem = std::min_element(bkk.begin(), bkk.end());
 
   // eq 87
-  Eigen::Vector3d z = -Bij_star.row(min_idx)/sqrt(-bkk[min_idx]);
+  Eigen::Vector3d z = -Bij_star.row(min_idx)/sqrt(-bkk.at(min_idx));
+  // Eigen::Vector3d z = -Bij_star.row(min_idx)/sqrt(-min_elem);
   Eigen::Matrix3d D = Bij + crossMatrix(z);
   Eigen::Matrix3d Dabs = D.cwiseAbs();
   
@@ -346,8 +392,9 @@ bool IntersectConics(const Eigen::Matrix3d& Ai,
   Eigen::Vector3d g = D.col(maxCol);
   Eigen::Vector3d h = D.row(maxRow);
   
-  std::vector<double> gVec = convertEigenVectorToVector(g);
-  std::vector<double> hVec = convertEigenVectorToVector(h);
+  std::array<double, CONIC_DIM> gVec, hVec;
+  convertEigenVectorToVector(g, gVec);
+  convertEigenVectorToVector(h, hVec);
   if ( vectorContainsNaN(gVec) ) {
       std::cout << "g vector contains NaN's: " << g << std::endl;
       return false;
@@ -360,13 +407,14 @@ bool IntersectConics(const Eigen::Matrix3d& Ai,
   return true;
 }
 
-bool IntersectionLines(const Eigen::Matrix3d& Ai, 
-                            const Eigen::Matrix3d& Aj,
-                            std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) {
+bool IntersectionLines( const Eigen::Matrix3d& Ai, 
+                        const Eigen::Matrix3d& Aj,
+                        std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) {
   // eq 77
   Eigen::Matrix3d combined = Aj*-Ai.inverse();
   Eigen::EigenSolver<Eigen::Matrix3d> eigensolver(combined);
   Eigen::Vector3cd eigenvalues = eigensolver.eigenvalues();
+  // Here, using std::vector is appropriate since we don't know the length
   std::vector<double> real_eigens;
   for(long int idx = 0; idx < eigenvalues.rows(); idx++) {
     if(eigenvalues(idx).imag() == 0) {
@@ -376,7 +424,7 @@ bool IntersectionLines(const Eigen::Matrix3d& Ai,
   Eigen::Vector3d g, h;
   for(const auto& e_val : real_eigens) {
     if(IntersectConics(Ai, Aj, e_val, gh)) {
-      std::tie(g, h) = gh;
+      std::tie(g, h) = gh; // TODO: What are we doing with these variables (g, h)?
       return true;
     }
   }
@@ -448,17 +496,18 @@ bool computeInvariant(const Eigen::Vector3d& line1,
   return true;
 }
 
+// TODO: Can't use "const" on the conics here; figure out how to do that
 bool computeCraterTriadInvariants(Conic& A, Conic& B, Conic& C,
-                                  std::vector<double>& invariants) {
+                                  std::array<double, CONIC_DIM>& invariants) {
   std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh_ij, gh_jk, gh_ki;
   Eigen::Vector3d lij, ljk, lki;
   double invA, invB, invC;
-  Eigen::Matrix3d locusA = A.getLocus();
-  Eigen::Matrix3d locusB = B.getLocus();
-  Eigen::Matrix3d locusC = C.getLocus();
-  Eigen::Vector2d centerA = A.getCenter();
-  Eigen::Vector2d centerB = B.getCenter();
-  Eigen::Vector2d centerC = C.getCenter();
+  Eigen::Matrix3d locusA = A.GetLocus();
+  Eigen::Matrix3d locusB = B.GetLocus();
+  Eigen::Matrix3d locusC = C.GetLocus();
+  Eigen::Vector2d centerA = A.GetCenter();
+  Eigen::Vector2d centerB = B.GetCenter();
+  Eigen::Vector2d centerC = C.GetCenter();
   
   if(!IntersectionLines(locusA, locusB, gh_ij)) {
     std::cerr<<"IntersectionLines error ij\n";
@@ -496,9 +545,10 @@ bool computeCraterTriadInvariants(Conic& A, Conic& B, Conic& C,
     std::cerr<<"computeInvariant error C\n";
     return false;
   }
-  invariants.push_back(invA);
-  invariants.push_back(invB);
-  invariants.push_back(invC);
+  invariants = {invA, invB, invC};
+  // invariants.push_back(invA);
+  // invariants.push_back(invB);
+  // invariants.push_back(invC);
   return true;
 }
 
@@ -506,7 +556,7 @@ Eigen::Matrix3d getENUFrame(const Eigen::Vector3d& surface_point) {
   Eigen::Vector3d u_north_pole(3), u_surface_point(3), ui, ei, ni;
   Eigen::Matrix3d enu_frame(3, 3);
   double eps = 1e-6;
-  u_north_pole = getNorthPoleUnitVector();
+  u_north_pole = GetNorthPoleUnitVector();
   normalizeVector(surface_point, u_surface_point);
   // std::cout << "ENU: \n" << surface_point << "\n" << u_surface_point << std::endl;
   if((u_north_pole - u_surface_point).norm() < eps) {
@@ -530,7 +580,7 @@ Eigen::Matrix3d getENUFrame(const Eigen::Vector3d& surface_point) {
 
 Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d& position, const Eigen::Matrix3d& T_e2m) {
   Eigen::Matrix3d h_m(3,3);
-  Eigen::Vector3d u_north_pole = getNorthPoleUnitVector();
+  Eigen::Vector3d u_north_pole = GetNorthPoleUnitVector();
   // form transformation matrix
   // eq. 34 from Christian, Derksen, Watkins [2020]
   h_m << T_e2m.col(0), T_e2m.col(1), position;
