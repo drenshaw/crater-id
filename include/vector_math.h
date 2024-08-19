@@ -7,10 +7,10 @@
 // #include <experimental/array>
 #include <algorithm>
 #include <numeric>
-#include <Eigen/Dense>
-#include <boost/log/core.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/trivial.hpp>
+#include <eigen3/Eigen/Dense>
+// #include <boost/log/core.hpp>
+// #include <boost/log/expressions.hpp>
+// #include <boost/log/trivial.hpp>
 #include "crater-id.h"
 
 #define EPS (10 * std::numeric_limits<T>::epsilon())

@@ -6,7 +6,7 @@
 #include <tuple>
 #include <array>
 #include <math.h>
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 #include <opencv2/core/core.hpp>
 
 #include "vector_math.h"

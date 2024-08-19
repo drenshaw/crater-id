@@ -10,7 +10,7 @@ add_global_arguments('-DSOME_TOKEN=value',
 )
 # glib_dep = dependency('glib-2.0')
 
-incdir = include_directories('include', '/usr/local/include', '/home/dqr0509/dev/libigl/build')
+incdir = include_directories('include', '/usr/local/include')
 cpp = meson.get_compiler('cpp')
 # dir_base = meson.current_source_dir()
 # dir_lib = join_paths(dir_base, 'lib')
@@ -18,8 +18,6 @@ cpp = meson.get_compiler('cpp')
 subdir('include')
 subdir('src')
 subdir('test')
-# gtest_proj = subproject('gtest')
-
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(
@@ -31,5 +29,3 @@ pkg_mod.generate(
   description : 'A C++ library for crater identification.'
 )
 
-# e = executable('prog', 'cidtest.cpp')
-# test('general test', e)

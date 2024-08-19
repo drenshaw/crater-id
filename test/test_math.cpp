@@ -2,7 +2,7 @@
 #include <array>
 #include <iostream>
 #include <math.h>
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 
 #include "vector_math.h"
 

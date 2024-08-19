@@ -9,15 +9,15 @@ cid_sources = [
   'visuals.cpp',
 ]
 cid_main = ['main.cpp']
-boost_dep = dependency('boost')
-eigen_dep = dependency('eigen3')
-libspatial_dep = dependency('libspatialindex')
-cv_dep = dependency('opencv4')
+boost_dep = dependency('boost', required: true)
+eigen_dep = dependency('eigen3', required: true)
+libspatial_dep = dependency('libspatialindex', required: false)
+cv_dep = dependency('opencv4', required: true)
 # -DVTK_DIR="<path to my vtk build>"
-vtk_dep = dependency('VTK', required: true)
+vtk_dep = dependency('VTK', required: false)
 cpp = meson.get_compiler('cpp')
-igl_dep = cpp.find_library('libigl', dirs: '/home/dqr0509/dev/libigl/lib', required: false)
-# igl_dep = dependency('igl', required: true)
+# igl_dep = cpp.find_library('libigl', dirs: '/home/dqr0509/dev/libigl/lib', required: false)
+igl_dep = dependency('igl', required: false)
 all_deps = [boost_dep, eigen_dep, libspatial_dep, cv_dep, vtk_dep]
 executable( 
   'demo', 
