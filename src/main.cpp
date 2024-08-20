@@ -71,12 +71,12 @@ void print_triads(const std::vector<std::tuple<uint, uint, uint>> triads,
 }
 
 #if RUN_LOGGING
-namespace logging = boost::log;
-namespace keywords = boost::log::keywords;
-void init_logging() {     
-  // logging::add_console_log(std::clog, keywords::format = "%TimeStamp%: %Message%");
-  // logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::warning);
-}
+// namespace logging = boost::log;
+// namespace keywords = boost::log::keywords;
+// void init_logging() {     
+//   // logging::add_console_log(std::clog, keywords::format = "%TimeStamp%: %Message%");
+//   // logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::warning);
+// }
 #endif
 
 #if RUN_ADJUGATE
