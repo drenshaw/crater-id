@@ -56,7 +56,7 @@ class Conic {
     std::array<double, IMPLICIT_PARAM> GetImplicit();
     Eigen::Matrix3d GetLocus();
     Eigen::Matrix3d GetEnvelope();
-    // Eigen::Matrix3d getMatrixAdjugate(const Eigen::Matrix3d&);
+    // Eigen::Matrix3d getAdjugateMatrix(const Eigen::Matrix3d&);
     std::array<double, IMPLICIT_PARAM> Locus2Implicit(const Eigen::Matrix3d&);
     std::array<double, GEOMETRIC_PARAM> Implicit2Geom(const std::array<double, IMPLICIT_PARAM>&);
     Eigen::Matrix3d Geom2Locus();
@@ -80,13 +80,6 @@ class Conic {
     double angle_ = 0;
     unsigned int id_;
     void setID();
-    void MakeConic( const double semimajor_axis, 
-                const double semiminor_axis, 
-                const double x_center, 
-                const double y_center, 
-                const double angle);
-    void MakeConic(const std::array<double, GEOMETRIC_PARAM>& geom_arr);
-    void MakeConic(const std::vector<double>& geom_vec);
 
     friend std::ostream& operator<<(std::ostream& os, const Conic&);
 };

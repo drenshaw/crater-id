@@ -15,7 +15,7 @@ void printVectorOfVectors(const std::vector<std::vector<T>>);
 template <typename T>
 void makeUnique(T&);
 template <typename T>
-std::vector<uint> getRange(std::vector<T>);
+// std::vector<uint> getRange(std::vector<T>); //TODO: this exists in vector_math.h as well
 bool readLunarCraterEntry(  const std::string, 
                             lunar_crater&,
                             const char, 

@@ -17,9 +17,24 @@
 // #include <vtkRenderWindowInteractor.h>
 // #include <vtkRenderer.h>
 // #include <vtkSampleFunction.h>
+// #include <cstdlib>
+// #include <vtkActor.h>
+// #include <vtkCamera.h>
+// #include <vtkContourFilter.h>
+// #include <vtkImageData.h>
+// #include <vtkNamedColors.h>
+// #include <vtkNew.h>
+// #include <vtkOutlineFilter.h>
+// #include <vtkPolyDataMapper.h>
+// #include <vtkProperty.h>
+// #include <vtkQuadric.h>
+// #include <vtkRenderWindow.h>
+// #include <vtkRenderWindowInteractor.h>
+// #include <vtkRenderer.h>
+// #include <vtkSampleFunction.h>
 
 
-// namespace VIS {
+namespace VIS {
 // void Other();
 // void Sphere();
 // void Cone();
@@ -31,7 +46,7 @@
 // void EllipticParaboloid();
 
 // void PlotFunction(vtkQuadric* quadric, double value);
-// } // namespace
+} // namespace
 
 
 #endif

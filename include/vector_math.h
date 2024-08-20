@@ -4,7 +4,6 @@
 #include <math.h>
 #include <vector>
 #include <array>
-// #include <experimental/array>
 #include <algorithm>
 #include <numeric>
 #include <eigen3/Eigen/Dense>
@@ -17,8 +16,8 @@
 
 double getCofactor(const Eigen::MatrixXd& matrix, int p, int q);
 Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix);
-Eigen::MatrixXd getMatrixAdjugate(const Eigen::MatrixXd&);
-Eigen::Matrix3d get3x3SymmetricMatrixAdjugate(const Eigen::Matrix3d&);
+Eigen::MatrixXd getAdjugateMatrix(const Eigen::MatrixXd&);
+Eigen::Matrix3d get3x3SymmetricAdjugateMatrix(const Eigen::Matrix3d&);
 
 // TODO: be careful using templates here: if an "int" is passed, we get an "int" back
 template <typename T>
@@ -34,10 +33,6 @@ Eigen::Vector3d latlon2bearing(const T crater);
 // void operator /(Eigen::Vector3d& vec, T divisor);
 // template <typename T>
 // void operator *(Eigen::Vector3d& vec, T scalar);
-template <typename T>
-Eigen::Vector3d llarToWorld(const T crater, double alt, double radius=1.0);
-template <typename R, typename T>
-Eigen::Vector3d LLHtoECEF(const R crater, const T alt);
 // double vectorNorm(const Eigen::Vector3d& pt);
 // void normalizeVector(Eigen::Vector3d& pt);
 // template<typename Iter_T>
@@ -47,14 +42,7 @@ Eigen::Vector3d LLHtoECEF(const R crater, const T alt);
 double vdot(const Eigen::Vector3d& pt1, const Eigen::Vector3d& pt2);
 double angularPseudoDistance(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
 double angularDistance(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
-template <typename T>
-double latlon_dist(const T crater1, const T crater2);
-template <typename T>
-double latlon_dist(const T lat1, const T lon1, const T lat2, const T lon2);
-template <typename T>
-void makeUnique(T& vec);
-template <typename T>
-std::vector<uint> getRange(std::vector<T> vec);
+
 bool normalizeDeterminant(Eigen::MatrixXd& mtx);
 Eigen::Matrix3d crossMatrix(const Eigen::Vector3d&);
 void normalizeVector(Eigen::Vector3d&);
@@ -138,6 +126,93 @@ T vectorNorm(const std::array<T, SIZE> vec) {
 template <typename T, size_t SIZE>
 void copy_vec2array(const std::vector<T> vec, std::array<T, SIZE>& arr) {
   std::copy_n(std::make_move_iterator(vec.begin()), SIZE, arr.begin());
+}
+
+
+template <typename T>
+double latlon_dist(const T crater1, const T crater2) {
+  return latlon_dist(crater1.lat, crater1.lon, crater2.lat, crater2.lon);
+}
+
+template <typename T>
+double latlon_dist(const T lat1, const T lon1, const T lat2, const T lon2) {
+  Eigen::Vector3d point1 = latlon2bearing(lat1, lon1);
+  // normalizeVector(point1);
+  Eigen::Vector3d point2 = latlon2bearing(lat2, lon2);
+  // normalizeVector(point2);
+  return angularDistance(point1, point2);
+}
+
+template <typename T>
+void makeUnique(T& vec) {
+  std::sort(vec.begin(), vec.end());
+  std::vector<int>::iterator it;
+  it = std::unique(vec.begin(), vec.end());
+  vec.resize(std::distance(vec.begin(), it));
+}
+
+template <typename T>
+std::vector<uint> getRange(std::vector<T> vec) {
+  // std::vector<uint> vec_range(vec.size());
+  std::vector<uint> vec_range;
+  vec_range.reserve(vec.size());
+  for(size_t idx = 0; idx < vec.size(); idx++) {
+    // vec_range[idx] = idx;
+    vec_range.push_back(idx);
+  }
+  return vec_range;
+}
+
+// TODO: Use LLHtoECEF instead for the time being for consistency
+// TODO: Sometimes, this and LLHtoECEF get negatives of each other
+template <typename T>
+Eigen::Vector3d llarToECEF(const T lat, const T lon, const double alt, const double radius=1., const double flattening=0.) {
+  // see: http://www.mathworks.de/help/toolbox/aeroblks/llatoecefposition.html
+  T f  = 0;                                 // flattening
+  T ls = atan(pow(1 - f, 2.0) * tan(lat));  // lambda
+
+  Eigen::Vector3d point;
+  point <<  radius * cos(ls) * cos(lon) + alt * cos(lat) * cos(lon),
+            radius * cos(ls) * sin(lon) + alt * cos(lat) * sin(lon),
+            radius * sin(ls) + alt * sin(lat);
+
+  return point;
+}
+
+// TODO: Use LLHtoECEF instead for the time being for consistency
+template <typename T>
+Eigen::Vector3d llarToECEF(const T crater, const double alt, const double radius=1., const double flattening=0.) {
+  const T lat = crater.lat;
+  const T lon = crater.lon;
+  // see: http://www.mathworks.de/help/toolbox/aeroblks/llatoecefposition.html
+  return llarToECEF(lat, lon, alt, radius, flattening);
+}
+
+template <typename T>
+Eigen::Vector3d LLHtoECEF(const T lat, const T lon, const T alt) {
+    // see http://www.mathworks.de/help/toolbox/aeroblks/llatoecefposition.html
+  const T radius = 6378137.0;     // Radius of the Earth (in meters)
+  const T f = 1.0/298.257223563;  // Flattening factor WGS84 Model
+  T cosLat = cos(lat);
+  T sinLat = sin(lat);
+  T FF     = pow(1.0-f, 2);
+  T C      = 1/sqrt(pow(cosLat,2.0) + FF * pow(sinLat,2));
+  T S      = C * FF;
+
+  Eigen::Vector3d point;
+  point <<  (radius * C + alt)*cosLat * cos(lon),
+            (radius * C + alt)*cosLat * sin(lon),
+            (radius * S + alt)*sinLat;
+
+  return point;
+}
+
+template <typename R, typename T>
+Eigen::Vector3d LLHtoECEF(const R crater, const T alt) {
+    // see http://www.mathworks.de/help/toolbox/aeroblks/llatoecefposition.html
+  const T lat = crater.lat;
+  const T lon = crater.lon;
+  return LLHtoECEF(lat, lon, alt);
 }
 
 #endif

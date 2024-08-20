@@ -33,7 +33,7 @@ void Quadric::MakeQuadric(const Eigen::Vector3d& position, const double radius, 
     Conic conic(radius, radius, 0, 0, 0);
     locus_ = GenerateQuadricLocus();
     std::cout << "Locus \n" << locus_ << std::endl;
-    envelope_ = getMatrixAdjugate(locus_);
+    envelope_ = getAdjugateMatrix(locus_);
     std::tie(plane_, plane_normal_) = SurfacePointToPlane(T_e2m_, surface_point_);
 }
 // assumes that the surface normal of the crater is in line with the position wrt Moon center
@@ -89,7 +89,7 @@ Eigen::Matrix4d GenerateQuadricFromRadiusNormal(const Eigen::Vector3d& position,
     Eigen::MatrixXd h_k = transformSelenographicToCraterFrame(position, T_enu_to_ref);
     // eq 40 of Christian, Derksen, and Watkins [2020]
     Eigen::Matrix4d quadric_envelope = ConicEnvelopeToQuadricEnvelope(conic_envelope, h_k);
-    Eigen::Matrix4d quadric_locus = getMatrixAdjugate(quadric_envelope);
+    Eigen::Matrix4d quadric_locus = getAdjugateMatrix(quadric_envelope);
     // bool success = normalizeDeterminant(quadric_locus);
     return quadric_locus;
 }
