@@ -6,6 +6,11 @@ namespace VIS {
 //   // create the quadric function definition
 //   vtkNew<vtkQuadric> quadric;
 //   quadric->SetCoefficients(1, 1, 1, 0, 0, 0, 0, 0, 0, 0);
+// void Sphere()
+// {
+//   // create the quadric function definition
+//   vtkNew<vtkQuadric> quadric;
+//   quadric->SetCoefficients(1, 1, 1, 0, 0, 0, 0, 0, 0, 0);
 
 //   // F(x,y,z) = a0*x^2 + a1*y^2 + a2*z^2 + a3*x*y + a4*y*z + a5*x*z + a6*x +
 //   // a7*y + a8*z + a9 F(x,y,z) = 1*x^2 + 1*y^2 + 1*z^2

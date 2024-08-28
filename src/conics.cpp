@@ -40,31 +40,6 @@ int Conic::GetID() const {
   return id_;
 }
 
-void Conic::MakeConic(const double semimajor_axis, 
-                      const double semiminor_axis, 
-                      const double x_center, 
-                      const double y_center, 
-                      const double angle) {
-  setID();
-  SetGeometricParameters(semimajor_axis, semiminor_axis, x_center, y_center, angle);
-}
-
-void Conic::MakeConic(const std::array<double, GEOMETRIC_PARAM>& geom_arr) {
-  MakeConic(geom_arr.at(0), 
-            geom_arr.at(1), 
-            geom_arr.at(2), 
-            geom_arr.at(3), 
-            geom_arr.at(4));
-}
-
-void Conic::MakeConic(const std::vector<double>& geom_vec) {
-  MakeConic(geom_vec.at(0), 
-            geom_vec.at(1), 
-            geom_vec.at(2), 
-            geom_vec.at(3), 
-            geom_vec.at(4));
-}
-
 bool Conic::operator==(const Conic& other_conic) const {
   return  almost_equal(this->semimajor_axis_, other_conic.GetSemiMajorAxis()) &&
           almost_equal(this->semiminor_axis_, other_conic.GetSemiMinorAxis()) &&
@@ -144,7 +119,7 @@ Eigen::Matrix3d Conic::GetLocus() {
 }
 
 Eigen::Matrix3d Conic::GetEnvelope() {
-  return getMatrixAdjugate(Geom2Locus());
+  return getAdjugateMatrix(Geom2Locus());
 }
 
 std::array<double, IMPLICIT_PARAM> Conic::Locus2Implicit(const Eigen::Matrix3d& locus) {
@@ -374,7 +349,7 @@ bool IntersectConics(const Eigen::Matrix3d& Ai,
   Eigen::Matrix3d Bij(3, 3), Bij_star(3, 3);
   Eigen::Vector3d bkk_eig(3);
   Bij = eig*Ai + Aj;
-  Bij_star = getMatrixAdjugate(Bij);
+  Bij_star = getAdjugateMatrix(Bij);
 
   bkk_eig = Bij_star.diagonal();
   std::array<double, CONIC_DIM> bkk;
@@ -490,7 +465,7 @@ bool computeInvariant(const Eigen::Vector3d& line1,
   //     std::cerr << "One of the lines contains a NaN." << std::endl;
   //     return false;
   // }
-  Eigen::Matrix3d envelope = getMatrixAdjugate(locus);
+  Eigen::Matrix3d envelope = getAdjugateMatrix(locus);
   // the numerator can be negative
   Eigen::RowVector3d line1T = line1.transpose();
   Eigen::RowVector3d line2T = line2.transpose();

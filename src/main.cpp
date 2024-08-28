@@ -1,6 +1,6 @@
 #include <iostream>
 #include <tuple>
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 #include <spatialindex/capi/sidx_api.h>
 #include <boost/geometry.hpp>
 #include <boost/geometry/index/rtree.hpp>
@@ -8,10 +8,10 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <boost/log/core.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/trivial.hpp>
-#include <Eigen/src/LU/InverseImpl.h>
+// #include <boost/log/core.hpp>
+// #include <boost/log/expressions.hpp>
+// #include <boost/log/trivial.hpp>
+// #include <Eigen/src/LU/InverseImpl.h>
 
 #define BOOST_LOG_DYN_LINK 1
 // #include <boost/log/utility/setup/console.hpp>
@@ -71,12 +71,12 @@ void print_triads(const std::vector<std::tuple<uint, uint, uint>> triads,
 }
 
 #if RUN_LOGGING
-namespace logging = boost::log;
-namespace keywords = boost::log::keywords;
-void init_logging() {     
-  // logging::add_console_log(std::clog, keywords::format = "%TimeStamp%: %Message%");
-  // logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::warning);
-}
+// namespace logging = boost::log;
+// namespace keywords = boost::log::keywords;
+// void init_logging() {     
+//   // logging::add_console_log(std::clog, keywords::format = "%TimeStamp%: %Message%");
+//   // logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::warning);
+// }
 #endif
 
 #if RUN_ADJUGATE
@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
 #if RUN_ADJUGATE
     Eigen::MatrixXd m1 = Eigen::MatrixXd::Random(4,4);
     Eigen::MatrixXd m2 = Eigen::MatrixXd::Random(5,5);
-    Eigen::MatrixXd madj = getMatrixAdjugate(m1);
+    Eigen::MatrixXd madj = getAdjugateMatrix(m1);
     Eigen::MatrixXd madj2 = getCofactorMatrixTemplate(m2).transpose();
     double det = m1.determinant();
     Eigen::MatrixXd invv = m1.inverse();
@@ -321,14 +321,14 @@ int main(int argc, char** argv) {
   std::cout << L.size() << std::endl;
   // std::cout << L.row(0).col(0).row(0) << std::endl;
   // // Eigen::MatrixXd locus = conicA.GetLocus();
-  // // Eigen::MatrixXd envelope = getMatrixAdjugate(locus);
+  // // Eigen::MatrixXd envelope = getAdjugateMatrix(locus);
   // Eigen::Matrix4d test;
   // test << 5,  -2,  2,  7,
   //         1,   0,  0,  3,
   //         -3,  1,  5,  0,
   //         3,  -1, -9,  4;
   // // test << 1,2,3, 4,5,6, 7,8,9;
-  // Eigen::MatrixXd adjugate = getMatrixAdjugate(test);
+  // Eigen::MatrixXd adjugate = getAdjugateMatrix(test);
   // // std::cout << "Adjugate:\n" << adjugate << std::endl;
 
 #if RUN_INVARIANTS

@@ -46,9 +46,10 @@ TEST(ConicTest, conic_init) {
   Conic conic_arr(arr);
   Conic conic_var(100.0, 70.0, 300.0, 50.0, 0.0);
   Conic conic_empty;
+  double semimajor_init_val = 1.0;
   
   ASSERT_EQ(conic_arr, conic_var);
-  ASSERT_EQ(conic_empty.GetSemiMajorAxis(), 1.0);
+  ASSERT_EQ(conic_empty.GetSemiMajorAxis(), semimajor_init_val);
 }
 
 
