@@ -1,5 +1,5 @@
 project('c++ crater-id', 'cpp',
-  default_options : ['c_std=c17', 'cpp_std=c++17', 'warning_level=0'],
+  default_options : ['c_std=c17', 'cpp_std=c++17', 'warning_level=3'],
   version : '1.0.0',
   license : 'MIT',
 )

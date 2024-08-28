@@ -105,7 +105,7 @@ Eigen::Vector3d latlon2bearing(const T lat, const T lon) {
     point << cos(lat_rad) * cos(lon_rad),
              cos(lat_rad) * sin(lon_rad),
              sin(lat_rad);
-
+    std::cerr << " Point: \n" << point << std::endl;
     return point;
 }
 

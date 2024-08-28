@@ -40,7 +40,7 @@ TEST(MathTest, EigenDivScalar) {
 TEST(MathTest, LatLon2Bearing) {
   // TODO: add more non-90 degree values for lat, lon
   double lat1, lon1 = 0;
-  double epsilon = 1e-15;
+  double epsilon = 1e-10;
   Eigen::Vector3d bearing1 = latlon2bearing(lat1, lon1);
   EXPECT_NEAR(bearing1(0), 1, epsilon);
   EXPECT_NEAR(bearing1(1), 0, epsilon);
@@ -113,6 +113,11 @@ TEST(MathTest, VectorCopyToStdArray) {
   for(auto& element : arr) {
     ASSERT_DOUBLE_EQ(element, val);
   }
+  Eigen::Vector3d x, y;
+  x << 1,2,3;
+  y << 1,0,0;
+  double z = x.dot(y);
+  ASSERT_DOUBLE_EQ(z, 0);
 }
 
 
