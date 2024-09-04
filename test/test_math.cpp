@@ -65,8 +65,9 @@ TEST(MathTest, EigenDivScalar) {
 
 TEST(MathTest, LatLon2Bearing) {
   // TODO: add more non-90 degree values for lat, lon
-  double lat1, lon1 = 0;
+  double lat1 = 0, lon1 = 0;
   double epsilon = 1e-10;
+
   Eigen::Vector3d bearing1 = latlon2bearing(lat1, lon1);
   EXPECT_NEAR(bearing1(0), 1, epsilon);
   EXPECT_NEAR(bearing1(1), 0, epsilon);
@@ -295,14 +296,14 @@ TEST(MathTest, GetRange) {
   const size_t n_elem = 4;
   const double val = 1.5;
   std::vector<double> vec(n_elem, val);
-  std::array<double, n_elem> arr;
+  // std::array<double, n_elem> arr;
 
   std::vector<uint> range_vec = getRange(vec);
   ASSERT_EQ(range_vec.at(0), 0);
   ASSERT_EQ(range_vec.at(1), 1);
   ASSERT_EQ(range_vec.at(2), 2);
   ASSERT_EQ(range_vec.at(3), 3);
-  double rand_val = random_between(-1.0, 1.0);
+  // double rand_val = random_between(-1.0, 1.0);
 }
 
 
@@ -328,6 +329,18 @@ TEST(MathTest, MakeUnique) {
   ASSERT_EQ(vec.at(2), vec_check.at(2));
   ASSERT_EQ(vec.at(3), vec_check.at(3));
   ASSERT_EQ(vec.at(4), vec_check.at(4));
+  
+}
 
+TEST(MathTest, UndefinedCheck) {
+  // std::uint8_t k = 255;
+  // EXPECT_ANY_THROW(
+  //   try {
+  //     k += 10;
+  //   }
+  //   catch (...) {
+  //     throw;
+  //   }
+  // );
 }
 

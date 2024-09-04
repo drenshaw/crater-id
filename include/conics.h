@@ -28,7 +28,7 @@ class Conic {
     Conic(const std::array<double, GEOMETRIC_PARAM>&);
     Conic(const std::vector<double>&);
     bool operator==(const Conic& other_conic) const;
-    bool operator!=(const Conic& other_conic);
+    bool operator!=(const Conic& other_conic) const;
     void SetGeometricParameters(const std::array<double, GEOMETRIC_PARAM>&);
     void SetGeometricParameters(const std::vector<double>&);
     void SetGeometricParameters(const double, 

@@ -2,7 +2,7 @@ project('c++ crater-id', 'cpp',
   default_options : [
     'c_std=c17', 
     'cpp_std=c++17', 
-    'warning_level=3',
+    'warning_level=1',
     'b_sanitize=address'],
   version : '1.0.0',
   license : 'MIT',

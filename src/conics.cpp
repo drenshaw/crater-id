@@ -48,7 +48,7 @@ bool Conic::operator==(const Conic& other_conic) const {
           almost_equal(this->angle_, other_conic.GetAngle());
 }
 
-bool Conic::operator!=(const Conic& other_conic) {
+bool Conic::operator!=(const Conic& other_conic) const {
   return  !almost_equal(semimajor_axis_, other_conic.semimajor_axis_) ||
           !almost_equal(semiminor_axis_, other_conic.semiminor_axis_) ||
           !almost_equal(x_center_, other_conic.x_center_) ||
