@@ -256,21 +256,16 @@ std::array<double, IMPLICIT_PARAM> Conic::Geom2Implicit() {
   double sin_phi_2 = pow(sin_phi, 2);
   double cos_phi_2 = pow(cos_phi, 2);
 
-  // Populuate each coefficient
-  std::vector<double> coeff_vec;
-  coeff_vec.reserve(IMPLICIT_PARAM);
   std::array<double, IMPLICIT_PARAM> coeff;
 
-  coeff_vec.push_back( a2*sin_phi_2 + b2*cos_phi_2);
-  coeff_vec.push_back( 2*(b2-a2)*sin_phi*cos_phi);
-  coeff_vec.push_back( a2*cos_phi_2 + b2*sin_phi_2);
-  coeff_vec.push_back(-2*coeff_vec[0]*xc - coeff_vec[1]*yc);
-  coeff_vec.push_back(-coeff_vec[1]*xc - 2*coeff_vec[2]*yc);
-  coeff_vec.push_back( coeff_vec[0]*xc_2 + coeff_vec[1]*xc*yc + coeff_vec[2]*yc_2 - a2*b2);
+  coeff.at(0) =  a2*sin_phi_2 + b2*cos_phi_2;
+  coeff.at(1) =  2*(b2-a2)*sin_phi*cos_phi;
+  coeff.at(2) =  a2*cos_phi_2 + b2*sin_phi_2;
+  coeff.at(3) = -2*coeff[0]*xc - coeff[1]*yc;
+  coeff.at(4) = -coeff[1]*xc - 2*coeff[2]*yc;
+  coeff.at(5) =  coeff[0]*xc_2 + coeff[1]*xc*yc + coeff[2]*yc_2 - a2*b2;
 
-  // normalize coefficients
-  NormalizeImplicitParameters(coeff_vec);
-  copy_vec2array(coeff_vec, coeff);
+  NormalizeImplicitParameters(coeff);
   return coeff;
 }
 
