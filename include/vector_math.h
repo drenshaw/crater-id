@@ -57,22 +57,26 @@ Eigen::Vector3d GetNorthPoleUnitVector();
 
 template <typename T, typename A>
 int arg_max(std::vector<T, A> const& vec) {
-  return static_cast<int>(std::distance(vec.begin(), max_element(vec.begin(), vec.end())));
+  return static_cast<int>(
+    std::distance(vec.begin(), max_element(vec.begin(), vec.end())));
 }
 
 template <typename T, typename A>
 int arg_min(std::vector<T, A> const& vec) {
-  return static_cast<int>(std::distance(vec.begin(), min_element(vec.begin(), vec.end())));
+  return static_cast<int>(
+    std::distance(vec.begin(), min_element(vec.begin(), vec.end())));
 }
 
 template <typename T, size_t SIZE>
 int arg_max(std::array<T, SIZE> const& arr) {
-  return static_cast<int>(std::distance(arr.begin(), std::max_element(arr.begin(), arr.end())));
+  return static_cast<int>(
+    std::distance(arr.begin(), std::max_element(arr.begin(), arr.end())));
 }
 
 template <typename T, size_t SIZE>
 int arg_min(std::array<T, SIZE> const& arr) {
-  return static_cast<int>(std::distance(arr.begin(), std::min_element(arr.begin(), arr.end())));
+  return static_cast<int>(
+    std::distance(arr.begin(), std::min_element(arr.begin(), arr.end())));
 }
 
 template <typename T>
@@ -81,7 +85,7 @@ double deg2rad(const T deg) {
 }
 template <typename T>
 double rad2deg(const T rad) {
-  return static_cast<float>(rad) * 180. / M_PI;
+  return static_cast<double>(rad) * 180. / M_PI;
 }
 
 template <typename T>
@@ -93,7 +97,6 @@ Eigen::Vector3d latlon2bearing(const T lat, const T lon) {
     point << cos(lat_rad) * cos(lon_rad),
              cos(lat_rad) * sin(lon_rad),
              sin(lat_rad);
-    std::cerr << " Point: \n" << point << std::endl;
     return point;
 }
 
@@ -168,8 +171,9 @@ std::vector<uint> getRange(std::vector<T> vec) {
 template <typename T>
 Eigen::Vector3d llarToECEF(const T lat, const T lon, const double alt, const double radius=1., const double flattening=0.) {
   // see: http://www.mathworks.de/help/toolbox/aeroblks/llatoecefposition.html
-  T f  = 0;                                 // flattening
-  T ls = atan(pow(1 - f, 2.0) * tan(lat));  // lambda
+  // TODO: ensure that flattening value is valid
+  assert(flattening > 0.0 && flattening < 1.0);
+  T ls = atan(pow(1 - flattening, 2.0) * tan(lat));  // lambda
 
   Eigen::Vector3d point;
   point <<  radius * cos(ls) * cos(lon) + alt * cos(lat) * cos(lon),

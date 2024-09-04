@@ -261,7 +261,7 @@ bool Conic::ConicIntersectionLines(const Eigen::Matrix3d& Aj,
 bool Conic::ConicIntersectionLines(Conic& conicB, 
                                    std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) {
   Eigen::Matrix3d Ai = GetLocus();
-  Eigen::Matrix3d Aj = GetLocus();
+  Eigen::Matrix3d Aj = conicB.GetLocus();
   return IntersectionLines(Ai, Aj, gh);
 }
 

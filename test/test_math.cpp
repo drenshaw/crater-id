@@ -143,7 +143,7 @@ TEST(MathTest, VectorCopyToStdArray) {
   x << 1,2,3;
   y << 1,0,0;
   double z = x.dot(y);
-  ASSERT_DOUBLE_EQ(z, 0);
+  ASSERT_DOUBLE_EQ(z, 1.0);
 }
 
 TEST(MathTest, ArgMin) {
@@ -228,7 +228,7 @@ TEST(MathTest, AdjugateMatrix) {
 }
 
 TEST(MathTest, AngularDistance) {
-  double lat1, lon1, lat2 = 0, lon2 = 90;
+  double lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 90;
   Eigen::Vector3d bearing1 = latlon2bearing(lat1, lon1);
   Eigen::Vector3d bearing2 = latlon2bearing(lat2, lon2);
   double angular_distance = angularDistance(bearing1, bearing2);
@@ -237,7 +237,7 @@ TEST(MathTest, AngularDistance) {
 }
 
 TEST(MathTest, AngularPseudoDistance) {
-  double lat1, lon1, lat2 = 0, lon2 = 90;
+  double lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 90;
   Eigen::Vector3d bearing1 = latlon2bearing(lat1, lon1);
   Eigen::Vector3d bearing2 = latlon2bearing(lat2, lon2);
   double angular_pseudodistance = angularPseudoDistance(bearing1, bearing2);
@@ -247,7 +247,7 @@ TEST(MathTest, AngularPseudoDistance) {
 }
 
 TEST(MathTest, LatLonDist) {
-  double lat1, lon1, lat2 = 0, lon2 = 90;
+  double lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 90;
   double dist = latlon_dist(lat1, lon1, lat2, lon2);
   double dist_check = M_PI/2;
   // TODO: replace with using EPS; can't due to type for std::numeric_limits being undefined
@@ -259,7 +259,7 @@ TEST(MathTest, LLARtoECEF) {
   double radius = 6378137.0;
   double flattening = 1.0/298.257223563;
 
-  double lat1, lon1 = 0;
+  double lat1 = 0, lon1 = 0;
   double alt1 = 0;
   Eigen::Vector3d llar1 = llarToECEF(lat1, lon1, alt1, radius, flattening);
   Eigen::Vector3d llh1  = LLHtoECEF(lat1, lon1, alt1);
@@ -328,5 +328,6 @@ TEST(MathTest, MakeUnique) {
   ASSERT_EQ(vec.at(2), vec_check.at(2));
   ASSERT_EQ(vec.at(3), vec_check.at(3));
   ASSERT_EQ(vec.at(4), vec_check.at(4));
+
 }
 

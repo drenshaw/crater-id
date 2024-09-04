@@ -50,6 +50,8 @@ bool readLunarCraterEntry(const std::string entry,
 }
 
 bool readMartianCraterEntry(const std::string entry) {
+  std::cout << "Reading Mars crater database: " << entry << std::endl;
+  std::cerr << "Martian crater database parsing is not complete!\n";
   return false;
 }
 
