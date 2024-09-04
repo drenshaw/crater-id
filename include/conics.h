@@ -36,10 +36,15 @@ class Conic {
                                 const double, 
                                 const double, 
                                 const double);
+    void SetSemimajorAxis(const double semimajor_axis);
+    void SetSemiminorAxis(const double semiminor_axis);
+    void SetCenterX(const double x_center);
+    void SetCenterY(const double y_center);
+    void SetAngle(const double angle);                                
     void SetImplicitParameters(const std::array<double, IMPLICIT_PARAM>&);
     void SetLocus(const Eigen::Matrix3d& locus);
-    void NormalizeImplicitParameters(std::vector<double>&);
     void NormalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>&);
+    void NormalizeImplicitParameters(std::vector<double>&);
     Eigen::Vector2d GetCenter() const;
     double GetCenterX() const;
     double GetCenterY() const;

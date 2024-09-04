@@ -84,6 +84,27 @@ void Conic::SetGeometricParameters( const double semimajor_axis,
   angle_ = angle;
 }
 
+void Conic::SetSemimajorAxis(const double semimajor_axis) {
+  semimajor_axis_ = semimajor_axis;
+}
+
+void Conic::SetSemiminorAxis(const double semiminor_axis) {
+  semiminor_axis_ = semiminor_axis;
+}
+
+void Conic::SetCenterX(const double x_center) {
+  x_center_ = x_center;
+}
+
+void Conic::SetCenterY(const double y_center) {
+  y_center_ = y_center;
+}
+
+void Conic::SetAngle(const double angle) {
+  angle_ = angle;
+}
+
+
 void Conic::SetImplicitParameters(const std::array<double, IMPLICIT_PARAM>& impl_params) {
   std::array<double, GEOMETRIC_PARAM> geom_params = Implicit2Geom(impl_params);
   SetGeometricParameters(geom_params);
@@ -94,16 +115,17 @@ void Conic::SetLocus(const Eigen::Matrix3d& locus) {
   SetGeometricParameters(geom_params);
 }
 
-void Conic::NormalizeImplicitParameters(std::vector<double>& impl_params_vec) {
-  double vecNorm = vectorNorm(impl_params_vec);
-  for(auto& element : impl_params_vec) {
-      element /= vecNorm;
-  }
+void Conic::NormalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>& impl_params) {
+  double vecNormRecip = 1/vectorNorm(impl_params);
+  std::transform(impl_params.begin(), impl_params.end(), impl_params.begin(),
+               std::bind(std::multiplies<double>(), std::placeholders::_1, vecNormRecip));
 }
 
-void Conic::NormalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>& impl_params) {
-  std::vector<double> impl_params_vec(impl_params.begin(), impl_params.end());
-  NormalizeImplicitParameters(impl_params);
+// TODO: possibly create template or call to same function for std::array above
+void Conic::NormalizeImplicitParameters(std::vector<double>& impl_params) {
+  double vecNormRecip = 1/vectorNorm(impl_params);
+  std::transform(impl_params.begin(), impl_params.end(), impl_params.begin(),
+               std::bind(std::multiplies<double>(), std::placeholders::_1, vecNormRecip));
 }
 
 std::array<double, GEOMETRIC_PARAM> Conic::GetGeom() {
