@@ -135,28 +135,30 @@ TEST(ConicTest, LocusEnvelopeConversion) {
   std::array<double, IMPLICIT_PARAM> impl = {1, 0, 3, 4, 5, 7};
   double impl_norm = vectorNorm(impl);
   ASSERT_NE(impl_norm, 0);
-  // impl =/ impl_norm;
-  // std::cerr << "Vector: ";
-  // for(const auto& elem : impl) {
-  //   std::cerr << elem << " | ";
-  // }
-  // std::cerr << std::endl;
-
+  
   Conic conic_var;
   conic_var.SetImplicitParameters(impl);
-  // double sum_val = 0;
-  // for(const auto& element : impl) {
-  //   sum_val += element*element;
-  // }
   conic_var.NormalizeImplicitParameters(impl);
-  // // std::cerr << "Sum: " << sum_val << " | " << sqrt(sum_val) << std::endl;
-  // // std::array<double, IMPLICIT_PARAM> impl_var;
-  // // impl_var = conic_var.GetImplicit();
   EXPECT_DOUBLE_EQ(impl.at(0), 1./impl_norm);
   EXPECT_DOUBLE_EQ(impl.at(1), 0./impl_norm);
   EXPECT_DOUBLE_EQ(impl.at(2), 3./impl_norm);
   EXPECT_DOUBLE_EQ(impl.at(3), 4./impl_norm);
   EXPECT_DOUBLE_EQ(impl.at(4), 5./impl_norm);
   EXPECT_DOUBLE_EQ(impl.at(5), 7./impl_norm);
+}
+
+TEST(ConicTest, ConicIntersection) {
+  double smajor = 100., sminor = 70., xcen = 300., ycen = 50., angle = 0.;
+  Conic conicA(smajor, sminor, xcen, ycen, angle);
+  Conic conicB(smajor, sminor, xcen-315, ycen, angle);
+  // Eigen::Vector3d g; g.fill(0);
+  // Eigen::Vector3d h; h.fill(0);
+  std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
+  // std::get<0>(gh) = g;
+  // std::get<1>(gh) = h;
+  bool success = conicA.ConicIntersectionLines(conicB, gh);
+  std::cerr << "Intersection: \n" << std::get<0>(gh) << std::endl << std::get<1>(gh) << std::endl;
+  ASSERT_EQ(success, true);
+
 }
 

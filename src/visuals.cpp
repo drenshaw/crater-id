@@ -1,4 +1,16 @@
+#include <cstdarg>
+
 #include "visuals.h"
+
+using namespace cv;
+
+void showEllipses(const Conic conic, ...) {
+  va_list list; 
+  va_start(list, conic); 
+  for (uint i = 0; i < )
+  cv::Mat image(500, 500, CV_8UC3, 
+              Scalar(255, 255, 255)); 
+}
 
 namespace VIS {
 // void Sphere()
