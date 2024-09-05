@@ -1,6 +1,12 @@
 #ifndef VISUALS_H
 #define VISUALS_H
 
+#include <opencv2/core/core.hpp> 
+
+#include "conics.h"
+
+void showEllipses(const Conic conic, ...);
+
 /* VTK */
 // #include <cstdlib>
 // #include <vtkActor.h>
