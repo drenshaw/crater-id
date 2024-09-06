@@ -343,15 +343,15 @@ std::ostream& operator<<(std::ostream& os, const Conic& conic) {
         << "\n\tAngle (deg): " << rad2deg(conic.angle_) << " ";
 }
 
-void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM> arr) {
+void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM>& arr) {
   Eigen::Vector3d::Map(&arr[0], eig.size()) = eig;
 }
 
-template <typename T, size_t SIZE>
-bool vectorContainsNaN(const std::array<T, SIZE> vec) {
-  return std::any_of(vec.begin(), vec.end(), [](T i){return std::isnan(i);});
+void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec) {
+  Eigen::Vector3d::Map(&vec[0], eig.size()) = eig;
 }
 
+// Templated version of vectorContainsNaN in header
 bool vectorContainsNaN(const Eigen::Vector3d& eV) {
   std::array<double, CONIC_DIM> vec;
   convertEigenVectorToVector(eV, vec);
@@ -415,6 +415,8 @@ bool IntersectionLines( const Eigen::Matrix3d& Ai,
                         std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) {
   // eq 77
   Eigen::Matrix3d combined = Aj*-Ai.inverse();
+  // TODO: try suggested x = A.ldlt().solve(b) from section 2.12 of
+  // https://geophydog.cool/post/eigen3_operations/ 
   Eigen::EigenSolver<Eigen::Matrix3d> eigensolver(combined);
   Eigen::Vector3cd eigenvalues = eigensolver.eigenvalues();
   // Here, using std::vector is appropriate since we don't know the length
@@ -435,9 +437,9 @@ bool IntersectionLines( const Eigen::Matrix3d& Ai,
 }
 
 bool ChooseIntersection(const std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh, 
-                                   const Eigen::Vector2d& centerA, 
-                                   const Eigen::Vector2d& centerB,
-                                   Eigen::Vector3d& l) {
+                        const Eigen::Vector2d& centerA, 
+                        const Eigen::Vector2d& centerB,
+                        Eigen::Vector3d& l) {
   Eigen::Vector3d g, h;
   std::tie(g, h) = gh;
   // convert centers to homogeneous coordinates
@@ -451,9 +453,11 @@ bool ChooseIntersection(const std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh,
   Eigen::Vector3d hIntersect = h.cross(lineOfCenters);
 
   // normalize gIntersect
+  assert(std::abs(gIntersect(2)) > EPS);
   gIntersect = gIntersect.array()/gIntersect.array()[2];
 
   // normalize hIntersect
+  assert(std::abs(hIntersect(2)) > EPS);
   hIntersect = hIntersect.array()/hIntersect.array()[2];
 
   double xmax, xmin, ymax, ymin;
@@ -501,16 +505,18 @@ bool computeInvariant(const Eigen::Vector3d& line1,
 
 // TODO: Can't use "const" on the conics here; figure out how to do that
 bool computeCraterTriadInvariants(Conic& A, Conic& B, Conic& C,
-                                  std::array<double, CONIC_DIM>& invariants) {
+                                  std::array<double, NONCOPLANAR_INVARIANTS>& invariants) {
   std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh_ij, gh_jk, gh_ki;
   Eigen::Vector3d lij, ljk, lki;
   double invA, invB, invC;
-  Eigen::Matrix3d locusA = A.GetLocus();
-  Eigen::Matrix3d locusB = B.GetLocus();
-  Eigen::Matrix3d locusC = C.GetLocus();
-  Eigen::Vector2d centerA = A.GetCenter();
-  Eigen::Vector2d centerB = B.GetCenter();
-  Eigen::Vector2d centerC = C.GetCenter();
+  Eigen::Matrix3d locusA, locusB, locusC;
+  Eigen::Vector2d centerA, centerB, centerC;
+  locusA = A.GetLocus();
+  locusB = B.GetLocus();
+  locusC = C.GetLocus();
+  centerA = A.GetCenter();
+  centerB = B.GetCenter();
+  centerC = C.GetCenter();
   
   if(!IntersectionLines(locusA, locusB, gh_ij)) {
     std::cerr<<"IntersectionLines error ij\n";

@@ -98,6 +98,15 @@ void printVector(const std::vector<T> vec, const std::string prepend) {
   std::cout << std::endl;
 }
 
+template <typename T, size_t SIZE>
+void printVector(const std::array<T, SIZE> arr, const std::string prepend) {
+  std::cout << prepend;
+  for(auto& elem : arr) {
+    std::cout << elem << ", ";
+  }
+  std::cout << std::endl;
+}
+
 template <typename T>
 void printVectorOfVectors(const std::vector<std::vector<T>> vec) {
   std::cout << "Printing vector of vectors: " << std::endl;

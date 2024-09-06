@@ -14,6 +14,8 @@
 #define GEOMETRIC_PARAM 5
 #define IMPLICIT_PARAM 6
 #define CONIC_DIM 3
+#define NONCOPLANAR_INVARIANTS 3
+#define    COPLANAR_INVARIANTS 7
 
 template <typename T>
 bool almost_equal(const T a, const T b) {
@@ -117,8 +119,8 @@ bool computeInvariant(const Eigen::Vector3d&,
                       const Eigen::Vector3d&, 
                       const Eigen::Matrix3d&,
                       double&);
-bool computeCraterTriadInvariants(const Conic&, const Conic&, const Conic&,
-                                  std::array<double, CONIC_DIM>&);
+bool computeCraterTriadInvariants(Conic&, Conic&, Conic&,
+                                  std::array<double, NONCOPLANAR_INVARIANTS>&);
 Eigen::Matrix3d getENUFrame(const Eigen::Vector3d&);
 void GenerateQuadricFromRadiusNormal();
 Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d&, 
@@ -129,5 +131,14 @@ Eigen::Quaterniond eulerToQuaternion(const double roll, const double pitch, cons
 void eulerToQuaternion(const double roll,
                        const double pitch,
                        const double yaw,
-                       Eigen::Matrix3d& dcm);                           
+                       Eigen::Matrix3d& dcm);    
+
+void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM>& arr);
+void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec);
+bool vectorContainsNaN(const Eigen::Vector3d& eV);
+template <typename T, size_t SIZE>
+bool vectorContainsNaN(const std::array<T, SIZE>& vec) {
+  return std::any_of(vec.begin(), vec.end(), [](T i){return std::isnan(i);});
+}
+
 #endif

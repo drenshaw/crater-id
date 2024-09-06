@@ -34,41 +34,21 @@
 #define RUN_CONICS 0
 #define RUN_INVARIANTS 0
 
-void plot_ellipse(cv::Mat& image, Conic& ellipse, const cv::Scalar color=cv::Scalar(0, 255, 0)) {
-  cv::Point center;
-  Eigen::Vector2d semiaxes;
-  ellipse.GetCenter(center);
-  ellipse.GetSemiAxes(semiaxes);
-  cv::Size axes(semiaxes[0], semiaxes[1]);
-  double angle = ellipse.GetAngle();
-  cv::ellipse(image, center, axes, angle, 0, 360, color, -1, cv::LINE_AA);
-  int font = cv::FONT_HERSHEY_SIMPLEX;
-  float font_scale = 1; // scale factor from base size
-  int thickness = 1; //in pixels
-  cv::Scalar text_color(color[1], color[2], color[1]);
-  cv::putText(image, std::to_string(ellipse.GetID()), center, font, font_scale,
-              text_color, thickness, true);
-}
-
-void print_triads(const std::vector<std::tuple<uint, uint, uint>> triads, 
-                  const std::vector<lunar_crater> craters,
-                  const uint max_iter=10) {
-
-  uint t_count = 0;
-  for(const auto& [i, j, k] : triads) {
-    std::cout << "-" << t_count++ << "-\t"
-              << " "  << i
-              << ", " << j
-              << ", " << k
-              << "\n\t" << craters[i]
-              << "\n\t" << craters[j]
-              << "\n\t" << craters[k]
-              << std::endl;
-    if(t_count >= max_iter) {
-      break;
-    }
-  }
-}
+// void plot_ellipse(cv::Mat& image, Conic& ellipse, const cv::Scalar color=cv::Scalar(0, 255, 0)) {
+//   cv::Point center;
+//   Eigen::Vector2d semiaxes;
+//   ellipse.GetCenter(center);
+//   ellipse.GetSemiAxes(semiaxes);
+//   cv::Size axes(semiaxes[0], semiaxes[1]);
+//   double angle = ellipse.GetAngle();
+//   cv::ellipse(image, center, axes, angle, 0, 360, color, -1, cv::LINE_AA);
+//   int font = cv::FONT_HERSHEY_SIMPLEX;
+//   float font_scale = 1; // scale factor from base size
+//   int thickness = 1; //in pixels
+//   cv::Scalar text_color(color[1], color[2], color[1]);
+//   cv::putText(image, std::to_string(ellipse.GetID()), center, font, font_scale,
+//               text_color, thickness, true);
+// }
 
 #if RUN_LOGGING
 // namespace logging = boost::log;
@@ -306,13 +286,14 @@ int main(int argc, char** argv) {
 
   // Showing image inside a window
   cv::imshow("Output", image);
+  // TODO: getting "(in)direct leak" warnings from AddressSanitizer about imshow here
   cv::waitKey(0);
   assert(conicA == conicA);
   assert(!(conicA == conicB));
   assert(conicA != conicB);
   std::cout << "Does this match? It should: " << (conicA == conicA) << std::endl;
   std::cout << "Does this match? It shouldn't: " << (conicA == conicB) << std::endl;
-  std::cout << "IDs? " << conicA.get_id() << " | " << conicB.get_id() << std::endl;
+  std::cout << "IDs? " << conicA.GetID() << " | " << conicB.GetID() << std::endl;
 #endif
 
 
