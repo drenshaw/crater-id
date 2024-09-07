@@ -46,10 +46,10 @@ void specialCombination(const std::vector<T> choices,
     // uint count = 0;
     for(size_t i=0; i<n-1; i++) {
         current_choice = choices[i];
-        pt1 = latlon2unitVector(current_choice);
+        pt1 = latlon2bearing(current_choice);
         for(size_t j=i+1; j<n; j++) {
             next_choice = choices[j];
-            pt2 = latlon2unitVector(next_choice);
+            pt2 = latlon2bearing(next_choice);
             // if(angularDistance(pt1, pt2) < max_angle_rad) {
             if(angularPseudoDistance(pt1, pt2) > min_dot_prod) {
                 // count++;
@@ -78,10 +78,10 @@ std::vector<std::tuple<T, T>> specialCombination(const std::vector<T> choices,
     // uint count = 0;
     for(size_t i=0; i<n-1; i++) {
         current_choice = choices[i];
-        pt1 = latlon2unitVector(current_choice);
+        pt1 = latlon2bearing(current_choice);
         for(size_t j=i+1; j<n; j++) {
             next_choice = choices[j];
-            pt2 = latlon2unitVector(next_choice);
+            pt2 = latlon2bearing(next_choice);
             // if(angularDistance(pt1, pt2) < max_angle_rad) {
             if(angularPseudoDistance(pt1, pt2) > min_dot_prod) {
                 // count++;
@@ -92,5 +92,9 @@ std::vector<std::tuple<T, T>> specialCombination(const std::vector<T> choices,
     std::cout << "Valid combinations: " << valid_craters.size() << std::endl;
     return valid_craters;
 }
+
+void print_triads(const std::vector<std::tuple<uint, uint, uint>> triads, 
+                  const std::vector<lunar_crater> craters,
+                  const uint max_iter=10);
 
 #endif

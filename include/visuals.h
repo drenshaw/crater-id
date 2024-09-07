@@ -2,10 +2,12 @@
 #define VISUALS_H
 
 #include <opencv2/core/core.hpp> 
+#include <opencv2/imgproc.hpp> 
+#include <opencv2/highgui/highgui.hpp> 
 
 #include "conics.h"
 
-void showEllipses(const Conic conic, ...);
+// void showEllipses(const Conic conic, ...);
 
 /* VTK */
 // #include <cstdlib>

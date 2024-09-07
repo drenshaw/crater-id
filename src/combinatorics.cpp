@@ -62,3 +62,23 @@ void formTriads(const std::vector<std::tuple<uint, uint>> pairs,
     idx++;
   }
 }
+
+void print_triads(const std::vector<std::tuple<uint, uint, uint>> triads, 
+                  const std::vector<lunar_crater> craters,
+                  const uint max_iter) {
+
+  uint t_count = 0;
+  for(const auto& [i, j, k] : triads) {
+    std::cout << "-" << t_count++ << "-\t"
+              << " "  << i
+              << ", " << j
+              << ", " << k
+              << "\n\t" << craters[i]
+              << "\n\t" << craters[j]
+              << "\n\t" << craters[k]
+              << std::endl;
+    if(t_count >= max_iter) {
+      break;
+    }
+  }
+}

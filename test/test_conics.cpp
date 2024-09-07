@@ -1,6 +1,11 @@
 #include "gtest/gtest.h"
 #include <array>
 #include <iostream>
+#include <opencv2/core/core.hpp> 
+#include <opencv2/imgproc.hpp> 
+#include <opencv2/highgui/highgui.hpp> 
+#include <opencv2/viz/types.hpp>
+#include <random>
 
 #include "conics.h"
 #include "vector_math.h"
@@ -12,6 +17,44 @@ TEST_CASE( "Factorial of 0 is 1 (fail)", "[single-file]" ) {
     std::cout << "Test1\n";
 }
 */
+
+std::vector<cv::Scalar> colors = {
+  cv::viz::Color::amethyst(),
+  cv::viz::Color::apricot(),
+  cv::viz::Color::azure(),
+  cv::viz::Color::black(),
+  cv::viz::Color::bluberry(),
+  cv::viz::Color::blue(),
+  cv::viz::Color::brown(),
+  cv::viz::Color::celestial_blue(),
+  cv::viz::Color::chartreuse(),
+  cv::viz::Color::cherry(),
+  cv::viz::Color::cyan(),
+  cv::viz::Color::gold(),
+  cv::viz::Color::gray(),
+  cv::viz::Color::green(),
+  cv::viz::Color::indigo(),
+  cv::viz::Color::lime(),
+  cv::viz::Color::magenta(),
+  cv::viz::Color::maroon(),
+  cv::viz::Color::mlab(),
+  cv::viz::Color::navy(),
+  // cv::viz::Color::not_set(),
+  cv::viz::Color::olive(),
+  cv::viz::Color::orange(),
+  cv::viz::Color::orange_red(),
+  cv::viz::Color::pink(),
+  cv::viz::Color::purple(),
+  cv::viz::Color::raspberry(),
+  cv::viz::Color::red(),
+  cv::viz::Color::rose(),
+  cv::viz::Color::silver(),
+  cv::viz::Color::teal(),
+  cv::viz::Color::turquoise(),
+  cv::viz::Color::violet(),
+  cv::viz::Color::white(),
+  cv::viz::Color::yellow(),
+};
 
 class ConicTest : public testing::Test {
   protected:
@@ -147,18 +190,90 @@ TEST(ConicTest, LocusEnvelopeConversion) {
   EXPECT_DOUBLE_EQ(impl.at(5), 7./impl_norm);
 }
 
+TEST(ConicTest, ConvertEigenVectorToVector) {
+  std::array<double, CONIC_DIM> arr;
+  std::vector<double> vec;
+  vec.reserve(CONIC_DIM);
+  Eigen::Vector3d evec;
+  evec << 1,2,3;
+  convertEigenVectorToVector(evec, arr);
+  convertEigenVectorToVector(evec, vec);
+  EXPECT_EQ(arr.at(0), evec(0));
+  EXPECT_EQ(arr.at(1), evec(1));
+  EXPECT_EQ(arr.at(2), evec(2));
+  EXPECT_EQ(arr.at(2), 3);
+  EXPECT_EQ(vec[0], evec(0));
+  EXPECT_EQ(vec[1], evec(1));
+  EXPECT_EQ(vec[2], evec(2));
+  EXPECT_EQ(vec[2], 3);
+  // ASSERT_TRUE(success);
+}
+
+
+
+
+
+void plot_ellipse(cv::Mat& image, Conic& ellipse, const cv::Scalar color=cv::Scalar(0, 255, 0)) {
+  cv::Point center;
+  Eigen::Vector2d semiaxes;
+  ellipse.GetCenter(center);
+  ellipse.GetSemiAxes(semiaxes);
+  cv::Size axes(semiaxes[0], semiaxes[1]);
+  double angle = ellipse.GetAngle();
+
+  cv::ellipse(image, center, axes, angle, 0, 360, color, -1, cv::LINE_AA);
+
+  int font = cv::FONT_HERSHEY_SIMPLEX;
+  float font_scale = 1; // scale factor from base size
+  int thickness = 1; //in pixels
+  cv::Scalar text_color(color[1], color[2], color[1]);
+  cv::putText(image, std::to_string(ellipse.GetID()), center, font, font_scale,
+              text_color, thickness, true);
+}
+
+void plot_ellipses(const std::vector<Conic>& conics) {
+  cv::Mat image(500, 500, CV_8UC4, 
+                cv::Scalar(255, 255, 255, 0)); 
+  if (!image.data) { 
+    std::cerr << "Could not open or find the image\n"; 
+    return; 
+  }
+  // Drawing the ellipse 
+  for(long unsigned int i = 0; i < conics.size(); i++) {
+    Conic ellipse = conics.at(i);
+    cv:: Scalar color = colors.at(i);
+    plot_ellipse(image, ellipse, color);
+  }
+  // Showing image inside a window 
+  // TODO: getting "(in)direct leak" warnings from AddressSanitizer about imshow here
+  cv::imshow("Output", image); 
+  cv::waitKey(0); 
+  
+}
+
+void plot_ellipses(const Conic& conic) {
+  std::vector<Conic> conics = {conic};
+  plot_ellipses(conics);
+}
+
 TEST(ConicTest, ConicIntersection) {
   double smajor = 100., sminor = 70., xcen = 300., ycen = 50., angle = 0.;
-  Conic conicA(smajor, sminor, xcen, ycen, angle);
+  Conic conicA(smajor, sminor, xcen, ycen, angle+30);
   Conic conicB(smajor, sminor, xcen-315, ycen, angle);
   // Eigen::Vector3d g; g.fill(0);
   // Eigen::Vector3d h; h.fill(0);
   std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
-  // std::get<0>(gh) = g;
-  // std::get<1>(gh) = h;
+  Eigen::Vector3d g_line, h_line;
   bool success = conicA.ConicIntersectionLines(conicB, gh);
-  std::cerr << "Intersection: \n" << std::get<0>(gh) << std::endl << std::get<1>(gh) << std::endl;
-  ASSERT_EQ(success, true);
 
+  std::tie(g_line, h_line) = gh;
+  std::cerr << "Intersection: \n" << g_line << std::endl << h_line << std::endl;
+  std::cerr << "Intersection: \n" << g_line/g_line(2) << std::endl << h_line/h_line(2) << std::endl;
+  // for(const auto& color : colors) {
+  //   std::cerr << "Elem: " << color << std::endl;
+  // }
+  std::vector<Conic> conics = {conicA, conicB};
+  // plot_ellipses(conics);
+  ASSERT_TRUE(success);
 }
 

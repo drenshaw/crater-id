@@ -2,15 +2,29 @@
 
 #include "visuals.h"
 
-using namespace cv;
+// // using namespace cv;
 
-void showEllipses(const Conic conic, ...) {
-  va_list list; 
-  va_start(list, conic); 
-  for (uint i = 0; i < )
-  cv::Mat image(500, 500, CV_8UC3, 
-              Scalar(255, 255, 255)); 
-}
+// void showEllipses(const Conic conic, ...) {
+//   // va_list list; 
+//   // va_start(list, conic); 
+//   cv::Mat image(500, 500, CV_8UC3, 
+//                 cv::Scalar(255, 255, 255)); 
+//   if (!image.data) { 
+//     std::cout << "Could not open or "
+//               << "find the image\n"; 
+
+//     return; 
+//   }
+//   // Drawing the ellipse 
+//   cv::ellipse(image, cv::Point(256, 256), 
+//               cv::Size(100, 50), 0, 0, 
+//               360, cv::Scalar(0, 255, 255), 
+//               -1, cv::LINE_AA); 
+
+//   // Showing image inside a window 
+//   cv::imshow("Output", image); 
+//   cv::waitKey(0); 
+// }
 
 namespace VIS {
 // void Sphere()
