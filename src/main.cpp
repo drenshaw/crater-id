@@ -209,7 +209,7 @@ int main(int argc, char** argv) {
   fname = "/home/dqr0509/data/craters/lunar_craters.csv";
 
   std::vector<lunar_crater> craters;
-  runCraterReader(fname, craters);
+  runCraterReader(craters, fname);
   // uint c_idx = 0;
   // for(auto& crater : craters) {
   //   std::cout << "Crater " << c_idx++ << " " << crater << std::endl;

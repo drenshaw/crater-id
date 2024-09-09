@@ -71,6 +71,10 @@ std::ostream& operator<<(std::ostream& os, const Quadric& quad) {
         << "\n\t\tPlane: [" << quad.plane_.transpose() << "] ";
 }
 
+double calculateCraterRimFromRadius(const double radius) {
+  return sqrt(pow(R_MOON, 2) - pow(radius, 2));
+}
+
 std::tuple<Eigen::Vector4d, Eigen::Vector3d> SurfacePointToPlane(const Eigen::Matrix3d& T_e2m, 
                                                                  const Eigen::Vector3d& surface_point) {
     Eigen::Vector3d u_north_pole = GetNorthPoleUnitVector();

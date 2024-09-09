@@ -2,9 +2,30 @@
 #include <vector>
 #include <tuple>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <random>
 
 #include "conics.h"
+// #include "io.h"
+
+template <typename T>
+void printVector(const std::vector<T> vec, const std::string prepend) {
+  std::cout << prepend;
+  for(auto& idx : vec) {
+    std::cout << idx << ", ";
+  }
+  std::cout << std::endl;
+}
+
+template <typename T, size_t SIZE>
+void printVector(const std::array<T, SIZE> arr, const std::string prepend) {
+  std::cout << prepend;
+  for(auto& elem : arr) {
+    std::cout << elem << ", ";
+  }
+  std::cout << std::endl;
+}
 
 class InvariantTest : public testing::Test {
   protected:
@@ -25,6 +46,7 @@ TEST(InvariantTest, InvariantTriad) {
   Conic conicB(15, 12, 100, 200, 0);
   Conic conicC(12, 8, 50, 200, 0);
   Conic conicD(12, 8, 400, 20, 0);
+  
   // Invariants
   std::array<double, NONCOPLANAR_INVARIANTS> invariantsABC, invariantsBCD, invariantsCDA, invariantsDAB;
   if(!computeCraterTriadInvariants(conicA, conicB, conicC, invariantsABC)) {

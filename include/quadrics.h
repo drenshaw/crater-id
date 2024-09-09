@@ -2,6 +2,7 @@
 #define QUADRICS_H
 
 #include <iostream>
+#include "io.h"
 #include "conics.h"
 #include "vector_math.h"
 
@@ -38,6 +39,8 @@ class Quadric {
     friend std::ostream& operator<<(std::ostream& os, const Quadric&);
 };
 
+
+double calculateCraterRimFromRadius(const double radius);
 Eigen::Matrix4d GenerateQuadricFromRadiusNormal(const Eigen::Vector3d& position, const double radius);
 Eigen::Matrix4d ConicEnvelopeToQuadricEnvelope(const Eigen::Matrix3d& conic_envelope, 
                                                const Eigen::MatrixXd& h_k);

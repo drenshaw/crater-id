@@ -1,6 +1,7 @@
 #ifndef VECTOR_MATH
 #define VECTOR_MATH
 
+#include <iostream>
 #include <math.h>
 #include <vector>
 #include <array>
@@ -10,7 +11,7 @@
 // #include <boost/log/core.hpp>
 // #include <boost/log/expressions.hpp>
 // #include <boost/log/trivial.hpp>
-#include "crater-id.h"
+// #include "crater-id.h"
 
 #define EPS (10 * std::numeric_limits<double>::epsilon())
 

@@ -8,7 +8,7 @@
 #include <iterator>
 
 #include "structs.h"
-#include "crater-id.h"
+#include "io.h"
 #include "vector_math.h"
 
 // template <typename T, typename N>
@@ -60,6 +60,7 @@ void specialCombination(const std::vector<T> choices,
     std::cout << valid_craters.size() << " valid pairs." << std::endl;
 }
 
+// TODO: rename this function
 template <typename T, typename N>
 std::vector<std::tuple<T, T>> specialCombination(const std::vector<T> choices, 
                                                  const N max_angle_deg) {

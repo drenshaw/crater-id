@@ -4,9 +4,18 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <string>
+#include <iomanip>
 #include <vector>
 #include <tuple>
 #include "structs.h"
+
+#define NDIM 2
+#define R_MOON 1737.4
+
+std::ostream& operator<<(std::ostream& os, const lunar_crater& crater);
+
+namespace io {
 
 template <typename T>
 void printVector(const std::vector<T>, const std::string="");
@@ -14,41 +23,48 @@ template <typename T>
 void printVectorOfVectors(const std::vector<std::vector<T>>);
 template <typename T>
 void makeUnique(T&);
-template <typename T>
+// template <typename T>
 // std::vector<uint> getRange(std::vector<T>); //TODO: this exists in vector_math.h as well
-bool readLunarCraterEntry(  const std::string, 
-                            lunar_crater&,
-                            const char, 
-                            const double=1.2, 
-                            const double=0.9,
-                            const double=50.0,
-                            const double=1000.0);
-template <typename T>
-void runCraterReader(const std::string,
-                     std::vector<T>&,
-                     const char=',',
-                     const double=1.2,
-                     const double=0.9,
-                     const uint=200);
-template <typename T>
-std::tuple<double, char> stringify_lat(const T crater);
-template <typename T>
-std::tuple<double, char> stringify_lon(const T crater);
-template <typename T>
-std::string stringify_latlon(const T crater);
+bool readLunarCraterEntry(lunar_crater& crater,
+                          const std::string entry, 
+                          const char sep=',',
+                          const double max_ell=1.2,
+                          const double min_arc=0.9,
+                          const double min_diam=50.,
+                          const double max_diam=200.);
+std::string stringify_lat(const double);
+std::string stringify_lon(const double);
 std::string stringify_latlon(const double, const double);
-std::tuple<double, char> stringify_lat(const double);
-std::tuple<double, char> stringify_lon(const double);
+std::string stringify_lat(const lunar_crater crater);
+std::string stringify_lon(const lunar_crater crater);
+std::string stringify_latlon(const lunar_crater crater);
 
 /**** Template definitions ****/
+// template <typename T>
+// std::string stringify_lat(const T crater) {
+//   return stringify_lat(crater.lat);
+// }
+
+// template <typename T>
+// std::string stringify_lon(const T crater) {
+//   return stringify_lon(crater.lon);
+// }
+
+// template <typename T>
+// std::string stringify_latlon(const T crater) {
+//   return stringify_latlon(crater.lat, crater.lon);
+// }
+
 template <typename T>
-void runCraterReader(const std::string fname,
-                     std::vector<T>& craters,
-                     const char sep,
-                     const double max_ell,
-                     const double min_arc,
-                     const uint max_n_craters) {
-  T db_entry;
+void runCraterReader( std::vector<T>& craters,
+                      const std::string fname,
+                      const char sep=',',
+                      const double max_ell=1.2,
+                      const double min_arc=0.9,
+                      const double min_diam=50.,
+                      const double max_diam=200.,
+                      const uint max_n_craters=200) {
+  T crater;
   std::string line;
 
   std::ifstream file (fname, std::ios::in);
@@ -59,12 +75,11 @@ void runCraterReader(const std::string fname,
       std::stringstream str(line);
       if(count==0) {
         count++;
-        // readLunarCraterEntry(line, sep);
         continue;
       }
-      if(readLunarCraterEntry(line, db_entry, sep, max_ell, min_arc)) {
+      if(readLunarCraterEntry(crater, line, sep, max_ell, min_arc, min_diam, max_diam)) {
         count++;
-        craters.push_back(db_entry);
+        craters.push_back(crater);
       }
       if(count > max_n_craters) {
         break;
@@ -73,11 +88,9 @@ void runCraterReader(const std::string fname,
     file.close();
   }
   else
-    std::cout<<"Could not open the file: "<<fname<<std::endl;
+    std::cerr<<"Could not open the file: "<<fname<<std::endl;
 
-  std::cout << craters.size() 
-            << " craters in database."
-            << std::endl;
+  std::cout << craters.size() << " craters in database.\n";
   
   // uint count = 0;
   // uint n_print = 6;
@@ -116,9 +129,6 @@ void printVectorOfVectors(const std::vector<std::vector<T>> vec) {
   std::cout << std::endl;
 }
 
-template <typename T>
-std::string stringify_latlon(const T crater) {
-  return stringify_latlon(crater.lat, crater.lon);
-}
+} // namespace
 
 #endif
