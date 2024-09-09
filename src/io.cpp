@@ -23,7 +23,7 @@ bool readLunarCraterEntry(lunar_crater& crater,
                           const double max_diam) {
   // lunar_crater crater;
   std::string lat, lon, diam, ecc, n_pts;
-  std::stringstream str(entry);
+  std::istringstream str(entry);
   std::string token;
   uint count = 0;
   while(getline(str, token, sep)) {
@@ -76,10 +76,11 @@ std::string stringify_lat(const double lat) {
   std::string n_or_s;
   double abs_lat;
   n_or_s = (lat > 0)?"N":"S";
-  abs_lat = abs(lat);
-  std::stringstream outStream;
+  abs_lat = std::abs(lat);
+  std::ostringstream outStream;
   outStream << std::fixed << std::setw(6) << std::fixed << std::setprecision(2) << abs_lat << "°" << n_or_s;
-  return outStream.str();
+  std::string out_str = outStream.str();
+  return out_str;
 }
 
 std::string stringify_lon(const double lon) {
@@ -90,12 +91,13 @@ std::string stringify_lon(const double lon) {
     std::cerr << "Longitude falls outside [-180°,180°]: " << lon << std::endl;
     return "";
   }
-  double abs_lon = abs(re_lon);
+  double abs_lon = std::abs(re_lon);
   std::string e_or_w;
   e_or_w = (re_lon < 0)?"W":"E";
-  std::stringstream outStream;
+  std::ostringstream outStream;
   outStream << std::fixed << std::setw(6) << std::fixed << std::setprecision(2) << abs_lon << "°" << e_or_w;
-  return outStream.str();
+  std::string out_str = outStream.str();
+  return out_str;
 }
 
 std::string stringify_latlon(const double lat, const double lon) {

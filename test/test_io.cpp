@@ -12,82 +12,6 @@
 
 #include "io.h"
 
-std::string stringify_lat(const double lat) {
-  if(lat > 90. || lat < -90) {
-    std::cerr << "Latitude falls outside [-90°,90°]: " << lat << std::endl;
-    return "";
-  }
-  std::string n_or_s;
-  double abs_lat;
-  n_or_s = (lat > 0)?"N":"S";
-  abs_lat = abs(lat);
-  std::stringstream outStream;
-  outStream << std::fixed << std::setw(6) << std::fixed << std::setprecision(2) << abs_lat << "°" << n_or_s;
-  return outStream.str();
-}
-
-std::string stringify_lon(const double lon) {
-  double re_lon = lon;
-  if(re_lon > 180)
-    re_lon -= 360;
-  if(re_lon > 180. || re_lon < -180) {
-    std::cerr << "Longitude falls outside [-180°,180°]: " << lon << std::endl;
-    return "";
-  }
-  double abs_lon = abs(re_lon);
-  std::string e_or_w;
-  e_or_w = (re_lon < 0)?"W":"E";
-  std::stringstream outStream;
-  outStream << std::fixed << std::setw(6) << std::fixed << std::setprecision(2) << abs_lon << "°" << e_or_w;
-  return outStream.str();
-}
-
-std::string stringify_latlon(const double lat, const double lon) {
-  std::string str_lat, str_lon;
-  str_lat = stringify_lat(lat);
-  str_lon = stringify_lon(lon); 
-  std::cout << "Lat: " << lat << " | Lon: " << lon << std::endl; 
-  std::cout << "Lat: " << str_lat << " | Lon: " << str_lon << std::endl; 
-  return (str_lat + " " + str_lon);
-}
-
-// std::string stringify_lat(const double lat) {
-//   if(lat > 90. || lat < -90) {
-//     std::cerr << "Latitude falls outside [-90°,90°]: " << lat << std::endl;
-//     return "";
-//   }
-//   std::string n_or_s;
-//   double abs_lat;
-//   n_or_s = (lat > 0)?"N":"S";
-//   abs_lat = abs(lat);
-//   std::stringstream outStream;
-//   outStream << std::fixed << std::setw(6) << std::fixed << std::setprecision(2) << abs_lat << "°" << n_or_s;
-//   return outStream.str();
-// }
-
-// std::string stringify_lon(const double lon) {
-//   double re_lon = lon;
-//   if(re_lon > 180)
-//     re_lon -= 360;
-//   if(re_lon > 180. || re_lon < -180) {
-//     std::cerr << "Longitude falls outside [-180°,180°]: " << lon << std::endl;
-//     return "";
-//   }
-//   double abs_lon = abs(re_lon);
-//   std::string e_or_w;
-//   e_or_w = (re_lon < 0)?"W":"E";
-//   std::stringstream outStream;
-//   outStream << std::fixed << std::setw(6) << std::fixed << std::setprecision(2) << abs_lon << "°" << e_or_w;
-//   return outStream.str();
-// }
-
-// std::string stringify_latlon(const double lat, const double lon) {
-//   std::string str_lat, str_lon;
-//   str_lat = stringify_lat(lat);
-//   str_lon = stringify_lon(lon);  
-//   return (str_lat + " " + str_lon);
-// }
-
 template <typename T>
 void printVector(const std::vector<T> vec, const std::string prepend) {
   std::cout << prepend;
@@ -261,43 +185,43 @@ TEST(IOTest, ReadDatabase) {
 
 TEST(IOTest, StringifyLat) {
   double lat = 80.1;
-  std::string lat_north = stringify_lat(lat);
+  std::string lat_north = io::stringify_lat(lat);
   std::string lat_cmp_n = " 80.10°N";
   int str_cmp_n = lat_north.compare(lat_cmp_n);
   EXPECT_EQ(str_cmp_n, 0);
   EXPECT_EQ(lat_north, lat_cmp_n);
 
-  std::string lat_south = stringify_lat(-lat);
+  std::string lat_south = io::stringify_lat(-lat);
   std::string lat_cmp_s = " 80.10°S";
   int str_cmp_s = lat_south.compare(lat_cmp_s);
   EXPECT_EQ(str_cmp_s, 0);
   EXPECT_EQ(lat_south, lat_cmp_s);
   
   double lat_oob = 91;
-  std::string str_oob = stringify_lat(lat_oob);  
+  std::string str_oob = io::stringify_lat(lat_oob);  
   ASSERT_TRUE(str_oob.empty());
 }
 
 TEST(IOTest, StringifyLon) {
   double lon = 110;
-  std::string lon_east = stringify_lon(lon);
+  std::string lon_east = io::stringify_lon(lon);
   std::string lon_cmp_e = "110.00°E";
   int str_cmp_e = lon_east.compare(lon_cmp_e);
   EXPECT_EQ(str_cmp_e, 0);
   EXPECT_EQ(lon_east, lon_cmp_e);
 
-  std::string lon_west= stringify_lon(-lon);
+  std::string lon_west= io::stringify_lon(-lon);
   std::string lon_cmp_w = "110.00°W";
   int str_cmp_w = lon_west.compare(lon_cmp_w);
   EXPECT_EQ(str_cmp_w, 0);
   EXPECT_EQ(lon_west, lon_cmp_w);
   
   double lon_oob = -181;
-  std::string str_oob = stringify_lon(lon_oob);  
+  std::string str_oob = io::stringify_lon(lon_oob);  
   EXPECT_TRUE(str_oob.empty());
 
   double lon_dec = 123.45;
-  std::string lon_d = stringify_lon(lon_dec);
+  std::string lon_d = io::stringify_lon(lon_dec);
   std::string lon_d_cmp = "123.45°E";
   int str_cmp_d = lon_d.compare(lon_d_cmp);
   EXPECT_EQ(str_cmp_d, 0);
@@ -307,7 +231,7 @@ TEST(IOTest, StringifyLon) {
 TEST(IOTest, StringifyLatLon) {
   double lat = 45.15;
   double lon = 30.95;
-  std::string s_latlon = stringify_latlon(lat, lon);
+  std::string s_latlon = io::stringify_latlon(lat, lon);
   std::string s_latlon_cmp = " 45.15°N  30.95°E";
   int str_cmp = s_latlon.compare(s_latlon_cmp);
   EXPECT_EQ(str_cmp, 0);

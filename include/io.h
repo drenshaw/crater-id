@@ -7,7 +7,6 @@
 #include <string>
 #include <iomanip>
 #include <vector>
-#include <tuple>
 #include "structs.h"
 
 #define NDIM 2
