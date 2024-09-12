@@ -13,10 +13,11 @@ project('c++ crater-id', 'cpp',
 
 add_global_arguments('-DSOME_TOKEN=value', 
                      '-DDEBUG',
+                     '-DBOOST_LOG_DYN_LINK',
                      language : 'cpp',
 )
 
-incdir = include_directories('include', '/usr/local/include')
+incdir = include_directories('include', '/usr/local/include', '/usr/include')
 cpp = meson.get_compiler('cpp')
 # dir_base = meson.current_source_dir()
 # dir_lib = join_paths(dir_base, 'lib')

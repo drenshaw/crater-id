@@ -6,6 +6,9 @@
 #include <sstream>
 #include <string>
 #include <iomanip>
+#include <iterator>
+#include <algorithm>
+#include <numeric>
 #include <vector>
 #include "structs.h"
 
@@ -17,9 +20,11 @@ std::ostream& operator<<(std::ostream& os, const lunar_crater& crater);
 namespace io {
 
 template <typename T>
-void printVector(const std::vector<T>, const std::string="");
+std::string stringifyVector(const std::vector<T>, const std::string="");
+template <typename T, size_t Size>
+std::string stringifyVector(const std::array<T, Size>, const std::string="");
 template <typename T>
-void printVectorOfVectors(const std::vector<std::vector<T>>);
+std::string stringifyVectorOfVectors(const std::vector<std::vector<T>>);
 template <typename T>
 void makeUnique(T&);
 // template <typename T>
@@ -39,20 +44,10 @@ std::string stringify_lon(const lunar_crater crater);
 std::string stringify_latlon(const lunar_crater crater);
 
 /**** Template definitions ****/
-// template <typename T>
-// std::string stringify_lat(const T crater) {
-//   return stringify_lat(crater.lat);
-// }
-
-// template <typename T>
-// std::string stringify_lon(const T crater) {
-//   return stringify_lon(crater.lon);
-// }
-
-// template <typename T>
-// std::string stringify_latlon(const T crater) {
-//   return stringify_latlon(crater.lat, crater.lon);
-// }
+template <typename T, size_t SIZE>
+void copy_vec2array(const std::vector<T> vec, std::array<T, SIZE>& arr) {
+  std::copy_n(std::make_move_iterator(vec.begin()), SIZE, arr.begin());
+}
 
 template <typename T>
 void runCraterReader( std::vector<T>& craters,
@@ -101,29 +96,31 @@ void runCraterReader( std::vector<T>& craters,
   // }
 }
 
+
+
 template <typename T>
-void printVector(const std::vector<T> vec, const std::string prepend) {
-  std::cout << prepend;
-  for(auto& idx : vec) {
-    std::cout << idx << ", ";
-  }
-  std::cout << std::endl;
+std::string stringifyVector(const std::vector<T> vec, const std::string prepend) {
+  const char* delim = ", ";
+  std::ostringstream ostr;
+  ostr << prepend;
+  std::copy(vec.begin(),vec.end(), std::ostream_iterator<T>(ostr, delim));
+  return ostr.str();
 }
 
 template <typename T, size_t SIZE>
-void printVector(const std::array<T, SIZE> arr, const std::string prepend) {
-  std::cout << prepend;
-  for(auto& elem : arr) {
-    std::cout << elem << ", ";
-  }
-  std::cout << std::endl;
+std::string stringifyVector(const std::array<T, SIZE> arr, const std::string prepend) {
+  const char* delim = ", ";
+  std::ostringstream ostr;
+  ostr << prepend;
+  std::copy(arr.begin(),arr.end(), std::ostream_iterator<T>(ostr, delim));
+  return ostr.str();
 }
 
 template <typename T>
-void printVectorOfVectors(const std::vector<std::vector<T>> vec) {
+void stringifyVectorOfVectors(const std::vector<std::vector<T>> vec) {
   std::cout << "Printing vector of vectors: " << std::endl;
   for(auto& combo : vec) {
-    printVector(combo);
+    stringifyVector(combo);
   }
   std::cout << std::endl;
 }

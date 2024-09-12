@@ -1,40 +1,16 @@
 #include "gtest/gtest.h"
 #include <string>
+#include <vector>
 #include <array>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <opencv2/core/core.hpp> 
-#include <opencv2/imgproc.hpp> 
-#include <opencv2/highgui/highgui.hpp> 
-#include <opencv2/viz/types.hpp>
-#include <random>
 
 #include "io.h"
+#include "vector_math.h"
 
 template <typename T>
-void printVector(const std::vector<T> vec, const std::string prepend) {
-  std::cout << prepend;
-  for(auto& idx : vec) {
-    std::cout << idx << ", ";
-  }
-  std::cout << std::endl;
-}
-
-template <typename T, size_t SIZE>
-void printVector(const std::array<T, SIZE> arr, const std::string prepend) {
-  std::cout << prepend;
-  for(auto& elem : arr) {
-    std::cout << elem << ", ";
-  }
-  std::cout << std::endl;
-}
-
-template <typename T>
-void printVectorOfVectors(const std::vector<std::vector<T>> vec) {
+void stringifyVectorOfVectors(const std::vector<std::vector<T>> vec) {
   std::cout << "Printing vector of vectors: " << std::endl;
   for(auto& combo : vec) {
-    printVector(combo);
+    io::stringifyVector(combo);
   }
   std::cout << std::endl;
 }
@@ -140,6 +116,23 @@ void runCraterReader( std::vector<T>& craters,
 }
 
 
+
+TEST(MathTest, VectorCopyToStdArray) {
+  const size_t n_elem = 10;
+  const double val = 1.5;
+  std::vector<double> vec(n_elem, val);
+  std::array<double, n_elem> arr;
+  io::copy_vec2array(vec, arr);
+  for(auto& element : arr) {
+    ASSERT_DOUBLE_EQ(element, val);
+  }
+  Eigen::Vector3d x, y;
+  x << 1,2,3;
+  y << 1,0,0;
+  double z = x.dot(y);
+  ASSERT_DOUBLE_EQ(z, 1.0);
+}
+
 TEST(IOTest, ReadDatabaseEntry) {
 
   std::string string_entry = "CRATER_ID,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0.95,0.99,500";
@@ -175,11 +168,11 @@ TEST(IOTest, ReadDatabase) {
   lunar_crater crater;                                    
   runCraterReader(craters, fname, sep, max_ell, min_arc, min_diam, max_diam, 200);
 
-  uint c_idx = 0;
-  for(auto& crater : craters) {
-    // std::cout << "Lat: " << crater.lat << std::endl;
-    std::cout << "Crater " << c_idx++ << " - " << crater << std::endl;
-  }
+  // uint c_idx = 0;
+  // for(auto& crater : craters) {
+  //   // std::cout << "Lat: " << crater.lat << std::endl;
+  //   std::cout << "Crater " << c_idx++ << " - " << crater << std::endl;
+  // }
   
 }
 
@@ -236,5 +229,55 @@ TEST(IOTest, StringifyLatLon) {
   int str_cmp = s_latlon.compare(s_latlon_cmp);
   EXPECT_EQ(str_cmp, 0);
   EXPECT_EQ(s_latlon, s_latlon_cmp);
+}
+
+TEST(IOTest, stringifyVectorVector) {
+  std::vector<double> vec_dbl = {1.1, 2.2, 3.3, 4.4};
+  std::string res_dbl = io::stringifyVector(vec_dbl, "DOUBLE: ");
+  std::string res_dbl_chk = "DOUBLE: 1.1, 2.2, 3.3, 4.4, ";
+  int res_dbl_cmp = res_dbl.compare(res_dbl_chk);
+  EXPECT_EQ(res_dbl_cmp, 0);
+  EXPECT_EQ(res_dbl_chk, res_dbl);
+  
+  std::vector<char> vec_char = {'a', 'b', 'c', 'd', 'e'};
+  std::string res_char = io::stringifyVector(vec_char, "CHAR: ");
+  std::string res_char_chk = "CHAR: a, b, c, d, e, ";
+  int res_char_cmp = res_char.compare(res_char_chk);
+  EXPECT_EQ(res_char_cmp, 0);
+  EXPECT_EQ(res_char_chk, res_char);
+
+  std::string rep_str = "Hello";
+  std::vector<std::string>  vec_str(3,rep_str);
+  std::string res_str = io::stringifyVector(vec_str, "STRING: ");
+  std::string res_str_chk = "STRING: Hello, Hello, Hello, ";
+  int res_str_cmp = res_str.compare(res_str_chk);
+  EXPECT_EQ(res_str_cmp, 0);
+  EXPECT_EQ(res_str_chk, res_str);
+}
+
+TEST(IOTest, stringifyVectorArray) {
+  std::array<double,4 > vec_dbl = {1.1, 2.2, 3.3, 4.4};
+  std::string res_dbl = io::stringifyVector(vec_dbl, "DOUBLE: ");
+  std::string res_dbl_chk = "DOUBLE: 1.1, 2.2, 3.3, 4.4, ";
+  int res_dbl_cmp = res_dbl.compare(res_dbl_chk);
+  EXPECT_EQ(res_dbl_cmp, 0);
+  EXPECT_EQ(res_dbl_chk, res_dbl);
+  
+  std::array<char, 5> vec_char = {'a', 'b', 'c', 'd', 'e'};
+  std::string res_char = io::stringifyVector(vec_char, "CHAR: ");
+  std::string res_char_chk = "CHAR: a, b, c, d, e, ";
+  int res_char_cmp = res_char.compare(res_char_chk);
+  EXPECT_EQ(res_char_cmp, 0);
+  EXPECT_EQ(res_char_chk, res_char);
+
+  std::string rep_str = "Hello";
+  std::array<std::string, 3>  arr_str;
+  std::vector<std::string> vec_str(3,rep_str);
+  io::copy_vec2array(vec_str, arr_str);
+  std::string res_str = io::stringifyVector(arr_str, "STRING: ");
+  std::string res_str_chk = "STRING: Hello, Hello, Hello, ";
+  int res_str_cmp = res_str.compare(res_str_chk);
+  EXPECT_EQ(res_str_cmp, 0);
+  EXPECT_EQ(res_str_chk, res_str);
 }
 

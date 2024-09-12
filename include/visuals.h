@@ -7,7 +7,7 @@
 
 #include "conics.h"
 
-// void showEllipses(const Conic conic, ...);
+void showEllipses(const Conic conic, ...);
 
 /* VTK */
 // #include <cstdlib>

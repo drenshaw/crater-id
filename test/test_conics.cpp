@@ -8,7 +8,7 @@
 #include <random>
 
 #include "conics.h"
-#include "vector_math.h"
+#include "io.h"
 /* // CATCH2 Testing Framework
 #include <catch2/catch_test_macros.hpp>
 
@@ -95,7 +95,7 @@ TEST(ConicTest, ConicEqual) {
   double smajor = 100., sminor = 70., xcen = 300., ycen = 50., angle = 0.;
   std::vector<double> vec = {smajor, sminor, xcen, ycen, angle};
   std::array<double, GEOMETRIC_PARAM> arr;
-  copy_vec2array(vec, arr);
+  io::copy_vec2array(vec, arr);
 
   Conic conic_vec(vec);
   Conic conic_arr(arr);

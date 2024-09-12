@@ -127,11 +127,6 @@ T vectorNorm(const std::array<T, SIZE> vec) {
     return vectorNorm(vec.begin(), vec.end());
 }
 
-template <typename T, size_t SIZE>
-void copy_vec2array(const std::vector<T> vec, std::array<T, SIZE>& arr) {
-  std::copy_n(std::make_move_iterator(vec.begin()), SIZE, arr.begin());
-}
-
 
 template <typename T>
 double latlon_dist(const T crater1, const T crater2) {

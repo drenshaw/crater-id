@@ -13,7 +13,7 @@
 // #include <boost/log/trivial.hpp>
 // #include <Eigen/src/LU/InverseImpl.h>
 
-#define BOOST_LOG_DYN_LINK 1
+// #define BOOST_LOG_DYN_LINK 1
 // #include <boost/log/utility/setup/console.hpp>
 
 #include "structs.h"

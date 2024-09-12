@@ -7,25 +7,7 @@
 #include <random>
 
 #include "conics.h"
-// #include "io.h"
-
-template <typename T>
-void printVector(const std::vector<T> vec, const std::string prepend) {
-  std::cout << prepend;
-  for(auto& idx : vec) {
-    std::cout << idx << ", ";
-  }
-  std::cout << std::endl;
-}
-
-template <typename T, size_t SIZE>
-void printVector(const std::array<T, SIZE> arr, const std::string prepend) {
-  std::cout << prepend;
-  for(auto& elem : arr) {
-    std::cout << elem << ", ";
-  }
-  std::cout << std::endl;
-}
+#include "io.h"
 
 class InvariantTest : public testing::Test {
   protected:
@@ -40,6 +22,26 @@ class InvariantTest : public testing::Test {
   // Queue<int> q1_;
   // Queue<int> q2_;
 };
+
+TEST(InvariantTest, IntersectionLines) {
+  Conic conicA(10, 7, 300, 50, 0);
+  Conic conicB(15, 12, 100, 200, 0);
+  Conic conicC(12, 8, 50, 200, 0);
+  std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh_ij, gh_jk, gh_ki;
+  // Eigen::Vector3d lij, ljk, lki;
+  // double invA, invB, invC;
+  Eigen::Matrix3d locusA, locusB, locusC;
+  // Eigen::Vector2d centerA, centerB, centerC;
+  locusA = conicA.GetLocus();
+  locusB = conicB.GetLocus();
+  locusC = conicC.GetLocus();
+  bool success_ab = IntersectionLines(locusA, locusB, gh_ij);
+  EXPECT_TRUE(success_ab);
+  bool success_bc = IntersectionLines(locusB, locusC, gh_jk);
+  EXPECT_TRUE(success_bc);
+  bool success_ca = IntersectionLines(locusC, locusA, gh_ki);
+  EXPECT_TRUE(success_ca);
+}
 
 TEST(InvariantTest, InvariantTriad) {
   Conic conicA(10, 7, 300, 50, 0);
@@ -61,9 +63,13 @@ TEST(InvariantTest, InvariantTriad) {
   if(!computeCraterTriadInvariants(conicD, conicA, conicB, invariantsDAB)) {
     std::cerr << "Error in `computeCraterTriadInvariants`" << std::endl;
   }
-  printVector(invariantsABC, "Invariants ABC: ");
-  printVector(invariantsBCD, "Invariants BCD: ");
-  printVector(invariantsCDA, "Invariants CDA: ");
-  printVector(invariantsDAB, "Invariants DAB: ");
+  std::string invABC = io::stringifyVector(invariantsABC, "Invariants ABC: ");
+  std::string invBCD = io::stringifyVector(invariantsBCD, "Invariants BCD: ");
+  std::string invCDA = io::stringifyVector(invariantsCDA, "Invariants CDA: ");
+  std::string invDAB = io::stringifyVector(invariantsDAB, "Invariants DAB: ");
+  std::cout << invABC << std::endl;
+  std::cout << invBCD << std::endl;
+  std::cout << invCDA << std::endl;
+  std::cout << invDAB << std::endl;
 }
 

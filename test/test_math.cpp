@@ -7,6 +7,7 @@
 #include <ctime>
 // #include <unordered_set>
 
+#include "io.h"
 #include "vector_math.h"
 double epsilon = 1e-15;
 
@@ -131,28 +132,12 @@ TEST(MathTest, VectorNorm) {
   ASSERT_DOUBLE_EQ(norm4, 5);
 }
 
-TEST(MathTest, VectorCopyToStdArray) {
-  const size_t n_elem = 10;
-  const double val = 1.5;
-  std::vector<double> vec(n_elem, val);
-  std::array<double, n_elem> arr;
-  copy_vec2array(vec, arr);
-  for(auto& element : arr) {
-    ASSERT_DOUBLE_EQ(element, val);
-  }
-  Eigen::Vector3d x, y;
-  x << 1,2,3;
-  y << 1,0,0;
-  double z = x.dot(y);
-  ASSERT_DOUBLE_EQ(z, 1.0);
-}
-
 TEST(MathTest, ArgMin) {
   // Testing both std::vector and std::array
   int min_idx = 2;
   std::vector<double> vec = {3,5,1,2,4};
   std::array<double, 5> arr;
-  copy_vec2array(vec, arr);
+  io::copy_vec2array(vec, arr);
   int argmin_vec = arg_min(vec);
   int argmin_arr = arg_min(arr);
   ASSERT_EQ(argmin_vec, min_idx);
@@ -165,7 +150,7 @@ TEST(MathTest, ArgMax) {
   int max_idx = 1;
   std::vector<double> vec = {3,5,1,2,4};
   std::array<double, 5> arr;
-  copy_vec2array(vec, arr);
+  io::copy_vec2array(vec, arr);
   int argmax_vec = arg_max(vec);
   int argmax_arr = arg_max(arr);
   ASSERT_EQ(argmax_vec, max_idx);
