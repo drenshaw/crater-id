@@ -2,7 +2,7 @@
 #define CONICS_H
 
 #include <iostream>
-#include <stdexcept>
+// #include <stdexcept>
 #include <tuple>
 #include <array>
 #include <math.h>
@@ -54,9 +54,12 @@ class Conic {
     void GetCenter(cv::Point& center) const;
     double GetSemiMajorAxis() const;
     double GetSemiMinorAxis() const;
-    Eigen::Vector2d GetSemiAxes() const;
+    cv::Size GetSemiAxes() const;
     void GetSemiAxes(Eigen::Vector2d& semiaxes) const;
     void GetSemiAxes(cv::Point& semiaxes) const;
+    void GetSemiAxes(cv::Size& semiaxes) const;
+    cv::Size GetSize() const;
+    void GetSize(cv::Size& semiaxes) const;
     double GetAngle() const;
     int GetID() const;
     std::array<double, GEOMETRIC_PARAM> GetGeom();

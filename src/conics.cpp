@@ -1,5 +1,6 @@
 
 #include "conics.h"
+#include "vector_math.h"
 
 int Conic::next_id = 0;
 
@@ -249,8 +250,8 @@ std::array<double, IMPLICIT_PARAM> Conic::Geom2Implicit() {
   // perform some computations beforehand
   double a2 = pow(a, 2);
   double b2 = pow(b, 2);
-  double sin_phi = sin(phi);
-  double cos_phi = cos(phi);
+  double sin_phi = sin(deg2rad(phi));
+  double cos_phi = cos(deg2rad(phi));
   double xc_2 = pow(xc, 2);
   double yc_2 = pow(yc, 2);
   double sin_phi_2 = pow(sin_phi, 2);
@@ -313,9 +314,8 @@ double Conic::GetSemiMinorAxis() const {
   return semiminor_axis_;
 }
 
-Eigen::Vector2d Conic::GetSemiAxes() const {
-  Eigen::Vector2d axes;
-  axes << semimajor_axis_, semiminor_axis_;
+cv::Size Conic::GetSemiAxes() const {
+  cv::Size axes(semimajor_axis_, semiminor_axis_);
   return axes;
 }
 
@@ -326,6 +326,20 @@ void Conic::GetSemiAxes(Eigen::Vector2d& semiaxes) const {
 void Conic::GetSemiAxes(cv::Point& semiaxes) const {
   semiaxes.x = semimajor_axis_;
   semiaxes.y = semiminor_axis_;
+}
+
+void Conic::GetSemiAxes(cv::Size& semiaxes) const {
+  semiaxes.width  = semimajor_axis_;
+  semiaxes.height = semiminor_axis_;
+}
+
+// GetSize is an alias for GetSemiAxes
+cv::Size Conic::GetSize() const {
+  return GetSemiAxes();
+}
+
+void Conic::GetSize(cv::Size& semiaxes) const {
+  return GetSemiAxes(semiaxes);
 }
 
 double Conic::GetAngle() const {
@@ -453,6 +467,7 @@ bool ChooseIntersection(const std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh,
   Eigen::Vector3d hIntersect = h.cross(lineOfCenters);
 
   // normalize gIntersect
+  // TODO: can we get away with just saying something like "gIntersect/gIntersect[2]"?
   assert(std::abs(gIntersect(2)) > EPS);
   gIntersect = gIntersect.array()/gIntersect.array()[2];
 
