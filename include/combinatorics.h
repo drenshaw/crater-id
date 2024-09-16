@@ -1,14 +1,10 @@
 #ifndef COMBINATORICS_H
 #define COMBINATORICS_H
 
-#include <iostream>
 #include <vector>
-#include <algorithm>
 #include <tuple>
-#include <iterator>
 
 #include "structs.h"
-#include "io.h"
 #include "vector_math.h"
 
 // template <typename T, typename N>
@@ -57,7 +53,7 @@ void specialCombination(const std::vector<T> choices,
             }
         }
     }
-    std::cout << valid_craters.size() << " valid pairs." << std::endl;
+    // std::cout << valid_craters.size() << " valid pairs." << std::endl;
 }
 
 // TODO: rename this function
@@ -90,7 +86,7 @@ std::vector<std::tuple<T, T>> specialCombination(const std::vector<T> choices,
             }
         }
     }
-    std::cout << "Valid combinations: " << valid_craters.size() << std::endl;
+    // std::cout << "Valid combinations: " << valid_craters.size() << std::endl;
     return valid_craters;
 }
 

@@ -1,3 +1,7 @@
+// #include <iostream>
+// #include <vector>
+
+// #include "vector_math.h"
 #include "camera.h"
 
 Camera::Camera(const double dx,

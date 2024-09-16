@@ -1,3 +1,9 @@
+#include <iostream>
+// #include <stdexcept>
+#include <tuple>
+#include <array>
+#include <math.h>
+#include <eigen3/Eigen/Dense>
 
 #include "conics.h"
 #include "vector_math.h"
@@ -187,7 +193,7 @@ std::array<double, GEOMETRIC_PARAM> Conic::Implicit2Geom(const std::array<double
   if(B == 0) {
     phi = 0.0;
   } else {
-    phi = (1 / 2) * atan2(B, A - C);
+    phi = 0.5 * atan2(B, A - C);
   }
   if(A>C) {
     phi += M_PI / 2;

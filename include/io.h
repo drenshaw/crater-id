@@ -4,12 +4,11 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <string>
-#include <iomanip>
 #include <iterator>
 #include <algorithm>
-#include <numeric>
 #include <vector>
+#include <array>
+
 #include "structs.h"
 
 #define NDIM 2

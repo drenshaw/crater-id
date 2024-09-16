@@ -1,7 +1,12 @@
 #include "visuals.h"
-#include "opencv2/core/types.hpp"
-#include <cmath>
+#include <iostream>
 #include <stdexcept>
+#include <cmath>
+
+#include <opencv2/core/core.hpp> 
+#include <opencv2/highgui/highgui.hpp> 
+#include <opencv2/imgproc.hpp> 
+#include <eigen3/Eigen/Dense>
 
 namespace viz {
 

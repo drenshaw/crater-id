@@ -1,10 +1,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include <iostream>
-#include <vector>
 #include <eigen3/Eigen/Dense>
-#include "vector_math.h"
 
 class Camera {
     public:

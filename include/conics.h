@@ -1,12 +1,12 @@
 #ifndef CONICS_H
 #define CONICS_H
 
-#include <iostream>
-// #include <stdexcept>
-#include <tuple>
-#include <array>
-#include <math.h>
-#include <eigen3/Eigen/Dense>
+// #include <iostream>
+// // #include <stdexcept>
+// #include <tuple>
+// #include <array>
+// #include <math.h>
+// #include <eigen3/Eigen/Dense>
 #include <opencv2/core/core.hpp>
 
 #include "vector_math.h"

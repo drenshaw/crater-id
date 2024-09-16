@@ -1,3 +1,6 @@
+#include <string>
+#include <iomanip>
+
 #include "io.h"
 #include "structs.h"
 

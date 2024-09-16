@@ -1,8 +1,6 @@
 #ifndef VECTOR_MATH
 #define VECTOR_MATH
 
-#include <iostream>
-#include <math.h>
 #include <vector>
 #include <array>
 #include <algorithm>

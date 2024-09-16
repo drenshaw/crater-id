@@ -2,9 +2,7 @@
 #define QUADRICS_H
 
 #include <iostream>
-#include "io.h"
-#include "conics.h"
-#include "vector_math.h"
+#include <eigen3/Eigen/Dense>
 
 class Quadric {
   public:

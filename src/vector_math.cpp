@@ -1,3 +1,6 @@
+
+#include <iostream>
+#include <math.h>
 #include "vector_math.h"
 
 // template <typename T>

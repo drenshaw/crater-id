@@ -1,4 +1,7 @@
 #include "quadrics.h"
+#include "io.h"
+#include "vector_math.h"
+#include "conics.h"
 
 Quadric::Quadric(const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal, const std::string id)
 {
