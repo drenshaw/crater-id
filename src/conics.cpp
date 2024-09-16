@@ -441,7 +441,7 @@ bool IntersectionLines( const Eigen::Matrix3d& Ai,
     }
   }
   Eigen::Vector3d g, h;
-  for(const auto& e_val : real_eigens) {
+  for(const double& e_val : real_eigens) {
     if(IntersectConics(Ai, Aj, e_val, gh)) {
       std::tie(g, h) = gh; // TODO: What are we doing with these variables (g, h)?
       return true;

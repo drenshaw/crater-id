@@ -2,12 +2,12 @@
 #include <vector>
 #include <tuple>
 #include <iostream>
-#include <fstream>
-#include <sstream>
-#include <random>
 
 #include "conics.h"
 #include "io.h"
+#include "opencv2/core/types.hpp"
+#include "opencv2/imgproc.hpp"
+#include "visuals.h"
 
 class InvariantTest : public testing::Test {
   protected:
@@ -48,6 +48,18 @@ TEST(InvariantTest, InvariantTriad) {
   Conic conicB(15, 12, 100, 200, 0);
   Conic conicC(12, 8, 50, 200, 0);
   Conic conicD(12, 8, 400, 20, 0);
+
+  std::vector<Conic> conics = {conicA, conicB, conicC, conicD};
+
+  cv::Mat image(500, 500, CV_8UC3, 
+                cv::Scalar(25, 25, 25));
+  viz::plotEllipses(image, conics, viz::CV_colors);
+  Eigen::Vector3d my_line;
+  my_line << 1.,-2.,3.;
+  viz::plotline(image, my_line, cv::viz::Color::blue());
+  // Showing image inside a window 
+  cv::imshow("Output", image); 
+  // cv::waitKey(0); 
   
   // Invariants
   std::array<double, NONCOPLANAR_INVARIANTS> invariantsABC, invariantsBCD, invariantsCDA, invariantsDAB;

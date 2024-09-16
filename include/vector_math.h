@@ -13,7 +13,7 @@
 // #include <boost/log/trivial.hpp>
 // #include "crater-id.h"
 
-#define EPS (10 * std::numeric_limits<double>::epsilon())
+const double EPS = (10 * std::numeric_limits<double>::epsilon());
 
 double getCofactor(const Eigen::MatrixXd& matrix, int p, int q);
 Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix);

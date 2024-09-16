@@ -13,7 +13,7 @@ project('c++ crater-id', 'cpp',
 
 add_global_arguments('-DSOME_TOKEN=value', 
                      '-DDEBUG',
-                     '-DBOOST_LOG_DYN_LINK',
+                    #  '-DBOOST_LOG_DYN_LINK',
                      language : 'cpp',
 )
 

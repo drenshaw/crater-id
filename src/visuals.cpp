@@ -1,30 +1,102 @@
-#include <cstdarg>
-
 #include "visuals.h"
 
-void showEllipses(const Conic conic, ...) {
-  // va_list list; 
-  // va_start(list, conic); 
-  cv::Mat image(500, 500, CV_8UC3, 
-                cv::Scalar(255, 255, 255)); 
+namespace viz {
+
+void plotEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
   if (!image.data) { 
     std::cout << "Could not open or "
               << "find the image\n"; 
-
     return; 
   }
+  cv::Point center;
+  conic.GetCenter(center);
   // Drawing the ellipse 
-  cv::ellipse(image, cv::Point(256, 256), 
-              cv::Size(100, 50), 0, 0, 
-              360, cv::Scalar(0, 255, 255), 
-              -1, cv::LINE_AA); 
+  cv::ellipse(image, center, 
+              conic.GetSize(), conic.GetAngle(), 
+              0, 360, 
+              color, -1, cv::LINE_AA); 
 
+  int font = cv::FONT_HERSHEY_SIMPLEX;
+  float font_scale = 1; // scale factor from base size
+  int thickness = 1; //in pixels
+  cv::Scalar text_neg(255, 255, 255);
+  cv::Scalar text_color = text_neg - color;
+  cv::Point offset(10, 5);
+  cv::putText(image, std::to_string(conic.GetID()), center+offset, font, font_scale,
+              text_color, thickness, true);
+}
+
+void plotEllipse(const Conic& conic, const cv::Scalar& color) {
+  cv::Mat image(500, 500, CV_8UC3, 
+                cv::Scalar(255, 255, 255)); 
+  plotEllipse(image, conic, color);
   // Showing image inside a window 
   cv::imshow("Output", image); 
   cv::waitKey(0); 
 }
 
-namespace VIS {
+void plotEllipses(cv::Mat& image, const std::vector<Conic> conics, const std::vector<cv::Scalar> colors) {
+  assert(conics.size() <= colors.size());
+  for (auto conic_it = conics.begin(); conic_it != conics.end(); ++conic_it) {
+    int index = std::distance(conics.begin(), conic_it);
+    plotEllipse(image, *conic_it, CV_colors.at(index));
+  }
+}
+
+void plotEllipses(const std::vector<Conic> conics, const std::vector<cv::Scalar> colors) {
+  cv::Mat image(500, 500, CV_8UC3, 
+                cv::Scalar(255, 255, 255)); 
+  plotEllipses(image, conics, colors);
+  // Showing image inside a window 
+  cv::imshow("Output", image); 
+  cv::waitKey(0); 
+}
+
+void plotline(cv::Mat& image, const Eigen::Vector3d& my_line, const cv::Scalar my_color) {
+  cv::Point start_pt, end_pt;
+  cv::Size image_size(image.rows,image.cols);
+  double slope, intercept, x0, y0, x1, y1;
+  if(std::abs(my_line(1)) > 1e-5) {
+    x0 = 0;
+    x1 = image.cols;
+    slope =     -my_line(0)/my_line(1);
+    intercept = -my_line(2)/my_line(1);
+    y0 = slope*x0 + intercept;
+    y1 = slope*x1 + intercept;
+  }
+  else {
+    std::cerr << "Line is (nearly) vertical:\n" << my_line << std::endl;
+    slope =     -my_line(1)/my_line(0);
+    intercept = -my_line(2)/my_line(0);
+    x0 = intercept;
+    x1 = intercept;
+    y0 = 0;
+    y1 = image.rows;
+  }
+  start_pt.x = x0;
+  start_pt.y = y0;
+  end_pt.x = x1;
+  end_pt.y = y1;
+  bool is_visible = cv::clipLine(image_size, start_pt, end_pt);
+  if (!is_visible) {
+    std::cerr << "Line is not visible: l = (" << slope << ")x + " << intercept << std::endl << my_line << std::endl;
+    return;
+  std::cerr << "Line eq: l = (" << slope << ")x + " << intercept << " | " << start_pt << ", " << end_pt << std::endl;
+  }
+  int thickness = 1; //in pixels
+  int lineType = cv::LINE_AA;
+  int shift = 0;
+  cv::line(image, start_pt, end_pt, my_color, thickness, lineType, shift);
+  
+}
+
+void plotline(const Eigen::Vector3d& line, const cv::Scalar& color) {
+  cv::Mat image(500, 500, CV_8UC3, 
+                cv::Scalar(255, 255, 255)); 
+  plotline(image, line, color);
+}
+
+
 // void Sphere()
 // {
 //   // create the quadric function definition

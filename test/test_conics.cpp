@@ -4,11 +4,12 @@
 #include <opencv2/core/core.hpp> 
 #include <opencv2/imgproc.hpp> 
 #include <opencv2/highgui/highgui.hpp> 
-#include <opencv2/viz/types.hpp>
-#include <random>
+// #include <random>
 
 #include "conics.h"
 #include "io.h"
+#include "vector_math.h"
+#include "visuals.h"
 /* // CATCH2 Testing Framework
 #include <catch2/catch_test_macros.hpp>
 
@@ -17,44 +18,6 @@ TEST_CASE( "Factorial of 0 is 1 (fail)", "[single-file]" ) {
     std::cout << "Test1\n";
 }
 */
-
-std::vector<cv::Scalar> colors = {
-  cv::viz::Color::amethyst(),
-  cv::viz::Color::apricot(),
-  cv::viz::Color::azure(),
-  cv::viz::Color::black(),
-  cv::viz::Color::bluberry(),
-  cv::viz::Color::blue(),
-  cv::viz::Color::brown(),
-  cv::viz::Color::celestial_blue(),
-  cv::viz::Color::chartreuse(),
-  cv::viz::Color::cherry(),
-  cv::viz::Color::cyan(),
-  cv::viz::Color::gold(),
-  cv::viz::Color::gray(),
-  cv::viz::Color::green(),
-  cv::viz::Color::indigo(),
-  cv::viz::Color::lime(),
-  cv::viz::Color::magenta(),
-  cv::viz::Color::maroon(),
-  cv::viz::Color::mlab(),
-  cv::viz::Color::navy(),
-  // cv::viz::Color::not_set(),
-  cv::viz::Color::olive(),
-  cv::viz::Color::orange(),
-  cv::viz::Color::orange_red(),
-  cv::viz::Color::pink(),
-  cv::viz::Color::purple(),
-  cv::viz::Color::raspberry(),
-  cv::viz::Color::red(),
-  cv::viz::Color::rose(),
-  cv::viz::Color::silver(),
-  cv::viz::Color::teal(),
-  cv::viz::Color::turquoise(),
-  cv::viz::Color::violet(),
-  cv::viz::Color::white(),
-  cv::viz::Color::yellow(),
-};
 
 class ConicTest : public testing::Test {
   protected:
@@ -145,6 +108,7 @@ TEST(ConicTest, ConicSetImplicit) {
   std::array<double, IMPLICIT_PARAM> impl;
   impl = conic_var.GetImplicit();
 
+  // Comparing with MATLAB version of software to ensure alignment and correct values
   double impl_a = 1.1750273695215061e-05;
   double impl_b = 0.0;
   double impl_c = 2.3980150398398082e-05;
@@ -209,57 +173,10 @@ TEST(ConicTest, ConvertEigenVectorToVector) {
   // ASSERT_TRUE(success);
 }
 
-
-
-
-
-void plot_ellipse(cv::Mat& image, Conic& ellipse, const cv::Scalar color=cv::Scalar(0, 255, 0)) {
-  cv::Point center;
-  Eigen::Vector2d semiaxes;
-  ellipse.GetCenter(center);
-  ellipse.GetSemiAxes(semiaxes);
-  cv::Size axes(semiaxes[0], semiaxes[1]);
-  double angle = ellipse.GetAngle();
-
-  cv::ellipse(image, center, axes, angle, 0, 360, color, -1, cv::LINE_AA);
-
-  int font = cv::FONT_HERSHEY_SIMPLEX;
-  float font_scale = 1; // scale factor from base size
-  int thickness = 1; //in pixels
-  cv::Scalar text_color(color[1], color[2], color[1]);
-  cv::putText(image, std::to_string(ellipse.GetID()), center, font, font_scale,
-              text_color, thickness, true);
-}
-
-void plot_ellipses(const std::vector<Conic>& conics) {
-  cv::Mat image(500, 500, CV_8UC4, 
-                cv::Scalar(255, 255, 255, 0)); 
-  if (!image.data) { 
-    std::cerr << "Could not open or find the image\n"; 
-    return; 
-  }
-  // Drawing the ellipse 
-  for(long unsigned int i = 0; i < conics.size(); i++) {
-    Conic ellipse = conics.at(i);
-    cv:: Scalar color = colors.at(i);
-    plot_ellipse(image, ellipse, color);
-  }
-  // Showing image inside a window 
-  // TODO: getting "(in)direct leak" warnings from AddressSanitizer about imshow here
-  cv::imshow("Output", image); 
-  cv::waitKey(0); 
-  
-}
-
-void plot_ellipses(const Conic& conic) {
-  std::vector<Conic> conics = {conic};
-  plot_ellipses(conics);
-}
-
 TEST(ConicTest, ConicIntersection) {
-  double smajor = 100., sminor = 70., xcen = 300., ycen = 50., angle = 0.;
-  Conic conicA(smajor, sminor, xcen, ycen, angle+30);
-  Conic conicB(smajor, sminor, xcen-315, ycen, angle);
+  double smajor = 70., sminor = 50., xcen = 200., ycen = 200., angle = -15.;
+  Conic conicA(smajor, sminor, xcen, ycen, angle+50);
+  Conic conicB(smajor*1.5, sminor, xcen+215, ycen, angle);
   // Eigen::Vector3d g; g.fill(0);
   // Eigen::Vector3d h; h.fill(0);
   std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
@@ -273,7 +190,56 @@ TEST(ConicTest, ConicIntersection) {
   //   std::cerr << "Elem: " << color << std::endl;
   // }
   std::vector<Conic> conics = {conicA, conicB};
-  // plot_ellipses(conics);
+  cv::Mat image(500, 500, CV_8UC3, 
+                cv::Scalar(25, 25, 25));
+  viz::plotEllipses(image, conics, viz::CV_colors);
+  cv::Scalar red(0,0,255);
+  viz::plotline(image, h_line, cv::Scalar(0,0,255));
+  // Showing image inside a window 
+  cv::imshow("Output", image); 
+  // cv::waitKey(0); 
+  ASSERT_TRUE(success);
+}
+
+TEST(ConicTest, CheckMatlab) {
+
+  Conic conicA(245.848, 245.874, 1283.4, 1037.6, rad2deg(2.356));
+  Conic conicB( 94.435, 261.000, 1808.5, 2081.3, rad2deg(1.120));
+  std::array<double,IMPLICIT_PARAM> implA = conicA.GetImplicit();
+  std::array<double,IMPLICIT_PARAM> implB = conicB.GetImplicit();
+  std::string iA = io::stringifyVector(implA, "Conic A: ");
+  std::string iB = io::stringifyVector(implB, "Conic B: ");
+  std::cout << iA << std::endl;
+  std::cout << iB << std::endl;
+
+
+  std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
+  Eigen::Vector3d g_line, h_line;
+  std::cerr << "\n\nWhat am I doing?!\n\n\n\t";
+  Eigen::Matrix3d locusA, locusB;
+  locusA = conicA.GetLocus();
+  locusB = conicB.GetLocus();
+  Eigen::Matrix3d combined = locusB*-locusA.inverse();
+  // TODO: try suggested x = A.ldlt().solve(b) from section 2.12 of
+  // https://geophydog.cool/post/eigen3_operations/ 
+  Eigen::Vector3cd eigenvalues = combined.eigenvalues();
+  std::cerr << "Here are the eigenvalues:\n" << eigenvalues << std::endl;
+  Eigen::Vector3d g, h;
+  bool eigen_found = false;
+  for(const std::complex<double>& eigen_elem : eigenvalues) {
+    if(eigen_elem.imag() == 0 && IntersectConics(locusA, locusB, eigen_elem.real(), gh)) {
+      std::tie(g, h) = gh; // TODO: What are we doing with these variables (g, h)?
+      eigen_found = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(eigen_found);
+
+
+  bool success = conicA.ConicIntersectionLines(conicB, gh);
+  std::tie(g_line, h_line) = gh;
+  std::cout << "G line:\n" << g_line/g_line[2] << std::endl;
+  std::cout << "H line:\n" << h_line/h_line[2] << std::endl;
   ASSERT_TRUE(success);
 }
 
