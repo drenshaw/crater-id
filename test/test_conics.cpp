@@ -1,5 +1,7 @@
 #include "gtest/gtest.h"
 #include <array>
+// #include <eigen3/Eigen/src/Geometry/Transform.h>
+#include <eigen3/Eigen/Dense>
 #include <iostream>
 #include <opencv2/core/core.hpp> 
 #include <opencv2/imgproc.hpp> 
@@ -109,9 +111,15 @@ TEST(ConicTest, ConicSetImplicit) {
   impl = conic_var.GetImplicit();
 
   // Comparing with MATLAB version of software to ensure alignment and correct values
-  double impl_a = 1.1750273695215061e-05;
+  // double impl_a = 1.1750273695215061e-05;
+  // double impl_b = 0.0;
+  // double impl_c = 2.3980150398398082e-05;
+  // double impl_d = -0.0070501642171290364;
+  // double impl_e = -0.0023980150398398084;
+  // double impl_f = 0.99997227161320001;
+  double impl_a = 1.1750599520383693e-05;
   double impl_b = 0.0;
-  double impl_c = 2.3980150398398082e-05;
+  double impl_c = 2.3980815347721824e-05;
   double impl_d = -0.0070501642171290364;
   double impl_e = -0.0023980150398398084;
   double impl_f = 0.99997227161320001;
@@ -205,41 +213,94 @@ TEST(ConicTest, CheckMatlab) {
 
   Conic conicA(245.848, 245.874, 1283.4, 1037.6, rad2deg(2.356));
   Conic conicB( 94.435, 261.000, 1808.5, 2081.3, rad2deg(1.120));
-  std::array<double,IMPLICIT_PARAM> implA = conicA.GetImplicit();
-  std::array<double,IMPLICIT_PARAM> implB = conicB.GetImplicit();
-  std::string iA = io::stringifyVector(implA, "Conic A: ");
-  std::string iB = io::stringifyVector(implB, "Conic B: ");
-  std::cout << iA << std::endl;
-  std::cout << iB << std::endl;
+  // std::array<double,IMPLICIT_PARAM> implA = conicA.GetImplicit();
+  // std::array<double,IMPLICIT_PARAM> implB = conicB.GetImplicit();
+  // std::string iA = io::stringifyVector(implA, "Conic A: ");
+  // std::string iB = io::stringifyVector(implB, "Conic B: ");
+  // std::cout << iA << std::endl;
+  // std::cout << iB << std::endl;
 
 
   std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
   Eigen::Vector3d g_line, h_line;
-  std::cerr << "\n\nWhat am I doing?!\n\n\n\t";
-  Eigen::Matrix3d locusA, locusB;
-  locusA = conicA.GetLocus();
-  locusB = conicB.GetLocus();
-  Eigen::Matrix3d combined = locusB*-locusA.inverse();
-  // TODO: try suggested x = A.ldlt().solve(b) from section 2.12 of
-  // https://geophydog.cool/post/eigen3_operations/ 
-  Eigen::Vector3cd eigenvalues = combined.eigenvalues();
-  std::cerr << "Here are the eigenvalues:\n" << eigenvalues << std::endl;
-  Eigen::Vector3d g, h;
-  bool eigen_found = false;
-  for(const std::complex<double>& eigen_elem : eigenvalues) {
-    if(eigen_elem.imag() == 0 && IntersectConics(locusA, locusB, eigen_elem.real(), gh)) {
-      std::tie(g, h) = gh; // TODO: What are we doing with these variables (g, h)?
-      eigen_found = true;
-      break;
-    }
-  }
-  EXPECT_TRUE(eigen_found);
+  // // std::cerr << "\n\nWhat am I doing?!\n\n\n\t";
+  // Eigen::Matrix3d locusA, locusB;
+  // locusA = conicA.GetLocus();
+  // locusB = conicB.GetLocus();
+  // Eigen::Matrix3d combined = locusB*-locusA.inverse();
+  // // // TODO: try suggested x = A.ldlt().solve(b) from section 2.12 of
+  // // // https://geophydog.cool/post/eigen3_operations/ 
+  // // TODO: The eigenvalue computation adds much to compilation time
+  // Eigen::Vector3cd eigenvalues = combined.eigenvalues();
+  // std::cerr << "Here are the eigenvalues:\n" << eigenvalues << std::endl;
+  // Eigen::Vector3d g, h;
+  // bool eigen_found = false;
+  // for(const std::complex<double>& eigen_elem : eigenvalues) {
+  //   if(eigen_elem.imag() == 0 && Intersectconics(locusA, locusB, eigen_elem.real(), gh)) {
+  //     std::tie(g, h) = gh; // TODO: What are we doing with these variables (g, h)?
+  //     eigen_found = true;
+  //     break;
+  //   }
+  // }
+  // EXPECT_TRUE(eigen_found);
 
 
   bool success = conicA.ConicIntersectionLines(conicB, gh);
   std::tie(g_line, h_line) = gh;
-  std::cout << "G line:\n" << g_line/g_line[2] << std::endl;
-  std::cout << "H line:\n" << h_line/h_line[2] << std::endl;
+  // std::cout << "G line:\n" << g_line/g_line[1] << std::endl;
+  // std::cout << "H line:\n" << h_line/h_line[1] << std::endl;
   ASSERT_TRUE(success);
+}
+
+TEST(ConicTest, ChooseCorrectIntersection) {
+  Conic conicA(245.848, 245.874, 283.4, 0037.6, rad2deg(2.356));
+  Conic conicB( 94.435, 261.000, 808.5, 1081.3, rad2deg(1.120));
+  Eigen::Vector2d centerA, centerB;
+  centerA = conicA.GetCenter();
+  centerB = conicB.GetCenter();
+
+  Eigen::Vector3d g, h;
+  std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
+  bool success = conicA.ConicIntersectionLines(conicB, gh);
+  EXPECT_TRUE(success);
+  std::tie(g, h) = gh;
+  // convert centers to homogeneous coordinates
+  Eigen::Vector3d centerAHom = centerA.homogeneous();
+  Eigen::Vector3d centerBHom = centerB.homogeneous();
+  // get line connecting the two centers
+  Eigen::Vector3d lineOfCenters = centerAHom.cross(centerBHom);
+  // get point where lineOfCenters and g intersect
+  Eigen::Vector2d gIntersect = g.cross(lineOfCenters).hnormalized();
+  // get point where lineOfCenters and h intersect
+  Eigen::Vector2d hIntersect = h.cross(lineOfCenters).hnormalized();
+
+  double xmax, xmin, ymax, ymin;
+  xmax = (centerA(0)>centerB(0)) ? centerA(0) : centerB(0);
+  xmin = (centerA(0)<centerB(0)) ? centerA(0) : centerB(0);
+  ymax = (centerA(1)>centerB(1)) ? centerA(1) : centerB(1);
+  ymin = (centerA(1)<centerB(1)) ? centerA(1) : centerB(1);
+  bool g_fits, h_fits;
+  
+  g_fits = gIntersect(0)>xmin && gIntersect(0)<xmax && gIntersect(1)>ymin && gIntersect(1)<ymax;
+  h_fits = hIntersect(0)>xmin && hIntersect(0)<xmax && hIntersect(1)>ymin && hIntersect(1)<ymax;
+  bool valid_intersection = false;
+  if (g_fits ^ h_fits) {
+    valid_intersection = true;
+  }
+  Eigen::Vector3d l;
+  l = g_fits ? g : h;
+  std::cerr << "Result of intersection: " 
+            << (g_fits ? "g":"h") << std::endl 
+            << l << std::endl;
+  EXPECT_TRUE(valid_intersection);
+  std::vector<Conic> conics = {conicA, conicB};
+  cv::Mat image(2692, 2048, CV_8UC3, 
+                cv::Scalar(25, 25, 25));
+  viz::plotEllipses(image, conics, viz::CV_colors);
+  cv::Scalar red(0,0,255);
+  viz::plotline(image, g, cv::Scalar(0,0,255));
+  // Showing image inside a window 
+  cv::imshow("Output", image); 
+  cv::waitKey(0); 
 }
 

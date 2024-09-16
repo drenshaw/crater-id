@@ -202,35 +202,23 @@ Eigen::Matrix3d Conic::Geom2Locus() {
 Eigen::Matrix3d Conic::Implicit2Locus(const std::array<double, IMPLICIT_PARAM>& impl_params) {
   Eigen::Matrix3d locus_mtx(3,3);
   double A, B, C, D, E, F;
-  A = impl_params.at(0);
-  B = impl_params.at(1);
-  C = impl_params.at(2);
-  D = impl_params.at(3);
-  E = impl_params.at(4);
+
   F = impl_params.at(5);
+  double F_recip = 1/F;
+  A = F_recip * impl_params.at(0);
+  B = F_recip * impl_params.at(1);
+  C = F_recip * impl_params.at(2);
+  D = F_recip * impl_params.at(3);
+  E = F_recip * impl_params.at(4);
   locus_mtx << A,  B/2, D/2,
               B/2,  C,  E/2,
-              D/2, E/2,  F;
+              D/2, E/2, 1.0;
 
   return locus_mtx;
 }
 
 Eigen::Matrix3d Conic::Implicit2Locus() {
   return Implicit2Locus(Geom2Implicit());
-  // Eigen::Matrix3d locus_mtx(3,3);
-  // double A, B, C, D, E, F;
-  // const std::array<double, IMPLICIT_PARAM>& impl_params = Geom2Implicit();
-  // A = impl_params.at(0);
-  // B = impl_params.at(1);
-  // C = impl_params.at(2);
-  // D = impl_params.at(3);
-  // E = impl_params.at(4);
-  // F = impl_params.at(5);
-  // locus_mtx << A,  B/2, D/2,
-  //             B/2,  C,  E/2,
-  //             D/2, E/2,  F;
-
-  // return locus_mtx;
 }
 
  std::array<double, GEOMETRIC_PARAM> Conic::Locus2Geom(const Eigen::Matrix3d& locus) {
@@ -387,7 +375,7 @@ bool IntersectConics(const Eigen::Matrix3d& Ai,
   convertEigenVectorToVector(bkk_eig, bkk);
   // eq 86: all diagonal entries of Bij_star are negative
   if ( std::any_of(bkk.begin(), bkk.end(), [&eps](double i){return i>eps;}) ) {
-      // std::cout << "bkk contains positive numbers: \n" << bkk_eig << std::endl;
+      // std::cerr << "bkk contains positive numbers: \n" << bkk_eig << std::endl;
       return false;
   }
   int min_idx = arg_min(bkk);
@@ -434,15 +422,9 @@ bool IntersectionLines( const Eigen::Matrix3d& Ai,
   Eigen::EigenSolver<Eigen::Matrix3d> eigensolver(combined);
   Eigen::Vector3cd eigenvalues = eigensolver.eigenvalues();
   // Here, using std::vector is appropriate since we don't know the length
-  std::vector<double> real_eigens;
-  for(long int idx = 0; idx < eigenvalues.rows(); idx++) {
-    if(eigenvalues(idx).imag() == 0) {
-      real_eigens.push_back(eigenvalues(idx).real());
-    }
-  }
   Eigen::Vector3d g, h;
-  for(const double& e_val : real_eigens) {
-    if(IntersectConics(Ai, Aj, e_val, gh)) {
+  for(const std::complex<double>& eigen_elem : eigenvalues) {
+    if(eigen_elem.imag() == 0 && IntersectConics(Ai, Aj, eigen_elem.real(), gh)) {
       std::tie(g, h) = gh; // TODO: What are we doing with these variables (g, h)?
       return true;
     }
