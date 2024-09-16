@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include <array>
 // #include <eigen3/Eigen/src/Geometry/Transform.h>
+#include <cmath>
 #include <eigen3/Eigen/Dense>
 #include <iostream>
 #include <opencv2/core/core.hpp> 
@@ -14,6 +15,7 @@
 #include "visuals.h"
 /* // CATCH2 Testing Framework
 #include <catch2/catch_test_macros.hpp>
+#include <stdexcept>
 
 TEST_CASE( "Factorial of 0 is 1 (fail)", "[single-file]" ) {
     REQUIRE( 1 == 1 );
@@ -117,12 +119,12 @@ TEST(ConicTest, ConicSetImplicit) {
   // double impl_d = -0.0070501642171290364;
   // double impl_e = -0.0023980150398398084;
   // double impl_f = 0.99997227161320001;
-  double impl_a = 1.1750599520383693e-05;
-  double impl_b = 0.0;
-  double impl_c = 2.3980815347721824e-05;
-  double impl_d = -0.0070501642171290364;
-  double impl_e = -0.0023980150398398084;
-  double impl_f = 0.99997227161320001;
+  double impl_a =  1.1750599520383693e-05;
+  double impl_b =  0.0;
+  double impl_c =  2.3980815347721824e-05;
+  double impl_d = -0.0070503597122302166;
+  double impl_e = -0.0023980815347721825;
+  double impl_f =  1.0;
 
   EXPECT_DOUBLE_EQ(impl.at(0), impl_a);
   EXPECT_DOUBLE_EQ(impl.at(1), impl_b);
@@ -150,16 +152,18 @@ TEST(ConicTest, LocusEnvelopeConversion) {
   std::array<double, IMPLICIT_PARAM> impl = {1, 0, 3, 4, 5, 7};
   double impl_norm = vectorNorm(impl);
   ASSERT_NE(impl_norm, 0);
+  double last_impl = 1/impl.at(5);
   
   Conic conic_var;
   conic_var.SetImplicitParameters(impl);
   conic_var.NormalizeImplicitParameters(impl);
-  EXPECT_DOUBLE_EQ(impl.at(0), 1./impl_norm);
-  EXPECT_DOUBLE_EQ(impl.at(1), 0./impl_norm);
-  EXPECT_DOUBLE_EQ(impl.at(2), 3./impl_norm);
-  EXPECT_DOUBLE_EQ(impl.at(3), 4./impl_norm);
-  EXPECT_DOUBLE_EQ(impl.at(4), 5./impl_norm);
-  EXPECT_DOUBLE_EQ(impl.at(5), 7./impl_norm);
+
+  EXPECT_DOUBLE_EQ(impl.at(0), 1.*last_impl);
+  EXPECT_DOUBLE_EQ(impl.at(1), 0.*last_impl);
+  EXPECT_DOUBLE_EQ(impl.at(2), 3.*last_impl);
+  EXPECT_DOUBLE_EQ(impl.at(3), 4.*last_impl);
+  EXPECT_DOUBLE_EQ(impl.at(4), 5.*last_impl);
+  EXPECT_DOUBLE_EQ(impl.at(5), 1.0);
 }
 
 TEST(ConicTest, ConvertEigenVectorToVector) {
@@ -192,19 +196,15 @@ TEST(ConicTest, ConicIntersection) {
   bool success = conicA.ConicIntersectionLines(conicB, gh);
 
   std::tie(g_line, h_line) = gh;
-  std::cerr << "Intersection: \n" << g_line << std::endl << h_line << std::endl;
-  std::cerr << "Intersection: \n" << g_line/g_line(2) << std::endl << h_line/h_line(2) << std::endl;
-  // for(const auto& color : colors) {
-  //   std::cerr << "Elem: " << color << std::endl;
-  // }
+
   std::vector<Conic> conics = {conicA, conicB};
-  cv::Mat image(500, 500, CV_8UC3, 
+  cv::Mat image(320, 480, CV_8UC3, 
                 cv::Scalar(25, 25, 25));
-  viz::plotEllipses(image, conics, viz::CV_colors);
+  viz::drawEllipses(image, conics, viz::CV_colors);
   cv::Scalar red(0,0,255);
-  viz::plotline(image, h_line, cv::Scalar(0,0,255));
+  viz::drawLine(image, h_line, cv::Scalar(0,0,255));
   // Showing image inside a window 
-  cv::imshow("Output", image); 
+  cv::imshow("Conic Intersection", image); 
   // cv::waitKey(0); 
   ASSERT_TRUE(success);
 }
@@ -223,27 +223,6 @@ TEST(ConicTest, CheckMatlab) {
 
   std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
   Eigen::Vector3d g_line, h_line;
-  // // std::cerr << "\n\nWhat am I doing?!\n\n\n\t";
-  // Eigen::Matrix3d locusA, locusB;
-  // locusA = conicA.GetLocus();
-  // locusB = conicB.GetLocus();
-  // Eigen::Matrix3d combined = locusB*-locusA.inverse();
-  // // // TODO: try suggested x = A.ldlt().solve(b) from section 2.12 of
-  // // // https://geophydog.cool/post/eigen3_operations/ 
-  // // TODO: The eigenvalue computation adds much to compilation time
-  // Eigen::Vector3cd eigenvalues = combined.eigenvalues();
-  // std::cerr << "Here are the eigenvalues:\n" << eigenvalues << std::endl;
-  // Eigen::Vector3d g, h;
-  // bool eigen_found = false;
-  // for(const std::complex<double>& eigen_elem : eigenvalues) {
-  //   if(eigen_elem.imag() == 0 && Intersectconics(locusA, locusB, eigen_elem.real(), gh)) {
-  //     std::tie(g, h) = gh; // TODO: What are we doing with these variables (g, h)?
-  //     eigen_found = true;
-  //     break;
-  //   }
-  // }
-  // EXPECT_TRUE(eigen_found);
-
 
   bool success = conicA.ConicIntersectionLines(conicB, gh);
   std::tie(g_line, h_line) = gh;
@@ -254,7 +233,7 @@ TEST(ConicTest, CheckMatlab) {
 
 TEST(ConicTest, ChooseCorrectIntersection) {
   Conic conicA(245.848, 245.874, 283.4, 0037.6, rad2deg(2.356));
-  Conic conicB( 94.435, 261.000, 808.5, 1081.3, rad2deg(1.120));
+  Conic conicB( 94.435, 261.000, 510.5, 0581.3, rad2deg(1.120));
   Eigen::Vector2d centerA, centerB;
   centerA = conicA.GetCenter();
   centerB = conicB.GetCenter();
@@ -287,20 +266,61 @@ TEST(ConicTest, ChooseCorrectIntersection) {
   if (g_fits ^ h_fits) {
     valid_intersection = true;
   }
-  Eigen::Vector3d l;
-  l = g_fits ? g : h;
-  std::cerr << "Result of intersection: " 
-            << (g_fits ? "g":"h") << std::endl 
-            << l << std::endl;
+  Eigen::Vector3d l_check;
+  l_check = g_fits ? g : h;
+  // std::cerr << "Result of intersection: " 
+  //           << (g_fits ? "g":"h") << std::endl 
+  //           << l_check << std::endl
+  //           << "Wrong value:\n" << h << std::endl;
   EXPECT_TRUE(valid_intersection);
+
+  Eigen::Vector3d l;
+  bool match_success = ChooseIntersection(gh, centerA, centerB, l);
+  EXPECT_TRUE(match_success);
+  EXPECT_EQ(l_check, l);
+
+
   std::vector<Conic> conics = {conicA, conicB};
-  cv::Mat image(2692, 2048, CV_8UC3, 
+  cv::Mat image(720, 1280, CV_8UC3, 
                 cv::Scalar(25, 25, 25));
-  viz::plotEllipses(image, conics, viz::CV_colors);
-  cv::Scalar red(0,0,255);
-  viz::plotline(image, g, cv::Scalar(0,0,255));
+  viz::drawEllipses(image, conics, viz::CV_colors);
+  cv::Scalar   red(0,0,255);
+  cv::Scalar green(0,255,0);
+  viz::drawLine(image, l, green);
+  viz::drawLine(image, h, red);
   // Showing image inside a window 
-  cv::imshow("Output", image); 
-  cv::waitKey(0); 
+  cv::imshow("Choose Intersection", image); 
+  // cv::waitKey(0); 
+}
+
+TEST(VisualTest, SlopeInterceptInvalid) {
+  double A = 0, B = 0, C = 0;
+  double slope, intercept;
+  Eigen::Vector3d line;
+  line << A, B, C;
+  // viz::getSlopeInterceptFromStandard(line, slope, intercept);
+  EXPECT_THROW(viz::getSlopeInterceptFromStandard(line, slope, intercept), std::runtime_error);
+  ASSERT_TRUE(std::isnan(slope));
+  ASSERT_TRUE(std::isnan(intercept));
+}
+
+TEST(VisualTest, SlopeInterceptZeroSlope) {
+  double A = 0, B = 1, C = 5;
+  double slope, intercept;
+  Eigen::Vector3d line;
+  line << A, B, C;
+  viz::getSlopeInterceptFromStandard(line, slope, intercept);
+  ASSERT_DOUBLE_EQ(slope, 0);
+  ASSERT_DOUBLE_EQ(intercept, -C);
+}
+
+TEST(VisualTest, SlopeInterceptInfSlope) {
+  double A = 1, B = 0, C = 5;
+  double slope, intercept;
+  Eigen::Vector3d line;
+  line << A, B, C;
+  viz::getSlopeInterceptFromStandard(line, slope, intercept);
+  ASSERT_TRUE(std::isinf(slope));
+  ASSERT_DOUBLE_EQ(intercept, -C);
 }
 

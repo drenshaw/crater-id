@@ -1,8 +1,11 @@
 #include "visuals.h"
+#include "opencv2/core/types.hpp"
+#include <cmath>
+#include <stdexcept>
 
 namespace viz {
 
-void plotEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
+void drawEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
   if (!image.data) { 
     std::cout << "Could not open or "
               << "find the image\n"; 
@@ -26,48 +29,71 @@ void plotEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
               text_color, thickness, true);
 }
 
-void plotEllipse(const Conic& conic, const cv::Scalar& color) {
+void drawEllipse(const Conic& conic, const cv::Scalar& color) {
   cv::Mat image(500, 500, CV_8UC3, 
                 cv::Scalar(255, 255, 255)); 
-  plotEllipse(image, conic, color);
+  drawEllipse(image, conic, color);
   // Showing image inside a window 
-  cv::imshow("Output", image); 
+  cv::imshow("Ellipse", image); 
   cv::waitKey(0); 
 }
 
-void plotEllipses(cv::Mat& image, const std::vector<Conic> conics, const std::vector<cv::Scalar> colors) {
+void drawEllipses(cv::Mat& image, const std::vector<Conic> conics, const std::vector<cv::Scalar> colors) {
   assert(conics.size() <= colors.size());
   for (auto conic_it = conics.begin(); conic_it != conics.end(); ++conic_it) {
     int index = std::distance(conics.begin(), conic_it);
-    plotEllipse(image, *conic_it, CV_colors.at(index));
+    drawEllipse(image, *conic_it, CV_colors.at(index));
   }
 }
 
-void plotEllipses(const std::vector<Conic> conics, const std::vector<cv::Scalar> colors) {
+void drawEllipses(const std::vector<Conic> conics, const std::vector<cv::Scalar> colors) {
   cv::Mat image(500, 500, CV_8UC3, 
                 cv::Scalar(255, 255, 255)); 
-  plotEllipses(image, conics, colors);
+  drawEllipses(image, conics, colors);
   // Showing image inside a window 
-  cv::imshow("Output", image); 
+  cv::imshow("Ellipses", image); 
   cv::waitKey(0); 
 }
 
-void plotline(cv::Mat& image, const Eigen::Vector3d& my_line, const cv::Scalar my_color) {
-  cv::Point start_pt, end_pt;
-  cv::Size image_size(image.rows,image.cols);
+void getSlopeInterceptFromStandard(const Eigen::Vector3d& my_line, double& slope, double& intercept) {
+  double A = my_line(0);
+  double B = my_line(1);
+  double C = my_line(2);
+  if(A == 0 && B == 0) {
+    slope     = std::numeric_limits<double>::signaling_NaN();
+    intercept = std::numeric_limits<double>::signaling_NaN();
+    throw std::runtime_error("Division by zero");
+  }
+  assert(A != 0 || B != 0);
+  if(std::abs(B) > 1e-5) {
+    slope =     -A/B;
+    intercept = -C/B;
+  }
+  else {
+    std::cerr << "Line is vertical/nearly vertical: "
+              << A << "x + " << B << "y + " << C << " = 0\n";
+    slope =     std::numeric_limits<double>::infinity();
+    intercept = -C/A;
+  }
+}
+
+bool getEndpointsFromLine(const cv::Mat& image, const Eigen::Vector3d& my_line, cv::Point2l& start_pt, cv::Point2l& end_pt) {
   double slope, intercept, x0, y0, x1, y1;
-  if(std::abs(my_line(1)) > 1e-5) {
+  try {
+    getSlopeInterceptFromStandard(my_line, slope, intercept);
+  }
+  catch (const std::runtime_error& e) {
+    std::cerr << "Exception: " << e.what() << std::endl;
+    return false;
+  }
+  cv::Size image_size(image.rows,image.cols);
+  if(!std::isinf(slope)) {
     x0 = 0;
     x1 = image.cols;
-    slope =     -my_line(0)/my_line(1);
-    intercept = -my_line(2)/my_line(1);
     y0 = slope*x0 + intercept;
     y1 = slope*x1 + intercept;
   }
   else {
-    std::cerr << "Line is (nearly) vertical:\n" << my_line << std::endl;
-    slope =     -my_line(1)/my_line(0);
-    intercept = -my_line(2)/my_line(0);
     x0 = intercept;
     x1 = intercept;
     y0 = 0;
@@ -80,20 +106,30 @@ void plotline(cv::Mat& image, const Eigen::Vector3d& my_line, const cv::Scalar m
   bool is_visible = cv::clipLine(image_size, start_pt, end_pt);
   if (!is_visible) {
     std::cerr << "Line is not visible: l = (" << slope << ")x + " << intercept << std::endl << my_line << std::endl;
+    return false;
+  }
+  return true;
+}
+
+void drawLine(cv::Mat& image, const Eigen::Vector3d& my_line, const cv::Scalar my_color) {
+  cv::Point2l start_pt, end_pt;
+  cv::Size image_size(image.rows,image.cols);
+  if(!getEndpointsFromLine(image, my_line, start_pt, end_pt)) {
     return;
-  std::cerr << "Line eq: l = (" << slope << ")x + " << intercept << " | " << start_pt << ", " << end_pt << std::endl;
   }
   int thickness = 1; //in pixels
   int lineType = cv::LINE_AA;
   int shift = 0;
   cv::line(image, start_pt, end_pt, my_color, thickness, lineType, shift);
-  
 }
 
-void plotline(const Eigen::Vector3d& line, const cv::Scalar& color) {
+void drawLine(const Eigen::Vector3d& line, const cv::Scalar& color) {
   cv::Mat image(500, 500, CV_8UC3, 
                 cv::Scalar(255, 255, 255)); 
-  plotline(image, line, color);
+  drawLine(image, line, color);
+  // Showing image inside a window 
+  cv::imshow("Line", image); 
+  cv::waitKey(0); 
 }
 
 

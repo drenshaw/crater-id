@@ -117,14 +117,16 @@ void Conic::SetLocus(const Eigen::Matrix3d& locus) {
 }
 
 void Conic::NormalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>& impl_params) {
-  double vecNormRecip = 1/vectorNorm(impl_params);
+  // double vecNormRecip = 1/vectorNorm(impl_params);
+  double vecNormRecip = 1/impl_params.at(5);
   std::transform(impl_params.begin(), impl_params.end(), impl_params.begin(),
                std::bind(std::multiplies<double>(), std::placeholders::_1, vecNormRecip));
 }
 
 // TODO: possibly create template or call to same function for std::array above
 void Conic::NormalizeImplicitParameters(std::vector<double>& impl_params) {
-  double vecNormRecip = 1/vectorNorm(impl_params);
+  // double vecNormRecip = 1/vectorNorm(impl_params);
+  double vecNormRecip = 1/impl_params.at(5);
   std::transform(impl_params.begin(), impl_params.end(), impl_params.begin(),
                std::bind(std::multiplies<double>(), std::placeholders::_1, vecNormRecip));
 }
@@ -444,18 +446,9 @@ bool ChooseIntersection(const std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh,
   // get line connecting the two centers
   Eigen::Vector3d lineOfCenters = centerAHom.cross(centerBHom);
   // get point where lineOfCenters and g intersect
-  Eigen::Vector3d gIntersect = g.cross(lineOfCenters);
+  Eigen::Vector2d gIntersect = g.cross(lineOfCenters).hnormalized();
   // get point where lineOfCenters and h intersect
-  Eigen::Vector3d hIntersect = h.cross(lineOfCenters);
-
-  // normalize gIntersect
-  // TODO: can we get away with just saying something like "gIntersect/gIntersect[2]"?
-  assert(std::abs(gIntersect(2)) > EPS);
-  gIntersect = gIntersect.array()/gIntersect.array()[2];
-
-  // normalize hIntersect
-  assert(std::abs(hIntersect(2)) > EPS);
-  hIntersect = hIntersect.array()/hIntersect.array()[2];
+  Eigen::Vector2d hIntersect = h.cross(lineOfCenters).hnormalized();
 
   double xmax, xmin, ymax, ymin;
   xmax = (centerA(0)>centerB(0)) ? centerA(0) : centerB(0);

@@ -51,12 +51,12 @@ TEST(InvariantTest, InvariantTriad) {
 
   std::vector<Conic> conics = {conicA, conicB, conicC, conicD};
 
-  cv::Mat image(500, 500, CV_8UC3, 
+  cv::Mat image(320, 480, CV_8UC3, 
                 cv::Scalar(25, 25, 25));
-  viz::plotEllipses(image, conics, viz::CV_colors);
+  viz::drawEllipses(image, conics, viz::CV_colors);
   Eigen::Vector3d my_line;
   my_line << 1.,-2.,3.;
-  viz::plotline(image, my_line, cv::viz::Color::blue());
+  viz::drawLine(image, my_line, cv::viz::Color::blue());
   // Showing image inside a window 
   cv::imshow("Output", image); 
   // cv::waitKey(0); 
