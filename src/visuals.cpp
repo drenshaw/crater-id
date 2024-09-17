@@ -1,4 +1,5 @@
 #include "visuals.h"
+#include "opencv2/viz/types.hpp"
 #include <iostream>
 #include <stdexcept>
 #include <cmath>
@@ -26,12 +27,14 @@ void drawEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
 
   int font = cv::FONT_HERSHEY_SIMPLEX;
   float font_scale = 1; // scale factor from base size
-  int thickness = 1; //in pixels
-  cv::Scalar text_neg(255, 255, 255);
-  cv::Scalar text_color = text_neg - color;
-  cv::Point offset(10, 5);
-  cv::putText(image, std::to_string(conic.GetID()), center+offset, font, font_scale,
-              text_color, thickness, true);
+  int thickness = 3; //in pixels
+  cv::Scalar rect_color = cv::viz::Color::orange();
+  cv::Scalar text_color = cv::viz::Color::azure();
+  cv::Point ll_offset(-10, -35);
+  cv::Point ur_offset( 50,  20);
+  cv::rectangle (image, center+ll_offset, center+ur_offset, rect_color, cv::FILLED, cv::LINE_8, 0);
+  cv::putText(image, std::to_string(conic.GetID()), center, font, font_scale,
+              text_color, thickness, cv::LINE_AA, false);
 }
 
 void drawEllipse(const Conic& conic, const cv::Scalar& color) {
@@ -43,7 +46,7 @@ void drawEllipse(const Conic& conic, const cv::Scalar& color) {
   cv::waitKey(0); 
 }
 
-void drawEllipses(cv::Mat& image, const std::vector<Conic> conics, const std::vector<cv::Scalar> colors) {
+void drawEllipses(cv::Mat& image, const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors) {
   assert(conics.size() <= colors.size());
   for (auto conic_it = conics.begin(); conic_it != conics.end(); ++conic_it) {
     int index = std::distance(conics.begin(), conic_it);
@@ -51,10 +54,48 @@ void drawEllipses(cv::Mat& image, const std::vector<Conic> conics, const std::ve
   }
 }
 
-void drawEllipses(const std::vector<Conic> conics, const std::vector<cv::Scalar> colors) {
+void drawEllipses(const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors) {
   cv::Mat image(500, 500, CV_8UC3, 
                 cv::Scalar(255, 255, 255)); 
   drawEllipses(image, conics, colors);
+  // Showing image inside a window 
+  cv::imshow("Ellipses", image); 
+  cv::waitKey(0); 
+}
+
+void drawLine(cv::Mat& image, const Eigen::Vector3d& line, const cv::Scalar& color) {
+  cv::Point2l start_pt, end_pt;
+  cv::Size image_size(image.rows,image.cols);
+  if(!getEndpointsFromLine(image, line, start_pt, end_pt)) {
+    return;
+  }
+  int thickness = 1; //in pixels
+  int lineType = cv::LINE_AA;
+  int shift = 0;
+  cv::line(image, start_pt, end_pt, color, thickness, lineType, shift);
+}
+
+void drawLine(const Eigen::Vector3d& line, const cv::Scalar& color) {
+  cv::Mat image(500, 500, CV_8UC3, 
+                cv::Scalar(255, 255, 255)); 
+  drawLine(image, line, color);
+  // Showing image inside a window 
+  cv::imshow("Line", image); 
+  cv::waitKey(0); 
+}
+
+void drawLines(cv::Mat& image, const std::vector<Eigen::Vector3d>& lines, const std::vector<cv::Scalar>& colors) {
+  assert(lines.size() <= colors.size());
+  for (auto conic_it = lines.begin(); conic_it != lines.end(); ++conic_it) {
+    int index = std::distance(lines.begin(), conic_it);
+    drawLine(image, *conic_it, CV_colors.at(index));
+  }
+}
+
+void drawLines(const std::vector<Eigen::Vector3d>& lines, const std::vector<cv::Scalar>& colors) {
+  cv::Mat image(500, 500, CV_8UC3, 
+                cv::Scalar(255, 255, 255)); 
+  drawLines(image, lines, colors);
   // Showing image inside a window 
   cv::imshow("Ellipses", image); 
   cv::waitKey(0); 
@@ -114,27 +155,6 @@ bool getEndpointsFromLine(const cv::Mat& image, const Eigen::Vector3d& my_line, 
     return false;
   }
   return true;
-}
-
-void drawLine(cv::Mat& image, const Eigen::Vector3d& my_line, const cv::Scalar my_color) {
-  cv::Point2l start_pt, end_pt;
-  cv::Size image_size(image.rows,image.cols);
-  if(!getEndpointsFromLine(image, my_line, start_pt, end_pt)) {
-    return;
-  }
-  int thickness = 1; //in pixels
-  int lineType = cv::LINE_AA;
-  int shift = 0;
-  cv::line(image, start_pt, end_pt, my_color, thickness, lineType, shift);
-}
-
-void drawLine(const Eigen::Vector3d& line, const cv::Scalar& color) {
-  cv::Mat image(500, 500, CV_8UC3, 
-                cv::Scalar(255, 255, 255)); 
-  drawLine(image, line, color);
-  // Showing image inside a window 
-  cv::imshow("Line", image); 
-  cv::waitKey(0); 
 }
 
 

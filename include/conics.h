@@ -45,8 +45,8 @@ class Conic {
     void SetAngle(const double angle);                                
     void SetImplicitParameters(const std::array<double, IMPLICIT_PARAM>&);
     void SetLocus(const Eigen::Matrix3d& locus);
-    void NormalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>&);
-    void NormalizeImplicitParameters(std::vector<double>&);
+    void NormalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>&) const ;
+    void NormalizeImplicitParameters(std::vector<double>&) const ;
     Eigen::Vector2d GetCenter() const;
     double GetCenterX() const;
     double GetCenterY() const;
@@ -62,22 +62,23 @@ class Conic {
     void GetSize(cv::Size& semiaxes) const;
     double GetAngle() const;
     int GetID() const;
-    std::array<double, GEOMETRIC_PARAM> GetGeom();
-    std::array<double, IMPLICIT_PARAM> GetImplicit();
-    Eigen::Matrix3d GetLocus();
-    Eigen::Matrix3d GetEnvelope();
-    // Eigen::Matrix3d getAdjugateMatrix(const Eigen::Matrix3d&);
-    std::array<double, IMPLICIT_PARAM> Locus2Implicit(const Eigen::Matrix3d&);
-    std::array<double, GEOMETRIC_PARAM> Implicit2Geom(const std::array<double, IMPLICIT_PARAM>&);
-    Eigen::Matrix3d Geom2Locus();
-    Eigen::Matrix3d Implicit2Locus(const std::array<double, IMPLICIT_PARAM>&);
-    Eigen::Matrix3d Implicit2Locus();
-    std::array<double, GEOMETRIC_PARAM> Locus2Geom(const Eigen::Matrix3d&);
-    std::array<double, IMPLICIT_PARAM> Geom2Implicit();
+    std::array<double, GEOMETRIC_PARAM> GetGeom() const ;
+    std::array<double, IMPLICIT_PARAM> GetImplicit() const ;
+    Eigen::Matrix3d GetLocus() const ;
+    Eigen::Matrix3d GetEnvelope() const ;
+    // Eigen::Matrix3d getAdjugateMatrix(const Eigen::Matrix3d&) const ;
+    std::array<double, IMPLICIT_PARAM> Locus2Implicit(const Eigen::Matrix3d&) const ;
+    std::array<double, GEOMETRIC_PARAM> Implicit2Geom(const std::array<double, IMPLICIT_PARAM>&) const ;
+    Eigen::Matrix3d Geom2Locus() const ;
+    Eigen::Matrix3d Implicit2Locus(const std::array<double, IMPLICIT_PARAM>&) const ;
+    Eigen::Matrix3d Implicit2Locus() const ;
+    std::array<double, GEOMETRIC_PARAM> Locus2Geom(const Eigen::Matrix3d&) const ;
+    std::array<double, IMPLICIT_PARAM> Geom2Implicit() const ;
     bool ConicIntersectionLines(const Eigen::Matrix3d&, 
-                                std::tuple<Eigen::Vector3d, Eigen::Vector3d>&);
-    bool ConicIntersectionLines(Conic&,
-                                std::tuple<Eigen::Vector3d, Eigen::Vector3d>&);
+                                std::tuple<Eigen::Vector3d, Eigen::Vector3d>&) const ;
+    bool ConicIntersectionLines(const Conic&,
+                                std::tuple<Eigen::Vector3d, Eigen::Vector3d>&) const ;
+    bool ChooseConicIntersection(const Conic& other, Eigen::Vector3d&) const ;
     
   protected:
     static int next_id;
@@ -122,7 +123,7 @@ bool computeInvariant(const Eigen::Vector3d&,
                       const Eigen::Vector3d&, 
                       const Eigen::Matrix3d&,
                       double&);
-bool computeCraterTriadInvariants(Conic&, Conic&, Conic&,
+bool computeCraterTriadInvariants(const Conic&, const Conic&, const Conic&,
                                   std::array<double, NONCOPLANAR_INVARIANTS>&);
 Eigen::Matrix3d getENUFrame(const Eigen::Vector3d&);
 void GenerateQuadricFromRadiusNormal();

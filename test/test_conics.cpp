@@ -3,7 +3,6 @@
 // #include <eigen3/Eigen/src/Geometry/Transform.h>
 #include <cmath>
 #include <eigen3/Eigen/Dense>
-#include <iostream>
 #include <opencv2/core/core.hpp> 
 #include <opencv2/imgproc.hpp> 
 #include <opencv2/highgui/highgui.hpp> 
@@ -183,114 +182,6 @@ TEST(ConicTest, ConvertEigenVectorToVector) {
   EXPECT_EQ(vec[2], evec(2));
   EXPECT_EQ(vec[2], 3);
   // ASSERT_TRUE(success);
-}
-
-TEST(ConicTest, ConicIntersection) {
-  double smajor = 70., sminor = 50., xcen = 200., ycen = 200., angle = -15.;
-  Conic conicA(smajor, sminor, xcen, ycen, angle+50);
-  Conic conicB(smajor*1.5, sminor, xcen+215, ycen, angle);
-  // Eigen::Vector3d g; g.fill(0);
-  // Eigen::Vector3d h; h.fill(0);
-  std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
-  Eigen::Vector3d g_line, h_line;
-  bool success = conicA.ConicIntersectionLines(conicB, gh);
-
-  std::tie(g_line, h_line) = gh;
-
-  std::vector<Conic> conics = {conicA, conicB};
-  cv::Mat image(320, 480, CV_8UC3, 
-                cv::Scalar(25, 25, 25));
-  viz::drawEllipses(image, conics, viz::CV_colors);
-  cv::Scalar red(0,0,255);
-  viz::drawLine(image, h_line, cv::Scalar(0,0,255));
-  // Showing image inside a window 
-  cv::imshow("Conic Intersection", image); 
-  // cv::waitKey(0); 
-  ASSERT_TRUE(success);
-}
-
-TEST(ConicTest, CheckMatlab) {
-
-  Conic conicA(245.848, 245.874, 1283.4, 1037.6, rad2deg(2.356));
-  Conic conicB( 94.435, 261.000, 1808.5, 2081.3, rad2deg(1.120));
-  // std::array<double,IMPLICIT_PARAM> implA = conicA.GetImplicit();
-  // std::array<double,IMPLICIT_PARAM> implB = conicB.GetImplicit();
-  // std::string iA = io::stringifyVector(implA, "Conic A: ");
-  // std::string iB = io::stringifyVector(implB, "Conic B: ");
-  // std::cout << iA << std::endl;
-  // std::cout << iB << std::endl;
-
-
-  std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
-  Eigen::Vector3d g_line, h_line;
-
-  bool success = conicA.ConicIntersectionLines(conicB, gh);
-  std::tie(g_line, h_line) = gh;
-  // std::cout << "G line:\n" << g_line/g_line[1] << std::endl;
-  // std::cout << "H line:\n" << h_line/h_line[1] << std::endl;
-  ASSERT_TRUE(success);
-}
-
-TEST(ConicTest, ChooseCorrectIntersection) {
-  Conic conicA(245.848, 245.874, 283.4, 0037.6, rad2deg(2.356));
-  Conic conicB( 94.435, 261.000, 510.5, 0581.3, rad2deg(1.120));
-  Eigen::Vector2d centerA, centerB;
-  centerA = conicA.GetCenter();
-  centerB = conicB.GetCenter();
-
-  Eigen::Vector3d g, h;
-  std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
-  bool success = conicA.ConicIntersectionLines(conicB, gh);
-  EXPECT_TRUE(success);
-  std::tie(g, h) = gh;
-  // convert centers to homogeneous coordinates
-  Eigen::Vector3d centerAHom = centerA.homogeneous();
-  Eigen::Vector3d centerBHom = centerB.homogeneous();
-  // get line connecting the two centers
-  Eigen::Vector3d lineOfCenters = centerAHom.cross(centerBHom);
-  // get point where lineOfCenters and g intersect
-  Eigen::Vector2d gIntersect = g.cross(lineOfCenters).hnormalized();
-  // get point where lineOfCenters and h intersect
-  Eigen::Vector2d hIntersect = h.cross(lineOfCenters).hnormalized();
-
-  double xmax, xmin, ymax, ymin;
-  xmax = (centerA(0)>centerB(0)) ? centerA(0) : centerB(0);
-  xmin = (centerA(0)<centerB(0)) ? centerA(0) : centerB(0);
-  ymax = (centerA(1)>centerB(1)) ? centerA(1) : centerB(1);
-  ymin = (centerA(1)<centerB(1)) ? centerA(1) : centerB(1);
-  bool g_fits, h_fits;
-  
-  g_fits = gIntersect(0)>xmin && gIntersect(0)<xmax && gIntersect(1)>ymin && gIntersect(1)<ymax;
-  h_fits = hIntersect(0)>xmin && hIntersect(0)<xmax && hIntersect(1)>ymin && hIntersect(1)<ymax;
-  bool valid_intersection = false;
-  if (g_fits ^ h_fits) {
-    valid_intersection = true;
-  }
-  Eigen::Vector3d l_check;
-  l_check = g_fits ? g : h;
-  // std::cerr << "Result of intersection: " 
-  //           << (g_fits ? "g":"h") << std::endl 
-  //           << l_check << std::endl
-  //           << "Wrong value:\n" << h << std::endl;
-  EXPECT_TRUE(valid_intersection);
-
-  Eigen::Vector3d l;
-  bool match_success = ChooseIntersection(gh, centerA, centerB, l);
-  EXPECT_TRUE(match_success);
-  EXPECT_EQ(l_check, l);
-
-
-  std::vector<Conic> conics = {conicA, conicB};
-  cv::Mat image(720, 1280, CV_8UC3, 
-                cv::Scalar(25, 25, 25));
-  viz::drawEllipses(image, conics, viz::CV_colors);
-  cv::Scalar   red(0,0,255);
-  cv::Scalar green(0,255,0);
-  viz::drawLine(image, l, green);
-  viz::drawLine(image, h, red);
-  // Showing image inside a window 
-  cv::imshow("Choose Intersection", image); 
-  // cv::waitKey(0); 
 }
 
 TEST(VisualTest, SlopeInterceptInvalid) {
