@@ -9,7 +9,7 @@
 #include <opencv2/core/core.hpp> 
 #include <opencv2/imgproc.hpp> 
 #include <opencv2/highgui/highgui.hpp> 
-#include "opencv2/core/types.hpp"
+#include "opencv2/viz/types.hpp"
 #include "visuals.h"
 
 class InvariantTest : public testing::Test {
@@ -64,17 +64,7 @@ TEST(InvariantTest, InvariantTriad) {
   Conic conicC(132.956, 210.487,  849.7, 1901.0, rad2deg(2.042));
   Conic conicD(132.956, 210.487, 1849.7, 0901.0, rad2deg(2.042));
 
-  std::vector<Conic> conics = {
-    conicA, 
-    conicB, 
-    // conicC, 
-    conicD
-  };
   Eigen::Vector3d lij, lik, lil, ljk, ljl, lkl;
-
-  cv::Mat image(2400, 3200, CV_8UC3, 
-                cv::Scalar(150, 150, 150));
-  viz::drawEllipses(image, conics, viz::CV_colors);
   if(!conicA.ChooseConicIntersection(conicB, lij)) {
     std::cerr<<"IntersectionLines error ij\n";
   }
@@ -93,6 +83,17 @@ TEST(InvariantTest, InvariantTriad) {
   if(!conicC.ChooseConicIntersection(conicD, lkl)) {
     std::cerr<<"IntersectionLines error ki\n";
   }
+
+
+  cv::Mat image(2400, 3200, CV_8UC3, 
+                cv::Scalar(150, 150, 150));
+  std::vector<Conic> conics = {
+    conicA, 
+    conicB, 
+    conicC, 
+    conicD
+  };
+  viz::drawEllipses(image, conics, viz::CV_colors);
   std::vector<Eigen::Vector3d> my_lines = {
     lij, 
     lik, 
@@ -101,7 +102,15 @@ TEST(InvariantTest, InvariantTriad) {
     ljl, 
     lkl
   };
-  viz::drawLines(image, my_lines, viz::CV_colors);
+  std::vector<std::string> my_text = {
+    "lij", 
+    "lik", 
+    "lil", 
+    "ljk", 
+    "ljl", 
+    "lkl"
+  };
+  viz::drawLines(image, my_lines, my_text, viz::CV_colors);
   // Showing image inside a window 
   cv::Mat outImg;
   cv::resize(image, outImg, cv::Size(), 0.4, 0.4);
@@ -148,10 +157,12 @@ TEST(ConicTest, ConicIntersection) {
   cv::Mat image(512, 640, CV_8UC3, 
                 cv::Scalar(50, 50, 50));
   viz::drawEllipses(image, conics, viz::CV_colors);
-  cv::Scalar red(0,0,255);
-  viz::drawLine(image, h_line, red);
+  cv::Scalar red  = cv::viz::Color::red();
+  cv::Scalar blue = cv::viz::Color::blue();
+  viz::drawLine(image, g_line, "g_line", red);
+  viz::drawLine(image, h_line, "h_line", blue);
   // Showing image inside a window 
-  cv::imshow("Conic Intersection", image); 
+  cv::imshow("Conic Intersection: `h` is the correct line", image); 
   // cv::waitKey(0); 
   ASSERT_TRUE(success);
 }
@@ -234,8 +245,8 @@ TEST(ConicTest, ChooseCorrectIntersection) {
   viz::drawEllipses(image, conics, viz::CV_colors);
   cv::Scalar   red(0,0,255);
   cv::Scalar green(0,255,0);
-  viz::drawLine(image, l, green);
-  viz::drawLine(image, h, red);
+  viz::drawLine(image, l, "true",  green);
+  viz::drawLine(image, h, "false", red);
   // Showing image inside a window 
   cv::imshow("Choose Intersection", image); 
   // cv::waitKey(0); 

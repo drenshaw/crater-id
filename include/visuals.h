@@ -69,10 +69,10 @@ void drawEllipse( cv::Mat& image, const Conic& conic, const cv::Scalar& color=cv
 void drawEllipse( const Conic& conic, const cv::Scalar& color=cv::Scalar(0, 255, 255));
 void drawEllipses(cv::Mat& image, const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors={});
 void drawEllipses(const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors={});
-void drawLine(cv::Mat& image, const Eigen::Vector3d& my_line, const cv::Scalar& my_color);
-void drawLine(const Eigen::Vector3d& my_line, const cv::Scalar& my_color);
-void drawLines(cv::Mat& image, const std::vector<Eigen::Vector3d>& lines, const std::vector<cv::Scalar>& colors);
-void drawLines(const std::vector<Eigen::Vector3d>& lines, const std::vector<cv::Scalar>& colors);
+void drawLine(cv::Mat& image, const Eigen::Vector3d& my_line, const std::string& text, const cv::Scalar& my_color);
+void drawLine(const Eigen::Vector3d& my_line, const std::string& text, const cv::Scalar& my_color);
+void drawLines(cv::Mat& image, const std::vector<Eigen::Vector3d>& lines, const std::vector<std::string>& text, const std::vector<cv::Scalar>& colors);
+void drawLines(const std::vector<Eigen::Vector3d>& lines, const std::string& text, const std::vector<cv::Scalar>& colors);
 void getSlopeInterceptFromStandard(const Eigen::Vector3d& my_line, double& slope, double& intercept);
 bool getEndpointsFromLine(const cv::Mat& image, const Eigen::Vector3d& my_line, cv::Point2l& start_pt, cv::Point2l& end_pt);
 /* VTK */

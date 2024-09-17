@@ -1,4 +1,5 @@
 #include "visuals.h"
+#include "opencv2/core/types.hpp"
 #include "opencv2/viz/types.hpp"
 #include <iostream>
 #include <stdexcept>
@@ -63,39 +64,50 @@ void drawEllipses(const std::vector<Conic>& conics, const std::vector<cv::Scalar
   cv::waitKey(0); 
 }
 
-void drawLine(cv::Mat& image, const Eigen::Vector3d& line, const cv::Scalar& color) {
+void drawLine(cv::Mat& image, const Eigen::Vector3d& line, const std::string& text, const cv::Scalar& color) {
   cv::Point2l start_pt, end_pt;
-  cv::Size image_size(image.rows,image.cols);
+  cv::Size image_size(image.cols,image.rows);
   if(!getEndpointsFromLine(image, line, start_pt, end_pt)) {
     return;
   }
-  int thickness = 1; //in pixels
+  int thickness = 2; //in pixels
   int lineType = cv::LINE_AA;
   int shift = 0;
   cv::line(image, start_pt, end_pt, color, thickness, lineType, shift);
+  int font = cv::FONT_HERSHEY_SIMPLEX;
+  float font_scale = 1; // scale factor from base size
+  // int thickness = 3; //in pixels
+  cv::Point2l center = (start_pt + end_pt) / 2;
+  cv::Scalar rect_color = cv::viz::Color::orange();
+  cv::Scalar text_color = cv::viz::Color::azure();
+  cv::Point2l ll_offset(-10, -35);
+  cv::Point2l ur_offset( 50,  20);
+  cv::rectangle (image, center+ll_offset, center+ur_offset, rect_color, cv::FILLED, cv::LINE_8, 0);
+  cv::putText(image, text, center, font, font_scale,
+              text_color, thickness, lineType, false);
 }
 
-void drawLine(const Eigen::Vector3d& line, const cv::Scalar& color) {
+void drawLine(const Eigen::Vector3d& line, const std::string text, const cv::Scalar& color) {
   cv::Mat image(500, 500, CV_8UC3, 
                 cv::Scalar(255, 255, 255)); 
-  drawLine(image, line, color);
+  drawLine(image, line, text, color);
   // Showing image inside a window 
   cv::imshow("Line", image); 
   cv::waitKey(0); 
 }
 
-void drawLines(cv::Mat& image, const std::vector<Eigen::Vector3d>& lines, const std::vector<cv::Scalar>& colors) {
+void drawLines(cv::Mat& image, const std::vector<Eigen::Vector3d>& lines, const std::vector<std::string>& text, const std::vector<cv::Scalar>& colors) {
   assert(lines.size() <= colors.size());
   for (auto conic_it = lines.begin(); conic_it != lines.end(); ++conic_it) {
     int index = std::distance(lines.begin(), conic_it);
-    drawLine(image, *conic_it, CV_colors.at(index));
+    drawLine(image, *conic_it, text.at(index), CV_colors.at(index));
   }
 }
 
-void drawLines(const std::vector<Eigen::Vector3d>& lines, const std::vector<cv::Scalar>& colors) {
+void drawLines(const std::vector<Eigen::Vector3d>& lines, const std::vector<std::string>& text, const std::vector<cv::Scalar>& colors) {
   cv::Mat image(500, 500, CV_8UC3, 
                 cv::Scalar(255, 255, 255)); 
-  drawLines(image, lines, colors);
+  drawLines(image, lines, text, colors);
   // Showing image inside a window 
   cv::imshow("Ellipses", image); 
   cv::waitKey(0); 
@@ -132,7 +144,7 @@ bool getEndpointsFromLine(const cv::Mat& image, const Eigen::Vector3d& my_line, 
     std::cerr << "Exception: " << e.what() << std::endl;
     return false;
   }
-  cv::Size image_size(image.rows,image.cols);
+  cv::Size image_size(image.cols,image.rows);
   if(!std::isinf(slope)) {
     x0 = 0;
     x1 = image.cols;
