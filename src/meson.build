@@ -16,7 +16,7 @@ cv_dep = dependency('opencv4', required: false)
 # -DVTK_DIR="<path to my vtk build>"
 vtk_dep = dependency('vtk', required: false)
 cpp = meson.get_compiler('cpp')
-# igl_dep = cpp.find_library('libigl', dirs: '/home/dqr0509/dev/libigl/lib', required: false)
+igl_dep = cpp.find_library('libigl', dirs: '/home/dqr0509/dev/libigl/lib', required: false)
 # igl_dep = dependency('igl', required: false)
 all_deps = [
   boost_dep, 
@@ -24,7 +24,8 @@ all_deps = [
   libspatial_dep, 
   cv_dep, 
   vtk_dep, 
-  boost_dep
+  boost_dep,
+  igl_dep,
 ]
 executable( 
   'demo', 

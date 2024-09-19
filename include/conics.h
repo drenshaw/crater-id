@@ -106,25 +106,6 @@ class ConicGeometry {
 class ConicMatrix {
   ConicMatrix();
 }; 
-
-bool IntersectionLines(const Eigen::Matrix3d&, 
-                       const Eigen::Matrix3d&,
-                       std::tuple<Eigen::Vector3d, Eigen::Vector3d>&);
-bool ChooseIntersection(const std::tuple<Eigen::Vector3d, 
-                        Eigen::Vector3d>&, 
-                        const Eigen::Vector2d&, 
-                        const Eigen::Vector2d&, 
-                        Eigen::Vector3d&);
-bool IntersectConics(const Eigen::Matrix3d&, 
-                     const Eigen::Matrix3d&, 
-                     const double,
-                     std::tuple<Eigen::Vector3d, Eigen::Vector3d>&);
-bool computeInvariant(const Eigen::Vector3d&, 
-                      const Eigen::Vector3d&, 
-                      const Eigen::Matrix3d&,
-                      double&);
-bool computeCraterTriadInvariants(const Conic&, const Conic&, const Conic&,
-                                  std::array<double, NONCOPLANAR_INVARIANTS>&);
 Eigen::Matrix3d getENUFrame(const Eigen::Vector3d&);
 void GenerateQuadricFromRadiusNormal();
 Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d&, 
@@ -144,5 +125,29 @@ template <typename T, size_t SIZE>
 bool vectorContainsNaN(const std::array<T, SIZE>& vec) {
   return std::any_of(vec.begin(), vec.end(), [](T i){return std::isnan(i);});
 }
+
+/*********************************************************/
+/***********************INVARIANTS************************/
+/*********************************************************/
+namespace invariants {
+bool IntersectionLines(const Eigen::Matrix3d&, 
+                       const Eigen::Matrix3d&,
+                       std::tuple<Eigen::Vector3d, Eigen::Vector3d>&);
+bool ChooseIntersection(const std::tuple<Eigen::Vector3d, 
+                        Eigen::Vector3d>&, 
+                        const Eigen::Vector2d&, 
+                        const Eigen::Vector2d&, 
+                        Eigen::Vector3d&);
+bool IntersectConics(const Eigen::Matrix3d&, 
+                     const Eigen::Matrix3d&, 
+                     const double,
+                     std::tuple<Eigen::Vector3d, Eigen::Vector3d>&);
+bool computeInvariant(const Eigen::Vector3d&, 
+                      const Eigen::Vector3d&, 
+                      const Eigen::Matrix3d&,
+                      double&);
+bool computeCraterTriadInvariants(const Conic&, const Conic&, const Conic&,
+                                  std::array<double, NONCOPLANAR_INVARIANTS>&);
+} // namespace
 
 #endif

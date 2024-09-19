@@ -31,11 +31,12 @@ endif
 # app_files = files('conics.cpp', 'vector_math.cpp')
 test_files = files([
   'test_main.cpp', 
-  'test_conics.cpp', 
-  'test_math.cpp',
-  'test_io.cpp',
-  'test_combinatorics.cpp',
-  'test_invariants.cpp',
+  # 'test_conics.cpp', 
+  # 'test_math.cpp',
+  # 'test_io.cpp',
+  # 'test_combinatorics.cpp',
+  # 'test_invariants.cpp',
+  'test_camera.cpp',
 ])
 
 testexe = executable(

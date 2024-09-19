@@ -269,14 +269,14 @@ std::array<double, IMPLICIT_PARAM> Conic::Geom2Implicit() const {
 bool Conic::ConicIntersectionLines(const Eigen::Matrix3d& Aj, 
                                    std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) const {
   Eigen::Matrix3d Ai = GetLocus();
-  return IntersectionLines(Ai, Aj, gh);
+  return invariants::IntersectionLines(Ai, Aj, gh);
 }
 
 bool Conic::ConicIntersectionLines(const Conic& conicB, 
                                    std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) const {
   Eigen::Matrix3d Ai = GetLocus();
   Eigen::Matrix3d Aj = conicB.GetLocus();
-  return IntersectionLines(Ai, Aj, gh);
+  return invariants::IntersectionLines(Ai, Aj, gh);
 }
 
 double Conic::GetCenterX() const {
@@ -344,11 +344,11 @@ double Conic::GetAngle() const {
 
 bool Conic::ChooseConicIntersection(const Conic& other, Eigen::Vector3d& l) const {
   std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
-  if(!IntersectionLines(GetLocus(), other.GetLocus(), gh)) {
+  if(!invariants::IntersectionLines(GetLocus(), other.GetLocus(), gh)) {
     std::cerr<<"IntersectionLines error ij\n";
     return false;
   }
-  if(!ChooseIntersection(gh, GetCenter(), other.GetCenter(), l)) {
+  if(!invariants::ChooseIntersection(gh, GetCenter(), other.GetCenter(), l)) {
     std::cerr<<"ChooseIntersection error jk\n";
     return false;
   }
@@ -381,6 +381,78 @@ bool vectorContainsNaN(const Eigen::Vector3d& eV) {
   convertEigenVectorToVector(eV, vec);
   return vectorContainsNaN(vec);
 }
+
+Eigen::Matrix3d getENUFrame(const Eigen::Vector3d& surface_point) {
+  Eigen::Vector3d u_north_pole(3), u_surface_point(3), ui, ei, ni;
+  Eigen::Matrix3d enu_frame(3, 3);
+  double eps = 1e-6;
+  u_north_pole = GetNorthPoleUnitVector();
+  normalizeVector(surface_point, u_surface_point);
+  // std::cout << "ENU: \n" << surface_point << "\n" << u_surface_point << std::endl;
+  if((u_north_pole - u_surface_point).norm() < eps) {
+    ui = u_north_pole;
+    ei << 1, 0, 0;
+    ni << 0, 1, 0;
+  }
+  else if((-u_north_pole - u_surface_point).norm() < eps) {
+    ui = -u_north_pole;
+    ei << -1, 0, 0;
+    ni << 0, -1, 0;
+  }
+  else {
+    ui = u_surface_point;
+    ei = u_north_pole.cross(ui);
+    ni = ui.cross(ei);
+  }
+  enu_frame << ei, ni, ui;
+  return enu_frame;
+}
+
+Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d& position, const Eigen::Matrix3d& T_e2m) {
+  Eigen::Matrix3d h_m(3,3);
+  Eigen::Vector3d u_north_pole = GetNorthPoleUnitVector();
+  // form transformation matrix
+  // eq. 34 from Christian, Derksen, Watkins [2020]
+  h_m << T_e2m.col(0), T_e2m.col(1), position;
+  // express matrix in homogeneous form (eq. 40)
+  Eigen::MatrixXd h_k(4,3);
+  h_k << h_m.row(0), h_m.row(1), h_m.row(2), u_north_pole.transpose();
+  return h_k;
+}
+
+Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, const Eigen::Vector3d& desired_location) {
+  Eigen::Matrix3d T_m2c = getENUFrame(desired_location - camera_position);
+  Eigen::Matrix3d z_rot;
+  eulerToQuaternion(0., 0., M_PI, z_rot);
+  return z_rot * T_m2c.transpose();
+}
+
+Eigen::Quaterniond eulerToQuaternion(const double roll,
+                                     const double pitch,
+                                     const double yaw) {
+  Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitX());
+  Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
+
+  Eigen::Quaterniond q = yawAngle * pitchAngle * rollAngle;
+  return q;
+}
+
+void eulerToQuaternion(const double roll,
+                       const double pitch,
+                       const double yaw,
+                       Eigen::Matrix3d& dcm) {
+  Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitX());
+  Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
+
+  dcm = yawAngle * pitchAngle * rollAngle;
+}
+
+/*********************************************************/
+/***********************INVARIANTS************************/
+/*********************************************************/
+namespace invariants {
 
 bool IntersectConics(const Eigen::Matrix3d& Ai, 
                      const Eigen::Matrix3d& Aj, 
@@ -559,70 +631,4 @@ bool computeCraterTriadInvariants(const Conic& A, const Conic& B, const Conic& C
   // invariants.push_back(invC);
   return true;
 }
-
-Eigen::Matrix3d getENUFrame(const Eigen::Vector3d& surface_point) {
-  Eigen::Vector3d u_north_pole(3), u_surface_point(3), ui, ei, ni;
-  Eigen::Matrix3d enu_frame(3, 3);
-  double eps = 1e-6;
-  u_north_pole = GetNorthPoleUnitVector();
-  normalizeVector(surface_point, u_surface_point);
-  // std::cout << "ENU: \n" << surface_point << "\n" << u_surface_point << std::endl;
-  if((u_north_pole - u_surface_point).norm() < eps) {
-    ui = u_north_pole;
-    ei << 1, 0, 0;
-    ni << 0, 1, 0;
-  }
-  else if((-u_north_pole - u_surface_point).norm() < eps) {
-    ui = -u_north_pole;
-    ei << -1, 0, 0;
-    ni << 0, -1, 0;
-  }
-  else {
-    ui = u_surface_point;
-    ei = u_north_pole.cross(ui);
-    ni = ui.cross(ei);
-  }
-  enu_frame << ei, ni, ui;
-  return enu_frame;
-}
-
-Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d& position, const Eigen::Matrix3d& T_e2m) {
-  Eigen::Matrix3d h_m(3,3);
-  Eigen::Vector3d u_north_pole = GetNorthPoleUnitVector();
-  // form transformation matrix
-  // eq. 34 from Christian, Derksen, Watkins [2020]
-  h_m << T_e2m.col(0), T_e2m.col(1), position;
-  // express matrix in homogeneous form (eq. 40)
-  Eigen::MatrixXd h_k(4,3);
-  h_k << h_m.row(0), h_m.row(1), h_m.row(2), u_north_pole.transpose();
-  return h_k;
-}
-
-Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, const Eigen::Vector3d& desired_location) {
-  Eigen::Matrix3d T_m2c = getENUFrame(desired_location - camera_position);
-  Eigen::Matrix3d z_rot;
-  eulerToQuaternion(0., 0., M_PI, z_rot);
-  return z_rot * T_m2c.transpose();
-}
-
-Eigen::Quaterniond eulerToQuaternion(const double roll,
-                                     const double pitch,
-                                     const double yaw) {
-  Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitX());
-  Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitY());
-  Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
-
-  Eigen::Quaterniond q = yawAngle * pitchAngle * rollAngle;
-  return q;
-}
-
-void eulerToQuaternion(const double roll,
-                       const double pitch,
-                       const double yaw,
-                       Eigen::Matrix3d& dcm) {
-  Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitX());
-  Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitY());
-  Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
-
-  dcm = yawAngle * pitchAngle * rollAngle;
-}
+} // namespace

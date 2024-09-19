@@ -1,16 +1,17 @@
+#include "io.h"
+#include "conics.h"
+#include "visuals.h"
+
 #include "gtest/gtest.h"
 #include <eigen3/Eigen/Dense>
 #include <vector>
 #include <tuple>
 #include <iostream>
 
-#include "conics.h"
-#include "io.h"
 #include <opencv2/core/core.hpp> 
 #include <opencv2/imgproc.hpp> 
 #include <opencv2/highgui/highgui.hpp> 
 #include "opencv2/viz/types.hpp"
-#include "visuals.h"
 
 class InvariantTest : public testing::Test {
   protected:
@@ -83,6 +84,34 @@ TEST(InvariantTest, InvariantTriad) {
   if(!conicC.ChooseConicIntersection(conicD, lkl)) {
     std::cerr<<"IntersectionLines error ki\n";
   }
+  // Invariants
+  double invA, invB, invC, invD;
+  if(!invariants::computeInvariant(lij, lik, conicA.GetLocus(), invA)) {
+    std::cerr<<"computeInvariant error A\n";
+    ASSERT_TRUE(false);
+  }
+  if(!invariants::computeInvariant(ljk, lij, conicB.GetLocus(), invB)) {
+    std::cerr<<"computeInvariant error B\n";
+    ASSERT_TRUE(false);
+  }
+  if(!invariants::computeInvariant(lik, ljk, conicC.GetLocus(), invC)) {
+    std::cerr<<"computeInvariant error C\n";
+    ASSERT_TRUE(false);
+  }
+  if(!invariants::computeInvariant(lil, lkl, conicD.GetLocus(), invD)) {
+    std::cerr<<"computeInvariant error C\n";
+    ASSERT_TRUE(false);
+  }
+  double invA_check = 0.3556067233739398;
+  double invB_check = 0.4065675587075122;
+  double invC_check = 0.5830085148020281;
+
+
+  EXPECT_NEAR(invA, invA_check, 1e-3);
+  EXPECT_NEAR(invB, invB_check, 1e-3);
+  EXPECT_NEAR(invC, invC_check, 1e-3);
+
+
 
 
   cv::Mat image(2400, 3200, CV_8UC3, 
@@ -119,16 +148,16 @@ TEST(InvariantTest, InvariantTriad) {
   
   // Invariants
   std::array<double, NONCOPLANAR_INVARIANTS> invariantsABC, invariantsBCD, invariantsCDA, invariantsDAB;
-  if(!computeCraterTriadInvariants(conicA, conicB, conicC, invariantsABC)) {
+  if(!invariants::computeCraterTriadInvariants(conicA, conicB, conicC, invariantsABC)) {
     std::cerr << "Error in `computeCraterTriadInvariants`" << std::endl;
   }
-  if(!computeCraterTriadInvariants(conicB, conicC, conicD, invariantsBCD)) {
+  if(!invariants::computeCraterTriadInvariants(conicB, conicC, conicD, invariantsBCD)) {
     std::cerr << "Error in `computeCraterTriadInvariants`" << std::endl;
   }
-  if(!computeCraterTriadInvariants(conicC, conicD, conicA, invariantsCDA)) {
+  if(!invariants::computeCraterTriadInvariants(conicC, conicD, conicA, invariantsCDA)) {
     std::cerr << "Error in `computeCraterTriadInvariants`" << std::endl;
   }
-  if(!computeCraterTriadInvariants(conicD, conicA, conicB, invariantsDAB)) {
+  if(!invariants::computeCraterTriadInvariants(conicD, conicA, conicB, invariantsDAB)) {
     std::cerr << "Error in `computeCraterTriadInvariants`" << std::endl;
   }
   std::string invABC = io::stringifyVector(invariantsABC, "Invariants ABC: ");
@@ -139,6 +168,12 @@ TEST(InvariantTest, InvariantTriad) {
   std::cout << invBCD << std::endl;
   std::cout << invCDA << std::endl;
   std::cout << invDAB << std::endl;
+  if(!invariants::computeCraterTriadInvariants(conicA, conicB, conicC, invariantsABC)) {
+    std::cerr << "Error in `computeCraterTriadInvariants`" << std::endl;
+  }
+  EXPECT_DOUBLE_EQ(invA, invariantsABC.at(0));
+  EXPECT_DOUBLE_EQ(invB, invariantsABC.at(1));
+  EXPECT_DOUBLE_EQ(invC, invariantsABC.at(2));
 }
 
 TEST(ConicTest, ConicIntersection) {
@@ -234,7 +269,7 @@ TEST(ConicTest, ChooseCorrectIntersection) {
   EXPECT_TRUE(valid_intersection);
 
   Eigen::Vector3d l;
-  bool match_success = ChooseIntersection(gh, centerA, centerB, l);
+  bool match_success = invariants::ChooseIntersection(gh, centerA, centerB, l);
   EXPECT_TRUE(match_success);
   EXPECT_EQ(l_check, l);
 

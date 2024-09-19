@@ -1,3 +1,4 @@
+// TODO: rename this to a better name like `utils` or something
 #ifndef VECTOR_MATH
 #define VECTOR_MATH
 
