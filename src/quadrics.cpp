@@ -3,41 +3,42 @@
 #include "vector_math.h"
 #include "conics.h"
 
-// TODO: Use delegation to simplify
 // This is the base constructor
-Quadric::Quadric(const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal, const std::string id) {
-  // MakeQuadric(position, radius, surface_normal, id);
-  surface_point_ = position;
+Quadric::Quadric( const Eigen::Vector3d& position, 
+                  const double radius, 
+                  const Eigen::Vector3d& surface_normal, 
+                  const std::string id) : 
+                    id_(id),
+                    radius_(radius),
+                    surface_point_{position},
+                    surface_normal_(surface_normal.normalized()) {
+  // TODO: Uses only Moon radius; change if using another body (e.g., Mars)
+  if(radius > R_MOON) {
+    throw std::runtime_error("The crater radius is larger than the Moon.");
+  }
   if(std::abs(surface_normal.norm()) < 1e-8) {
-    // std::cerr << "The surface normal is not defined or ==0.\n";
     throw std::runtime_error("The surface normal is not defined or ==0.");
   }
-  // assert(("The surface normal is not defined or ==0.", surface_normal.norm() != 0));
-  surface_normal_ = surface_normal;
-  surface_normal_.normalize();
-  radius_ = radius;
-  id_ = id;
-  T_e2m_ = GetQuadricTransformationMatrix();
-  std::cout << "T_e2m: (determinant " << T_e2m_.determinant() << ")\n" << T_e2m_ << std::endl;
-  Conic conic(radius, radius, 0, 0, 0);
-  locus_ = GenerateQuadricLocus();
-  std::cout << "Locus \n" << locus_ << std::endl;
-  envelope_ = getAdjugateMatrix(locus_);
-  std::tie(plane_, plane_normal_) = SurfacePointToPlane(T_e2m_, surface_point_);
+  if(radius == 0) {
+    throw std::runtime_error("The crater radius is zero.");
+  }
+  Eigen::Matrix3d T_e2m_ = GetQuadricTransformationMatrix();
+  plane_ = SurfacePointToPlane(T_e2m_, surface_point_);
 }
+
+// These are delegating constructors
 Quadric::Quadric(const Eigen::Vector3d& position, const double radius, const std::string id) : 
   Quadric(position, radius, position.normalized(), id) {}
 Quadric::Quadric(const std::string id, const Eigen::Vector3d& position, const double radius) :
   Quadric(position, radius, id) {}
 Quadric::Quadric(const double lat, const double lon, const double radius, const std::string id) :
-  Quadric(R_MOON*latlon2bearing(lat, lon), radius, id) {}
+  Quadric(calculateCraterRimFromRadius(radius)*latlon2bearing(lat, lon), radius, id) {}
 Quadric::Quadric(const std::string id, const double lat, const double lon, const double radius) :
-  Quadric(R_MOON*latlon2bearing(lat, lon), radius, id) {}
+  Quadric(calculateCraterRimFromRadius(radius)*latlon2bearing(lat, lon), radius, id) {}
 Quadric::Quadric(const std::string id, const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal) :
   Quadric(position, radius, surface_normal, id) {}
         
 Eigen::Matrix4d Quadric::GenerateQuadricLocus() {
-  Eigen::Matrix4d quadric_locus;
   return GenerateQuadricFromRadiusNormal(surface_point_, radius_);
 }
 
@@ -46,7 +47,7 @@ Eigen::Matrix3d Quadric::GetQuadricTransformationMatrix() {
 }
 
 Eigen::Matrix4d Quadric::GetLocus() {
-  return locus_;
+  return GenerateQuadricLocus();
 }
 
 std::ostream& operator<<(std::ostream& os, const Quadric& quad) {
@@ -61,14 +62,14 @@ double calculateCraterRimFromRadius(const double radius) {
   return sqrt(pow(R_MOON, 2) - pow(radius, 2));
 }
 
-std::tuple<Eigen::Vector4d, Eigen::Vector3d> SurfacePointToPlane(const Eigen::Matrix3d& T_e2m, 
-                                                                 const Eigen::Vector3d& surface_point) {
+Eigen::Vector4d SurfacePointToPlane(const Eigen::Matrix3d& T_e2m, 
+                                    const Eigen::Vector3d& surface_point) {
   Eigen::Vector3d u_north_pole = getNorthPoleUnitVector();
   Eigen::Vector3d plane_normal = T_e2m * u_north_pole;
   double rho = surface_point.dot(plane_normal);
   Eigen::Vector4d plane;
   plane << plane_normal, -rho;
-  return {plane, plane_normal};
+  return plane;
 }
 
 Eigen::Matrix4d GenerateQuadricFromRadiusNormal(const Eigen::Vector3d& position, const double radius) {

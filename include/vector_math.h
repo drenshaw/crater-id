@@ -45,9 +45,6 @@ double angularDistance(const Eigen::Vector3d& point1, const Eigen::Vector3d& poi
 
 bool normalizeDeterminant(Eigen::MatrixXd& mtx);
 Eigen::Matrix3d crossMatrix(const Eigen::Vector3d&);
-void normalizeVector(Eigen::Vector3d&);
-void normalizeVector(const Eigen::Vector3d&, Eigen::Vector3d&);
-Eigen::Vector3d normalizeVector(const Eigen::Vector3d&);
 template <typename T>
 T vectorNorm(const Eigen::Vector3d&);
 void GetNorthPoleUnitVector(Eigen::Vector3d&);

@@ -156,19 +156,6 @@ Eigen::Matrix3d crossMatrix(const Eigen::Vector3d& v) {
   return v_cross;
 }
 
-void normalizeVector(Eigen::Vector3d& vec) {
-  vec /= vec.norm();
-}
-
-void normalizeVector(const Eigen::Vector3d& inVec, Eigen::Vector3d& outVec) {
-  outVec = inVec;
-  normalizeVector(outVec);
-}
-
-Eigen::Vector3d normalizeVector(const Eigen::Vector3d& inVec) {
-  return inVec / inVec.norm();
-}
-
 Eigen::Vector3d getNorthPoleUnitVector() {
   return Eigen::Vector3d::UnitZ();
 }

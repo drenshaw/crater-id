@@ -25,11 +25,7 @@ class Quadric {
     double radius_;
     Eigen::Vector3d surface_point_;
     Eigen::Vector3d surface_normal_;
-    Eigen::Vector3d plane_normal_;
     Eigen::Vector4d plane_;
-    Eigen::Matrix3d T_e2m_;
-    Eigen::Matrix4d locus_;
-    Eigen::Matrix4d envelope_;
     
     friend std::ostream& operator<<(std::ostream& os, const Quadric&);
 };
@@ -39,8 +35,7 @@ double calculateCraterRimFromRadius(const double radius);
 Eigen::Matrix4d GenerateQuadricFromRadiusNormal(const Eigen::Vector3d& position, const double radius);
 Eigen::Matrix4d ConicEnvelopeToQuadricEnvelope(const Eigen::Matrix3d& conic_envelope, 
                                                const Eigen::MatrixXd& h_k);
-std::tuple<Eigen::Vector4d, Eigen::Vector3d> 
-SurfacePointToPlane(const Eigen::Matrix3d& T_e2m, 
-                    const Eigen::Vector3d& surface_point);
+Eigen::Vector4d SurfacePointToPlane(const Eigen::Matrix3d& T_e2m, 
+                                    const Eigen::Vector3d& surface_point);
 
 #endif

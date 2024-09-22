@@ -387,8 +387,7 @@ Eigen::Matrix3d getENUFrame(const Eigen::Vector3d& surface_point) {
   Eigen::Matrix3d enu_frame(3, 3);
   double eps = 1e-6;
   u_north_pole = getNorthPoleUnitVector();
-  normalizeVector(surface_point, u_surface_point);
-  // std::cout << "ENU: \n" << surface_point << "\n" << u_surface_point << std::endl;
+  u_surface_point = surface_point.normalized();
   if((u_north_pole - u_surface_point).norm() < eps) {
     ui = u_north_pole;
     ei << 1, 0, 0;
