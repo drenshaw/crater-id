@@ -266,17 +266,17 @@ std::array<double, IMPLICIT_PARAM> Conic::Geom2Implicit() const {
   return coeff;
 }
 
-bool Conic::ConicIntersectionLines(const Eigen::Matrix3d& Aj, 
+bool Conic::conicIntersectionLines(const Eigen::Matrix3d& Aj, 
                                    std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) const {
   Eigen::Matrix3d Ai = GetLocus();
-  return invariants::IntersectionLines(Ai, Aj, gh);
+  return invariants::intersectionLines(Ai, Aj, gh);
 }
 
-bool Conic::ConicIntersectionLines(const Conic& conicB, 
+bool Conic::conicIntersectionLines(const Conic& conicB, 
                                    std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) const {
   Eigen::Matrix3d Ai = GetLocus();
   Eigen::Matrix3d Aj = conicB.GetLocus();
-  return invariants::IntersectionLines(Ai, Aj, gh);
+  return invariants::intersectionLines(Ai, Aj, gh);
 }
 
 double Conic::GetCenterX() const {
@@ -342,13 +342,13 @@ double Conic::GetAngle() const {
   return angle_;
 }
 
-bool Conic::ChooseConicIntersection(const Conic& other, Eigen::Vector3d& l) const {
+bool Conic::chooseConicIntersection(const Conic& other, Eigen::Vector3d& l) const {
   std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
-  if(!invariants::IntersectionLines(GetLocus(), other.GetLocus(), gh)) {
+  if(!invariants::intersectionLines(GetLocus(), other.GetLocus(), gh)) {
     std::cerr<<"IntersectionLines error ij\n";
     return false;
   }
-  if(!invariants::ChooseIntersection(gh, GetCenter(), other.GetCenter(), l)) {
+  if(!invariants::chooseIntersection(gh, GetCenter(), other.GetCenter(), l)) {
     std::cerr<<"ChooseIntersection error jk\n";
     return false;
   }
@@ -386,7 +386,7 @@ Eigen::Matrix3d getENUFrame(const Eigen::Vector3d& surface_point) {
   Eigen::Vector3d u_north_pole(3), u_surface_point(3), ui, ei, ni;
   Eigen::Matrix3d enu_frame(3, 3);
   double eps = 1e-6;
-  u_north_pole = GetNorthPoleUnitVector();
+  u_north_pole = getNorthPoleUnitVector();
   normalizeVector(surface_point, u_surface_point);
   // std::cout << "ENU: \n" << surface_point << "\n" << u_surface_point << std::endl;
   if((u_north_pole - u_surface_point).norm() < eps) {
@@ -410,7 +410,7 @@ Eigen::Matrix3d getENUFrame(const Eigen::Vector3d& surface_point) {
 
 Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d& position, const Eigen::Matrix3d& T_e2m) {
   Eigen::Matrix3d h_m(3,3);
-  Eigen::Vector3d u_north_pole = GetNorthPoleUnitVector();
+  Eigen::Vector3d u_north_pole = getNorthPoleUnitVector();
   // form transformation matrix
   // eq. 34 from Christian, Derksen, Watkins [2020]
   h_m << T_e2m.col(0), T_e2m.col(1), position;
@@ -453,6 +453,31 @@ void eulerToQuaternion(const double roll,
 /***********************INVARIANTS************************/
 /*********************************************************/
 namespace invariants {
+Eigen::Matrix3d stackVectorsInto3x3Matrix(const Eigen::Vector3d& A, 
+                                          const Eigen::Vector3d& B, 
+                                          const Eigen::Vector3d& C) {
+  Eigen::Matrix3d out_matrix;
+  out_matrix.col(0) = A;
+  out_matrix.col(1) = B;
+  out_matrix.col(2) = C;
+  return out_matrix;
+}
+
+double crossRatio(const Eigen::Vector3d& ref, 
+                  const Eigen::Vector3d& A, 
+                  const Eigen::Vector3d& B, 
+                  const Eigen::Vector3d& C, 
+                  const Eigen::Vector3d& D) {
+  double numerator1, numerator2, denominator1, denominator2;
+  numerator1 = stackVectorsInto3x3Matrix(A, B, ref).determinant();
+  numerator2 = stackVectorsInto3x3Matrix(C, D, ref).determinant();
+  denominator1 = stackVectorsInto3x3Matrix(A, C, ref).determinant();
+  denominator2 = stackVectorsInto3x3Matrix(B, D, ref).determinant();
+  assert(std::abs(denominator1)>1e-10);
+  assert(std::abs(denominator2)>1e-10);
+  double xratio = numerator1*numerator2/(denominator1*denominator2);
+  return xratio;
+}
 
 bool IntersectConics(const Eigen::Matrix3d& Ai, 
                      const Eigen::Matrix3d& Aj, 
@@ -506,7 +531,7 @@ bool IntersectConics(const Eigen::Matrix3d& Ai,
   return true;
 }
 
-bool IntersectionLines( const Eigen::Matrix3d& Ai, 
+bool intersectionLines( const Eigen::Matrix3d& Ai, 
                         const Eigen::Matrix3d& Aj,
                         std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) {
   // eq 77
@@ -526,7 +551,7 @@ bool IntersectionLines( const Eigen::Matrix3d& Ai,
   return false;
 }
 
-bool ChooseIntersection(const std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh, 
+bool chooseIntersection(const std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh, 
                         const Eigen::Vector2d& centerA, 
                         const Eigen::Vector2d& centerB,
                         Eigen::Vector3d& l) {
@@ -600,15 +625,15 @@ bool computeCraterTriadInvariants(const Conic& A, const Conic& B, const Conic& C
   centerB = B.GetCenter();
   centerC = C.GetCenter();
 
-  if(!A.ChooseConicIntersection(B, lij)) {
+  if(!A.chooseConicIntersection(B, lij)) {
     std::cerr<<"IntersectionLines error ij\n";
     return false;
   }
-  if(!B.ChooseConicIntersection(C, ljk)) {
+  if(!B.chooseConicIntersection(C, ljk)) {
     std::cerr<<"IntersectionLines error jk\n";
     return false;
   }
-  if(!C.ChooseConicIntersection(A, lki)) {
+  if(!C.chooseConicIntersection(A, lki)) {
     std::cerr<<"IntersectionLines error ki\n";
     return false;
   }

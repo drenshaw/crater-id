@@ -51,7 +51,7 @@ Eigen::Vector3d normalizeVector(const Eigen::Vector3d&);
 template <typename T>
 T vectorNorm(const Eigen::Vector3d&);
 void GetNorthPoleUnitVector(Eigen::Vector3d&);
-Eigen::Vector3d GetNorthPoleUnitVector();
+Eigen::Vector3d getNorthPoleUnitVector();
 
 /**** Template definitions ****/
 

@@ -169,10 +169,10 @@ Eigen::Vector3d normalizeVector(const Eigen::Vector3d& inVec) {
   return inVec / inVec.norm();
 }
 
-Eigen::Vector3d GetNorthPoleUnitVector() {
+Eigen::Vector3d getNorthPoleUnitVector() {
   return Eigen::Vector3d::UnitZ();
 }
 
 void GetNorthPoleUnitVector(Eigen::Vector3d& north_pole) {
-  north_pole = GetNorthPoleUnitVector();
+  north_pole = getNorthPoleUnitVector();
 }

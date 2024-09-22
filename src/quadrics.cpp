@@ -80,7 +80,7 @@ double calculateCraterRimFromRadius(const double radius) {
 
 std::tuple<Eigen::Vector4d, Eigen::Vector3d> SurfacePointToPlane(const Eigen::Matrix3d& T_e2m, 
                                                                  const Eigen::Vector3d& surface_point) {
-    Eigen::Vector3d u_north_pole = GetNorthPoleUnitVector();
+    Eigen::Vector3d u_north_pole = getNorthPoleUnitVector();
     Eigen::Vector3d plane_normal = T_e2m * u_north_pole;
     double rho = surface_point.dot(plane_normal);
     Eigen::Vector4d plane;

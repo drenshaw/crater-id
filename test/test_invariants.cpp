@@ -66,22 +66,22 @@ TEST(InvariantTest, InvariantTriad) {
   Conic conicD(132.956, 210.487, 1849.7, 0901.0, rad2deg(2.042));
 
   Eigen::Vector3d lij, lik, lil, ljk, ljl, lkl;
-  if(!conicA.ChooseConicIntersection(conicB, lij)) {
+  if(!conicA.chooseConicIntersection(conicB, lij)) {
     std::cerr<<"IntersectionLines error ij\n";
   }
-  if(!conicA.ChooseConicIntersection(conicC, lik)) {
+  if(!conicA.chooseConicIntersection(conicC, lik)) {
     std::cerr<<"IntersectionLines error jk\n";
   }
-  if(!conicA.ChooseConicIntersection(conicD, lil)) {
+  if(!conicA.chooseConicIntersection(conicD, lil)) {
     std::cerr<<"IntersectionLines error ki\n";
   }
-  if(!conicB.ChooseConicIntersection(conicC, ljk)) {
+  if(!conicB.chooseConicIntersection(conicC, ljk)) {
     std::cerr<<"IntersectionLines error ki\n";
   }
-  if(!conicB.ChooseConicIntersection(conicD, ljl)) {
+  if(!conicB.chooseConicIntersection(conicD, ljl)) {
     std::cerr<<"IntersectionLines error ki\n";
   }
-  if(!conicC.ChooseConicIntersection(conicD, lkl)) {
+  if(!conicC.chooseConicIntersection(conicD, lkl)) {
     std::cerr<<"IntersectionLines error ki\n";
   }
   // Invariants
@@ -184,7 +184,7 @@ TEST(ConicTest, ConicIntersection) {
   // Eigen::Vector3d h; h.fill(0);
   std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
   Eigen::Vector3d g_line, h_line;
-  bool success = conicA.ConicIntersectionLines(conicB, gh);
+  bool success = conicA.conicIntersectionLines(conicB, gh);
 
   std::tie(g_line, h_line) = gh;
 
@@ -217,7 +217,7 @@ TEST(ConicTest, CheckMatlab) {
   std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
   Eigen::Vector3d g_line, h_line;
 
-  bool success = conicA.ConicIntersectionLines(conicB, gh);
+  bool success = conicA.conicIntersectionLines(conicB, gh);
   std::tie(g_line, h_line) = gh;
   // std::cout << "G line:\n" << g_line/g_line[1] << std::endl;
   // std::cout << "H line:\n" << h_line/h_line[1] << std::endl;
@@ -234,7 +234,7 @@ TEST(ConicTest, ChooseCorrectIntersection) {
 
   Eigen::Vector3d g, h;
   std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
-  bool success = conicA.ConicIntersectionLines(conicB, gh);
+  bool success = conicA.conicIntersectionLines(conicB, gh);
   EXPECT_TRUE(success);
   std::tie(g, h) = gh;
   // convert centers to homogeneous coordinates
@@ -269,7 +269,7 @@ TEST(ConicTest, ChooseCorrectIntersection) {
   EXPECT_TRUE(valid_intersection);
 
   Eigen::Vector3d l;
-  bool match_success = invariants::ChooseIntersection(gh, centerA, centerB, l);
+  bool match_success = invariants::chooseIntersection(gh, centerA, centerB, l);
   EXPECT_TRUE(match_success);
   EXPECT_EQ(l_check, l);
 
@@ -285,5 +285,28 @@ TEST(ConicTest, ChooseCorrectIntersection) {
   // Showing image inside a window 
   cv::imshow("Choose Intersection", image); 
   // cv::waitKey(0); 
+}
+
+TEST(InvariantTest, CrossRatio) {
+  Eigen::Vector3d ref_circle1, ref_circle2, ref_circle3, A, B, C, D;
+  double sqrt_2_2 = std::sqrt(2.)/2.;
+  double sqrt_3_2 = std::sqrt(3.)/2.;
+  A <<  1,  0, 1;
+  B <<  0,  1, 1;
+  C << -1,  0, 1;
+  D <<  0, -1, 1;
+  ref_circle1 << sqrt_2_2, sqrt_2_2, 1.;
+  ref_circle2 << sqrt_3_2, 0.5, 1.;
+  ref_circle3 << -0.5, -sqrt_3_2, 1.0;
+  double xratio_value = 0.5;
+  double xratio1 = invariants::crossRatio(ref_circle1, A, B, C, D);
+  double xratio2 = invariants::crossRatio(ref_circle2, A, B, C, D);
+  double xratio3 = invariants::crossRatio(ref_circle3, A, B, C, D);
+  ASSERT_FALSE(std::isnan(xratio1));
+  ASSERT_FALSE(std::isnan(xratio2));
+  ASSERT_FALSE(std::isnan(xratio3));
+  ASSERT_DOUBLE_EQ(xratio_value, xratio1);
+  ASSERT_DOUBLE_EQ(xratio_value, xratio2);
+  ASSERT_DOUBLE_EQ(xratio_value, xratio3);
 }
 

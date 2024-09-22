@@ -74,11 +74,11 @@ class Conic {
     Eigen::Matrix3d Implicit2Locus() const ;
     std::array<double, GEOMETRIC_PARAM> Locus2Geom(const Eigen::Matrix3d&) const ;
     std::array<double, IMPLICIT_PARAM> Geom2Implicit() const ;
-    bool ConicIntersectionLines(const Eigen::Matrix3d&, 
+    bool conicIntersectionLines(const Eigen::Matrix3d&, 
                                 std::tuple<Eigen::Vector3d, Eigen::Vector3d>&) const ;
-    bool ConicIntersectionLines(const Conic&,
+    bool conicIntersectionLines(const Conic&,
                                 std::tuple<Eigen::Vector3d, Eigen::Vector3d>&) const ;
-    bool ChooseConicIntersection(const Conic& other, Eigen::Vector3d&) const ;
+    bool chooseConicIntersection(const Conic& other, Eigen::Vector3d&) const ;
     
   protected:
     static int next_id;
@@ -121,6 +121,8 @@ void eulerToQuaternion(const double roll,
 void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM>& arr);
 void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec);
 bool vectorContainsNaN(const Eigen::Vector3d& eV);
+
+/* Templates */
 template <typename T, size_t SIZE>
 bool vectorContainsNaN(const std::array<T, SIZE>& vec) {
   return std::any_of(vec.begin(), vec.end(), [](T i){return std::isnan(i);});
@@ -130,10 +132,18 @@ bool vectorContainsNaN(const std::array<T, SIZE>& vec) {
 /***********************INVARIANTS************************/
 /*********************************************************/
 namespace invariants {
-bool IntersectionLines(const Eigen::Matrix3d&, 
+Eigen::Matrix3d stackVectorsInto3x3Matrix(const Eigen::Vector3d& A, 
+                                          const Eigen::Vector3d& B, 
+                                          const Eigen::Vector3d& C);
+double crossRatio(const Eigen::Vector3d& ref, 
+                  const Eigen::Vector3d& A, 
+                  const Eigen::Vector3d& B, 
+                  const Eigen::Vector3d& C, 
+                  const Eigen::Vector3d& D);
+bool intersectionLines(const Eigen::Matrix3d&, 
                        const Eigen::Matrix3d&,
                        std::tuple<Eigen::Vector3d, Eigen::Vector3d>&);
-bool ChooseIntersection(const std::tuple<Eigen::Vector3d, 
+bool chooseIntersection(const std::tuple<Eigen::Vector3d, 
                         Eigen::Vector3d>&, 
                         const Eigen::Vector2d&, 
                         const Eigen::Vector2d&, 
