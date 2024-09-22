@@ -17,10 +17,7 @@ class Quadric {
     Eigen::Matrix4d GetLocus();
 
   private:
-    Eigen::Matrix4d GenerateQuadricLocus();
-    void MakeQuadric(const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal, const std::string id);
-    void MakeQuadric(const Eigen::Vector3d& position, const double radius, const std::string id);
-    void MakeQuadric(const double lat, const double lon, const double radius, const std::string id);
+    Eigen::Matrix4d GenerateQuadricLocus();    
     void LoadQuadric(const Eigen::Matrix3d& conic_locus);
     // All positions or directions are given in the Moon-centered frame
     // aka, the 'selenographic' frame

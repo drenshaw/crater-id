@@ -14,14 +14,15 @@ TEST_CASE( "Factorial of 0 is 1 (fail)", "[single-file]" ) {
 */
 
 class QuadricTest : public testing::Test {
-  protected:
-    QuadricTest() {
-      // std::array<double, 5> arr = {10.0, 7.0, 300.0, 50.0, 0.0};
-      // Conic conic_arr(arr);
-      // c_arr.SetGeometricParameters(arr);
-    }
-  public:
-      // // ~QueueTest() override = default;
+protected:
+  QuadricTest() {
+    // std::array<double, 5> arr = {10.0, 7.0, 300.0, 50.0, 0.0};
+    // Conic conic_arr(arr);
+    // c_arr.SetGeometricParameters(arr);
+  }
+
+public:
+  // // ~QueueTest() override = default;
   // Queue<int> q0_;
   // Queue<int> q1_;
   // Queue<int> q2_;
