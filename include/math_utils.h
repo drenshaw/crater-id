@@ -12,6 +12,12 @@
 // #include <boost/log/trivial.hpp>
 // #include "crater-id.h"
 
+#define GEOMETRIC_PARAM 5
+#define IMPLICIT_PARAM 6
+#define CONIC_DIM 3
+#define NONCOPLANAR_INVARIANTS 3
+#define    COPLANAR_INVARIANTS 7
+
 const double EPS = (10 * std::numeric_limits<double>::epsilon());
 
 double getCofactor(const Eigen::MatrixXd& matrix, int p, int q);
@@ -47,11 +53,33 @@ bool normalizeDeterminant(Eigen::MatrixXd& mtx);
 Eigen::Matrix3d crossMatrix(const Eigen::Vector3d&);
 template <typename T>
 T vectorNorm(const Eigen::Vector3d&);
-void GetNorthPoleUnitVector(Eigen::Vector3d&);
+Eigen::Matrix3d getENUFrame(const Eigen::Vector3d&);
+Eigen::Matrix3d getENUFrame(const double, const double);
 Eigen::Vector3d getNorthPoleUnitVector();
+void GetNorthPoleUnitVector(Eigen::Vector3d&);
+Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, 
+                                       const Eigen::Vector3d& desired_location);
+Eigen::Quaterniond eulerToQuaternion(const double roll, const double pitch, const double yaw);
+void eulerToDCM(const double roll,
+                const double pitch,
+                const double yaw,
+                Eigen::Matrix3d& dcm);    
+
+bool vectorContainsNaN(const Eigen::Vector3d& eV);
+void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM>& arr);
+void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec);
+
 
 /**** Template definitions ****/
 
+template <typename T, size_t SIZE>
+bool vectorContainsNaN(const std::array<T, SIZE>& vec) {
+  return std::any_of(vec.begin(), vec.end(), [](T i){return std::isnan(i);});
+}
+template <typename T, size_t SIZE>
+bool vectorContainsNaN(const std::vector<T>& vec) {
+  return std::any_of(vec.begin(), vec.end(), [](T i){return std::isnan(i);});
+}
 template <typename T, typename A>
 int arg_max(std::vector<T, A> const& vec) {
   return static_cast<int>(

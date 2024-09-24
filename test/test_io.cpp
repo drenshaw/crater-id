@@ -4,7 +4,7 @@
 #include <array>
 
 #include "io.h"
-#include "vector_math.h"
+#include "math_utils.h"
 
 template <typename T>
 void stringifyVectorOfVectors(const std::vector<std::vector<T>> vec) {

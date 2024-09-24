@@ -3,7 +3,7 @@ install_headers(
   'io.h', 
   'crater-id.h', 
   'combinatorics.h',
-  'vector_math.h', 
+  'math_utils.h', 
   'conics.h',
   'quadrics.h',
   'visuals.h',

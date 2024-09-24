@@ -6,7 +6,7 @@
 #include <eigen3/Eigen/Dense>
 
 #include "conics.h"
-#include "vector_math.h"
+#include "math_utils.h"
 
 int Conic::next_id = 0;
 
@@ -61,6 +61,17 @@ bool Conic::operator!=(const Conic& other_conic) const {
           !almost_equal(x_center_, other_conic.x_center_) ||
           !almost_equal(y_center_, other_conic.y_center_) ||
           !almost_equal(angle_, other_conic.angle_);
+}
+
+std::ostream& operator<<(std::ostream& os, const Conic& conic) {
+    return os 
+        << "Conic-> \tID: '" << conic.id_ << "'"
+        << "\n\tSemi axes: " 
+        << conic.semimajor_axis_ << " | "
+        << conic.semiminor_axis_
+        << "\n\tCenter: (" << conic.x_center_ << " , "
+        << conic.y_center_ << ") "
+        << "\n\tAngle (deg): " << rad2deg(conic.angle_) << " ";
 }
 
 void Conic::SetGeometricParameters(const std::array<double, GEOMETRIC_PARAM>& geom_vec) {
@@ -356,97 +367,20 @@ bool Conic::chooseConicIntersection(const Conic& other, Eigen::Vector3d& l) cons
   return true;
 }
 
-std::ostream& operator<<(std::ostream& os, const Conic& conic) {
-    return os 
-        << "Conic-> \tID: '" << conic.id_ << "'"
-        << "\n\tSemi axes: " 
-        << conic.semimajor_axis_ << " | "
-        << conic.semiminor_axis_
-        << "\n\tCenter: (" << conic.x_center_ << " , "
-        << conic.y_center_ << ") "
-        << "\n\tAngle (deg): " << rad2deg(conic.angle_) << " ";
-}
+// void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM>& arr) {
+//   Eigen::Vector3d::Map(&arr[0], eig.size()) = eig;
+// }
 
-void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM>& arr) {
-  Eigen::Vector3d::Map(&arr[0], eig.size()) = eig;
-}
+// void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec) {
+//   Eigen::Vector3d::Map(&vec[0], eig.size()) = eig;
+// }
 
-void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec) {
-  Eigen::Vector3d::Map(&vec[0], eig.size()) = eig;
-}
-
-// Templated version of vectorContainsNaN in header
-bool vectorContainsNaN(const Eigen::Vector3d& eV) {
-  std::array<double, CONIC_DIM> vec;
-  convertEigenVectorToVector(eV, vec);
-  return vectorContainsNaN(vec);
-}
-
-Eigen::Matrix3d getENUFrame(const Eigen::Vector3d& surface_point) {
-  Eigen::Vector3d u_north_pole(3), u_surface_point(3), ui, ei, ni;
-  Eigen::Matrix3d enu_frame(3, 3);
-  double eps = 1e-6;
-  u_north_pole = getNorthPoleUnitVector();
-  u_surface_point = surface_point.normalized();
-  if((u_north_pole - u_surface_point).norm() < eps) {
-    ui = u_north_pole;
-    ei << 1, 0, 0;
-    ni << 0, 1, 0;
-  }
-  else if((-u_north_pole - u_surface_point).norm() < eps) {
-    ui = -u_north_pole;
-    ei << -1, 0, 0;
-    ni << 0, -1, 0;
-  }
-  else {
-    ui = u_surface_point;
-    ei = u_north_pole.cross(ui);
-    ni = ui.cross(ei);
-  }
-  enu_frame << ei, ni, ui;
-  return enu_frame;
-}
-
-Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d& position, const Eigen::Matrix3d& T_e2m) {
-  Eigen::Matrix3d h_m(3,3);
-  Eigen::Vector3d u_north_pole = getNorthPoleUnitVector();
-  // form transformation matrix
-  // eq. 34 from Christian, Derksen, Watkins [2020]
-  h_m << T_e2m.col(0), T_e2m.col(1), position;
-  // express matrix in homogeneous form (eq. 40)
-  Eigen::MatrixXd h_k(4,3);
-  h_k << h_m.row(0), h_m.row(1), h_m.row(2), u_north_pole.transpose();
-  return h_k;
-}
-
-Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, const Eigen::Vector3d& desired_location) {
-  Eigen::Matrix3d T_m2c = getENUFrame(desired_location - camera_position);
-  Eigen::Matrix3d z_rot;
-  eulerToQuaternion(0., 0., M_PI, z_rot);
-  return z_rot * T_m2c.transpose();
-}
-
-Eigen::Quaterniond eulerToQuaternion(const double roll,
-                                     const double pitch,
-                                     const double yaw) {
-  Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitX());
-  Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitY());
-  Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
-
-  Eigen::Quaterniond q = yawAngle * pitchAngle * rollAngle;
-  return q;
-}
-
-void eulerToQuaternion(const double roll,
-                       const double pitch,
-                       const double yaw,
-                       Eigen::Matrix3d& dcm) {
-  Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitX());
-  Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitY());
-  Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
-
-  dcm = yawAngle * pitchAngle * rollAngle;
-}
+// // Templated version of vectorContainsNaN in header
+// bool vectorContainsNaN(const Eigen::Vector3d& eV) {
+//   std::vector<double> vec;
+//   convertEigenVectorToVector(eV, vec);
+//   return vectorContainsNaN(vec);
+// }
 
 /*********************************************************/
 /***********************INVARIANTS************************/
@@ -489,7 +423,7 @@ bool IntersectConics(const Eigen::Matrix3d& Ai,
   Bij_star = getAdjugateMatrix(Bij);
 
   bkk_eig = Bij_star.diagonal();
-  std::array<double, CONIC_DIM> bkk;
+  std::vector<double> bkk;
   convertEigenVectorToVector(bkk_eig, bkk);
   // eq 86: all diagonal entries of Bij_star are negative
   if ( std::any_of(bkk.begin(), bkk.end(), [&eps](double i){return i>eps;}) ) {
@@ -497,9 +431,6 @@ bool IntersectConics(const Eigen::Matrix3d& Ai,
       return false;
   }
   int min_idx = arg_min(bkk);
-  // int min_idx = std::min_element(bkk.begin(), bkk.end()) - bkk.begin();
-  // int min_idx = std::distance(bkk.begin(), std::min_element(bkk.begin(), bkk.end()));
-  // int min_elem = std::min_element(bkk.begin(), bkk.end());
 
   // eq 87
   Eigen::Vector3d z = -Bij_star.row(min_idx)/sqrt(-bkk.at(min_idx));
@@ -515,14 +446,12 @@ bool IntersectConics(const Eigen::Matrix3d& Ai,
   Eigen::Vector3d g = D.col(maxCol);
   Eigen::Vector3d h = D.row(maxRow);
   
-  std::array<double, CONIC_DIM> gVec, hVec;
-  convertEigenVectorToVector(g, gVec);
-  convertEigenVectorToVector(h, hVec);
-  if ( vectorContainsNaN(gVec) ) {
+  std::vector<double> gVec, hVec;
+  if ( vectorContainsNaN(g) ) {
       std::cout << "g vector contains NaN's: " << g << std::endl;
       return false;
   }
-  if ( vectorContainsNaN(hVec) ) {
+  if ( vectorContainsNaN(h) ) {
       std::cout << "h vector contains NaN's: " << h << std::endl;
       return false;
   }

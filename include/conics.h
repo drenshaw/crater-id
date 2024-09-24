@@ -9,13 +9,7 @@
 // #include <eigen3/Eigen/Dense>
 #include <opencv2/core/core.hpp>
 
-#include "vector_math.h"
-
-#define GEOMETRIC_PARAM 5
-#define IMPLICIT_PARAM 6
-#define CONIC_DIM 3
-#define NONCOPLANAR_INVARIANTS 3
-#define    COPLANAR_INVARIANTS 7
+#include "math_utils.h"
 
 template <typename T>
 bool almost_equal(const T a, const T b) {
@@ -106,32 +100,14 @@ class ConicGeometry {
 class ConicMatrix {
   ConicMatrix();
 }; 
-Eigen::Matrix3d getENUFrame(const Eigen::Vector3d&);
-void GenerateQuadricFromRadiusNormal();
-Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d&, 
-                                                    const Eigen::Matrix3d& T_e2m);
-Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, 
-                                       const Eigen::Vector3d& desired_location);
-Eigen::Quaterniond eulerToQuaternion(const double roll, const double pitch, const double yaw);
-void eulerToQuaternion(const double roll,
-                       const double pitch,
-                       const double yaw,
-                       Eigen::Matrix3d& dcm);    
-
-void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM>& arr);
-void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec);
-bool vectorContainsNaN(const Eigen::Vector3d& eV);
-
-/* Templates */
-template <typename T, size_t SIZE>
-bool vectorContainsNaN(const std::array<T, SIZE>& vec) {
-  return std::any_of(vec.begin(), vec.end(), [](T i){return std::isnan(i);});
-}
+// void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM>& arr);
+// void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec);
 
 /*********************************************************/
 /***********************INVARIANTS************************/
 /*********************************************************/
 namespace invariants {
+// TODO: This function probably doesn't need to be public
 Eigen::Matrix3d stackVectorsInto3x3Matrix(const Eigen::Vector3d& A, 
                                           const Eigen::Vector3d& B, 
                                           const Eigen::Vector3d& C);

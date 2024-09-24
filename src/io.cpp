@@ -81,7 +81,8 @@ std::string stringify_lat(const double lat) {
   n_or_s = (lat > 0)?"N":"S";
   abs_lat = std::abs(lat);
   std::ostringstream outStream;
-  outStream << std::fixed << std::setw(6) << std::fixed << std::setprecision(2) << abs_lat << "°" << n_or_s;
+  outStream << std::fixed << std::setw(6) << std::setprecision(2) 
+            << abs_lat << "°" << n_or_s;
   std::string out_str = outStream.str();
   return out_str;
 }
@@ -98,7 +99,8 @@ std::string stringify_lon(const double lon) {
   std::string e_or_w;
   e_or_w = (re_lon < 0)?"W":"E";
   std::ostringstream outStream;
-  outStream << std::fixed << std::setw(6) << std::fixed << std::setprecision(2) << abs_lon << "°" << e_or_w;
+  outStream << std::fixed << std::setw(6) << std::setprecision(2) 
+            << abs_lon << "°" << e_or_w;
   std::string out_str = outStream.str();
   return out_str;
 }

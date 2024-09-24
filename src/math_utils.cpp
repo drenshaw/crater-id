@@ -1,7 +1,8 @@
 
+#include "math_utils.h"
 #include <iostream>
 #include <math.h>
-#include "vector_math.h"
+#include <vector>
 
 // template <typename T>
 // void operator /(Eigen::Vector3d& vec, T divisor) {
@@ -162,4 +163,109 @@ Eigen::Vector3d getNorthPoleUnitVector() {
 
 void GetNorthPoleUnitVector(Eigen::Vector3d& north_pole) {
   north_pole = getNorthPoleUnitVector();
+}
+
+Eigen::Matrix3d getENUFrame(const Eigen::Vector3d& surface_point) {
+  Eigen::Vector3d u_north_pole(3), u_surface_point(3), ui(3), ei(3), ni(3);
+  Eigen::Matrix3d enu_frame(3, 3);
+  // double eps = 1e-6;
+  u_north_pole = getNorthPoleUnitVector();
+  u_surface_point = surface_point.normalized();
+  // TODO: should latitudes near the pole be errors?
+  // TODO: we could also replace acos() call with dot product minus 1 is approx zero
+  if(acos(u_north_pole.dot(u_surface_point))<EPS) {
+    // std::cerr << "Surface point is near the North Pole.\n";
+    ei << 1, 0, 0;
+    ni << 0, 1, 0;
+    ui = u_north_pole;
+    throw std::runtime_error("Surface point is near the North Pole.");
+  }  
+  // TODO: we could also replace acos() call with dot product minus 1 is approx zero OR
+  // alternatively, u_north_pole.dot(u_surface_point) + 1 is approx zero
+  else if(acos(-u_north_pole.dot(u_surface_point))<EPS) {
+    // std::cerr << "Surface point is near the South Pole.\n";
+    ei << -1, 0, 0;
+    ni << 0, -1, 0;
+    ui = -u_north_pole;
+    throw std::runtime_error("Surface point is near the South Pole.");
+  }
+  else {
+    ui = u_surface_point;
+    ei = u_north_pole.cross(ui);
+    ni = ui.cross(ei);
+  }
+  enu_frame << ei.normalized(), ni.normalized(), ui.normalized();
+  return enu_frame;
+}
+
+Eigen::Matrix3d getENUFrame(const double lat, const double lon) {
+  Eigen::Vector3d u_north_pole(3), ui(3), ei(3), ni(3);
+  Eigen::Matrix3d enu_frame(3, 3);
+  u_north_pole = getNorthPoleUnitVector();
+  // TODO: should latitudes near the pole be errors?
+  if(std::abs(lat-90) <EPS) {
+    // std::cerr << "Surface point is near the North Pole.\n";
+    ei << 1, 0, 0;
+    ni << 0, 1, 0;
+    ui = u_north_pole;
+    throw std::runtime_error("Surface point is near the North Pole.");
+  }
+  else if(std::abs(lat+90) <EPS) {
+    // std::cerr << "Surface point is near the South Pole.\n";
+    ei << -1, 0, 0;
+    ni << 0, -1, 0;
+    ui = -u_north_pole;
+    throw std::runtime_error("Surface point is near the South Pole.");
+  }
+  else {
+    ui = latlon2bearing(lat, lon);
+    ei = u_north_pole.cross(ui);
+    ni = ui.cross(ei);
+  }
+  enu_frame << ei.normalized(), ni.normalized(), ui.normalized();
+  return enu_frame;
+}
+
+Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, const Eigen::Vector3d& desired_location) {
+  Eigen::Matrix3d T_m2c = getENUFrame(desired_location - camera_position);
+  Eigen::Matrix3d z_rot;
+  eulerToDCM(0., 0., M_PI, z_rot);
+  return z_rot * T_m2c.transpose();
+}
+
+Eigen::Quaterniond eulerToQuaternion(const double roll,
+                                     const double pitch,
+                                     const double yaw) {
+  Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitX());
+  Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
+
+  Eigen::Quaterniond q = yawAngle * pitchAngle * rollAngle;
+  return q;
+}
+
+void eulerToDCM(const double roll,
+                const double pitch,
+                const double yaw,
+                Eigen::Matrix3d& dcm) {
+  Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitX());
+  Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
+
+  dcm = yawAngle * pitchAngle * rollAngle;
+}
+
+void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM>& vec) {
+  Eigen::Vector3d::Map(&vec[0], eig.size()) = eig;
+}
+
+void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec) {
+  Eigen::Vector3d::Map(&vec[0], eig.size()) = eig;
+}
+
+// Templated version of vectorContainsNaN in header
+bool vectorContainsNaN(const Eigen::Vector3d& eV) {
+  std::array<double, CONIC_DIM> vec;
+  convertEigenVectorToVector(eV, vec);
+  return vectorContainsNaN(vec);
 }

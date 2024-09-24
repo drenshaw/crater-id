@@ -10,7 +10,7 @@
 
 #include "conics.h"
 #include "io.h"
-#include "vector_math.h"
+#include "math_utils.h"
 #include "visuals.h"
 /* // CATCH2 Testing Framework
 #include <catch2/catch_test_macros.hpp>
@@ -181,7 +181,6 @@ TEST(ConicTest, ConvertEigenVectorToVector) {
   EXPECT_EQ(vec[1], evec(1));
   EXPECT_EQ(vec[2], evec(2));
   EXPECT_EQ(vec[2], 3);
-  // ASSERT_TRUE(success);
 }
 
 TEST(VisualTest, SlopeInterceptInvalid) {
@@ -214,4 +213,5 @@ TEST(VisualTest, SlopeInterceptInfSlope) {
   ASSERT_TRUE(std::isinf(slope));
   ASSERT_DOUBLE_EQ(intercept, -C);
 }
+
 

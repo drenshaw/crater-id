@@ -2,7 +2,7 @@
 // #include <vector>
 #include <opencv2/viz/types.hpp>
 
-// #include "vector_math.h"
+// #include "math_utils.h"
 #include "camera.h"
 
 cv::viz::Camera camera(1000, 1000, 1296.5, 1024.5, cv::Size(2048,1920));

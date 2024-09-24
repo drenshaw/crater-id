@@ -8,7 +8,7 @@
 // #include <unordered_set>
 
 #include "io.h"
-#include "vector_math.h"
+#include "math_utils.h"
 double epsilon = 1e-15;
 
 // template <typename T>
@@ -37,15 +37,12 @@ TEST(MathTest, deg2rad) {
 }
 
 TEST(MathTest, NorthPole) {
-  Eigen::Vector3d np = GetNorthPoleUnitVector();
-  ASSERT_EQ(np(0), 0.);
-  ASSERT_EQ(np(1), 0.);
-  ASSERT_EQ(np(2), 1.);
+  Eigen::Vector3d unitZ = Eigen::Vector3d::UnitZ();
+  Eigen::Vector3d np = getNorthPoleUnitVector();
+  ASSERT_TRUE(np.isApprox(unitZ));
   Eigen::Vector3d np2;
   GetNorthPoleUnitVector(np2);
-  ASSERT_EQ(np2(0), 0.);
-  ASSERT_EQ(np2(1), 0.);
-  ASSERT_EQ(np2(2), 1.);
+  ASSERT_TRUE(np2.isApprox(unitZ));
 }
 
 TEST(MathTest, EigenMultScalar) {
@@ -327,5 +324,84 @@ TEST(MathTest, UndefinedCheck) {
   //     throw;
   //   }
   // );
+}
+
+void findMismatchedValue(const Eigen::Matrix3d& mtx, const Eigen::Matrix3d& mtx_check) {
+  if(!mtx.isApprox(mtx_check)) {
+    EXPECT_DOUBLE_EQ(mtx(0,0), mtx_check(0,0));
+    EXPECT_DOUBLE_EQ(mtx(0,1), mtx_check(0,1));
+    EXPECT_DOUBLE_EQ(mtx(0,2), mtx_check(0,2));
+    EXPECT_DOUBLE_EQ(mtx(1,0), mtx_check(1,0));
+    EXPECT_DOUBLE_EQ(mtx(1,1), mtx_check(1,1));
+    EXPECT_DOUBLE_EQ(mtx(1,2), mtx_check(1,2));
+    EXPECT_DOUBLE_EQ(mtx(2,0), mtx_check(2,0));
+    EXPECT_DOUBLE_EQ(mtx(2,1), mtx_check(2,1));
+    EXPECT_DOUBLE_EQ(mtx(2,2), mtx_check(2,2));
+  }
+}
+
+TEST(MathTest, GetENUFrameLatOnly) {
+  double lat = 30, lon = 0;
+  Eigen::Matrix3d enu = getENUFrame(lat, lon);
+  Eigen::Matrix3d enu_check(3,3);
+  // For clarity: we use a passive transformation, not an active rotation
+  //   local x col vector is component in the Y-direction
+  //   local y col vector is component in the Z-direction
+  //   local z col vector is component in the X-direction
+  double sqrt_3_2 = std::sqrt(3)/2;
+  enu_check <<  0.0,                 -0.5,                  sqrt_3_2,
+                1.0,                  0.0,                  0.0,
+                0.0,                  sqrt_3_2,             0.5;
+  ASSERT_TRUE(enu.isApprox(enu_check));
+}
+
+TEST(MathTest, GetENUFrame) {
+  double lat = 15, lon = 30;
+  Eigen::Matrix3d enu = getENUFrame(lat, lon);
+  Eigen::Matrix3d enu_check(3,3);
+  // For clarity: we use a passive transformation, not an active rotation
+  //   local x col vector is component in the Y-direction
+  //   local y col vector is component in the Z-direction
+  //   local z col vector is component in the X-direction
+  enu_check << -0.5,                 -0.22414386804201336, 0.83651630373780794,
+                0.86602540378443871, -0.12940952255126034, 0.48296291314453410,
+                0.00000000000000000,  0.96592582628906820, 0.25881904510252074;
+  findMismatchedValue(enu, enu_check);
+  ASSERT_TRUE(enu.isApprox(enu_check));
+}
+
+TEST(MathTest, GetENUFrameXAxis) {
+  double lat = 0, lon = 0;
+  Eigen::Matrix3d enu = getENUFrame(lat, lon);
+  Eigen::Matrix3d enu_check(3,3);
+  enu_check << 0, 0, 1, 1, 0, 0, 0, 1, 0;
+  findMismatchedValue(enu, enu_check);
+  ASSERT_TRUE(enu.isApprox(enu_check));
+}
+
+TEST(MathTest, GetENUFrameNorthPole) {
+  double lat = 90, lon = 0;
+  ASSERT_THROW(getENUFrame(lat, lon), std::runtime_error);
+  ASSERT_THROW(getENUFrame(lat, lon+30), std::runtime_error);
+  Eigen::Matrix3d enu = getENUFrame(lat-0.01, lon);
+  Eigen::Matrix3d enu_check(3,3);
+  enu_check <<  0.0, -0.9999999847691291, 0.00017453292431360922, 
+                1.0, 0.0, 0, 
+                0.0, 0.00017453292431360924, 0.9999999847691291;
+  findMismatchedValue(enu, enu_check);
+  ASSERT_TRUE(enu.isApprox(enu_check));
+}
+
+TEST(MathTest, GetENUFrameSouthPole) {
+  double lat = -90, lon = 0;
+  ASSERT_THROW(getENUFrame(lat, lon), std::runtime_error);
+  ASSERT_THROW(getENUFrame(lat, lon+30), std::runtime_error);
+  Eigen::Matrix3d enu = getENUFrame(lat+0.01, lon);
+  Eigen::Matrix3d enu_check(3,3);
+  enu_check <<  0.0,  0.9999999847691291,      0.00017453292431360922, 
+                1.0,  0.0,                     0, 
+                0.0,  0.00017453292431360924, -0.9999999847691291;
+  findMismatchedValue(enu, enu_check);
+  ASSERT_TRUE(enu.isApprox(enu_check));
 }
 

@@ -3,9 +3,10 @@
 
 #include <vector>
 #include <tuple>
+#include <eigen3/Eigen/Dense>
 
 #include "structs.h"
-#include "vector_math.h"
+#include "math_utils.h"
 
 // template <typename T, typename N>
 // std::vector<std::tuple<T, T>> specialCombination(const std::vector<T>, 

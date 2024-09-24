@@ -5,7 +5,7 @@
 #include <opencv2/highgui/highgui.hpp> 
 #include "opencv2/viz/types.hpp"
 
-#include "vector_math.h"
+#include "math_utils.h"
 
 class CameraTest : public testing::Test {
   protected:

@@ -5,7 +5,7 @@ cid_sources = [
   'io.cpp', 
   'crater-id.cpp', 
   'combinatorics.cpp', 
-  'vector_math.cpp',
+  'math_utils.cpp',
   'visuals.cpp',
 ]
 cid_main = ['main.cpp']
@@ -14,7 +14,7 @@ eigen_dep = dependency('eigen3', required: true)
 libspatial_dep = dependency('libspatialindex', required: false)
 cv_dep = dependency('opencv4', required: false)
 # -DVTK_DIR="<path to my vtk build>"
-vtk_dep = dependency('vtk', required: false)
+vtk_dep = dependency('vtk-9.1', required: false)
 cpp = meson.get_compiler('cpp')
 igl_dep = cpp.find_library('libigl', dirs: '/home/dqr0509/dev/libigl/lib', required: false)
 # igl_dep = dependency('igl', required: false)

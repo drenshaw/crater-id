@@ -27,7 +27,7 @@ std::string stringifyVectorOfVectors(const std::vector<std::vector<T>>);
 template <typename T>
 void makeUnique(T&);
 // template <typename T>
-// std::vector<uint> getRange(std::vector<T>); //TODO: this exists in vector_math.h as well
+// std::vector<uint> getRange(std::vector<T>); //TODO: this exists in math_utils.h as well
 bool readLunarCraterEntry(lunar_crater& crater,
                           const std::string entry, 
                           const char sep=',',
