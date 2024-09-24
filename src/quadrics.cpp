@@ -6,6 +6,10 @@
 #include <iomanip>
 
 // This is the base constructor
+// Technically, these are a form of quadrics (quadratic surfaces) known
+// as a quadric disk, which is a flat circular disk, which we use to
+// represent crater rims.
+// TODO: Should I rename this to `QuadricDisk`, then?
 Quadric::Quadric( const Eigen::Vector3d& position, 
                   const double radius, 
                   const Eigen::Vector3d& surface_normal, 
@@ -24,7 +28,7 @@ Quadric::Quadric( const Eigen::Vector3d& position,
   if(radius == 0) {
     throw std::runtime_error("The crater radius is zero.");
   }
-  Eigen::Matrix3d T_e2m_ = GetQuadricTransformationMatrix();
+  Eigen::Matrix3d T_e2m_ = getQuadricTransformationMatrix();
   plane_ = SurfacePointToPlane(T_e2m_, surface_point_);
 }
 
@@ -40,40 +44,58 @@ Quadric::Quadric(const std::string id, const double lat, const double lon, const
 Quadric::Quadric(const std::string id, const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal) :
   Quadric(position, radius, surface_normal, id) {}
         
-Eigen::Matrix4d Quadric::GenerateQuadricLocus() const {
+Eigen::Matrix4d Quadric::generateQuadricLocus() const {
   return GenerateQuadricLocusFromRadiusNormal(surface_point_, radius_);
 }
 
-Eigen::Matrix3d Quadric::GetQuadricTransformationMatrix() const {
+Eigen::Matrix3d Quadric::getQuadricTransformationMatrix() const {
   return getENUFrame(surface_normal_);
 }
 
-Eigen::Matrix4d Quadric::GetLocus() const {
-  return GenerateQuadricLocus();
+Eigen::Matrix4d Quadric::getLocus() const {
+  return generateQuadricLocus();
 }
 
-Eigen::Vector3d Quadric::GetLocation() const {
+Eigen::Vector3d Quadric::getLocation() const {
   return surface_point_;
 }
 
-void Quadric::GetLocation(Eigen::Vector3d& location) const {
+void Quadric::getLocation(Eigen::Vector3d& location) const {
   location = surface_point_;
 }
 
-Eigen::Vector3d Quadric::GetNormal() const {
+Eigen::Vector3d Quadric::getNormal() const {
   return surface_normal_;
 }
 
-void Quadric::GetNormal(Eigen::Vector3d& surface_normal) const {
+void Quadric::getNormal(Eigen::Vector3d& surface_normal) const {
   surface_normal = surface_normal_;
 }
 
-Eigen::Vector4d Quadric::GetPlane() const {
+Eigen::Vector4d Quadric::getPlane() const {
   return plane_;
 }
 
-void Quadric::GetPlane(Eigen::Vector4d& plane) const {
+void Quadric::getPlane(Eigen::Vector4d& plane) const {
   plane = plane_;
+}
+
+double Quadric::getAngleBetweenQuadrics(const Quadric& other_quadric) const {
+  return getAngleBetweenVectors(this->getNormal(), other_quadric.getNormal());
+}
+
+Eigen::Vector3d Quadric::getAxisNormalToQuadrics(const Quadric& other_quadric) const {
+  Eigen::Vector3d axis_ret(3);
+  try {
+    axis_ret = getAxisNormalToVectors(
+      this->getNormal(), 
+      other_quadric.getNormal());
+  }
+  catch (const std::exception& e) {
+    std::cerr << "Exception: " << e.what() << std::endl;
+    throw std::runtime_error("Quadric normals are too close to form an axis of rotation.");
+  }
+  return axis_ret;
 }
 
 

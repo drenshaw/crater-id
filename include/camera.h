@@ -5,6 +5,9 @@
 
 class Camera {
     public:
+        Camera(const Eigen::Matrix3d& intrinsic, 
+               const Eigen::Quaterniond& rotation,
+               const Eigen::Vector3d& translation);
         Camera(const double dx,
                const double dy,
                const double up,
@@ -20,9 +23,6 @@ class Camera {
                const Eigen::MatrixXd& extrinsic);
         Camera(const Eigen::Matrix3d& intrinsic, 
                const Eigen::Matrix3d& rotation,
-               const Eigen::Vector3d& translation);
-        Camera(const Eigen::Matrix3d& intrinsic, 
-               const Eigen::Quaterniond& rotation,
                const Eigen::Vector3d& translation);
         Eigen::Vector3d getPosition();
         Eigen::Vector3d getLocation();

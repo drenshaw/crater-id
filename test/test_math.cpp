@@ -214,7 +214,7 @@ TEST(MathTest, AngularDistance) {
   double lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 90;
   Eigen::Vector3d bearing1 = latlon2bearing(lat1, lon1);
   Eigen::Vector3d bearing2 = latlon2bearing(lat2, lon2);
-  double angular_distance = angularDistance(bearing1, bearing2);
+  double angular_distance = getAngleBetween(bearing1, bearing2);
   double dist_check = M_PI/2;
   ASSERT_DOUBLE_EQ(angular_distance, dist_check);
 }
@@ -223,7 +223,7 @@ TEST(MathTest, AngularPseudoDistance) {
   double lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 90;
   Eigen::Vector3d bearing1 = latlon2bearing(lat1, lon1);
   Eigen::Vector3d bearing2 = latlon2bearing(lat2, lon2);
-  double angular_pseudodistance = angularPseudoDistance(bearing1, bearing2);
+  double angular_pseudodistance = getPseudoAngleBetweenVectors(bearing1, bearing2);
   double pseudodist_check = 0;
   // TODO: replace with using EPS; can't due to type for std::numeric_limits being undefined
   ASSERT_NEAR(angular_pseudodistance, pseudodist_check, 1e-15);
@@ -231,7 +231,7 @@ TEST(MathTest, AngularPseudoDistance) {
 
 TEST(MathTest, LatLonDist) {
   double lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 90;
-  double dist = latlon_dist(lat1, lon1, lat2, lon2);
+  double dist = getAngleBetweenLatLon(lat1, lon1, lat2, lon2);
   double dist_check = M_PI/2;
   // TODO: replace with using EPS; can't due to type for std::numeric_limits being undefined
   ASSERT_NEAR(dist, dist_check, 1e-15);

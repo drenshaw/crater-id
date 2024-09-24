@@ -46,7 +46,7 @@ TEST(QuadricTest, MakingQuadric) {
   Eigen::Vector3d X = Eigen::Vector3d::UnitX();
   Eigen::Vector3d Y = Eigen::Vector3d::UnitY();
   Eigen::Vector3d Z = Eigen::Vector3d::UnitZ();
-  ASSERT_TRUE(quad.GetQuadricTransformationMatrix()==t_e2m);
+  ASSERT_TRUE(quad.getQuadricTransformationMatrix()==t_e2m);
   std::cout << "X vector pointing here : " << (t_e2m*X).transpose() << std::endl;
   std::cout << "Y vector pointing here : " << (t_e2m*Y).transpose() << std::endl;
   std::cout << "Z vector pointing here : " << (t_e2m*Z).transpose() << std::endl;
@@ -54,7 +54,7 @@ TEST(QuadricTest, MakingQuadric) {
   Quadric north_pole(89, 0, radius, "northPole");
   std::cerr << north_pole << std::endl;
   // std::cerr << north_pole.GetLocus() << std::endl;
-  std::cerr << north_pole.GetQuadricTransformationMatrix() << std::endl;
+  std::cerr << north_pole.getQuadricTransformationMatrix() << std::endl;
   // std::cerr << "Center to crater radius: " << calculateCraterRimFromRadius(500) << std::endl;
 }
 
@@ -80,4 +80,31 @@ TEST(QuadricTest, InvalidSurfaceNormal) {
   surface_normal << 0, 0, 0;
   std::string id = "zeroNormal";
   EXPECT_THROW(Quadric quad(position, radius, surface_normal, id), std::runtime_error);
+}
+
+TEST(QuadricTest, AngleBetweenQuadrics) {
+  double lat1 =  0, lon1 = 0, radius1 = 50;
+  double lat2 = 30, lon2 = 0, radius2 = 50;
+  Quadric q1(lat1, lon1, radius1);
+  Quadric q2(lat2, lon2, radius2);
+  Quadric q1_copy(lat1, lon1, radius1);
+  double angle12 = q1.getAngleBetweenQuadrics(q2);
+  ASSERT_DOUBLE_EQ(rad2deg(angle12), std::abs(lat2-lat1));
+  double angle_zero = q1.getAngleBetweenQuadrics(q1_copy);
+  ASSERT_DOUBLE_EQ(angle_zero, 0.);
+}
+
+TEST(QuadricTest, AxisOfRotationQuadrics) {
+  double lat1 =  0, lon1 = 0, radius1 = 50;
+  double lat2 = 30, lon2 = 0, radius2 = 50;
+  Quadric q1(lat1, lon1, radius1);
+  Quadric q2(lat2, lon2, radius2);
+  Quadric q1_copy(lat1, lon1, radius1);
+  Eigen::Vector3d axis_normal = q1.getAxisNormalToQuadrics(q2);
+  Eigen::Vector3d axis_check(3);
+  // Moving from 0 degrees latitude up to 30 degrees latitude makes axis in -y direction
+  axis_check << 0, -1, 0;
+  std::cout << "Axis normal: " << axis_normal.transpose() << std::endl;
+  ASSERT_TRUE(axis_normal.isApprox(axis_check));
+  ASSERT_THROW(q1.getAxisNormalToQuadrics(q1_copy), std::runtime_error);
 }

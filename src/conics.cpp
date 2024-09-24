@@ -446,7 +446,6 @@ bool IntersectConics(const Eigen::Matrix3d& Ai,
   Eigen::Vector3d g = D.col(maxCol);
   Eigen::Vector3d h = D.row(maxRow);
   
-  std::vector<double> gVec, hVec;
   if ( vectorContainsNaN(g) ) {
       std::cout << "g vector contains NaN's: " << g << std::endl;
       return false;

@@ -7,6 +7,14 @@
 
 cv::viz::Camera camera(1000, 1000, 1296.5, 1024.5, cv::Size(2048,1920));
 
+// This is the base constructor
+Camera::Camera(const Eigen::Matrix3d& intrinsic, 
+               const Eigen::Quaterniond& rotation,
+               const Eigen::Vector3d& translation) {
+  makeCamera(intrinsic, rotation, translation, true);
+}
+
+// These are delegating constructors
 Camera::Camera(const double dx,
                const double dy,
                const double up,
@@ -34,11 +42,6 @@ Camera::Camera(const Eigen::Matrix3d& intrinsic,
                const Eigen::Matrix3d& rotation,
                const Eigen::Vector3d& translation) {
   makeCamera(intrinsic, rotation, translation);
-}
-Camera::Camera(const Eigen::Matrix3d& intrinsic, 
-               const Eigen::Quaterniond& rotation,
-               const Eigen::Vector3d& translation) {
-  makeCamera(intrinsic, rotation, translation, true);
 }
 
 void Camera::makeCamera(const double dx,

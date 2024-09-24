@@ -252,7 +252,7 @@ int main(int argc, char** argv) {
   // std::cout << "Location: (" << r_radius_rim*latlon2bearing(lat, lon).transpose() << ")" << std::endl;
   std::cout << quad << std::endl;
 
-  Eigen::Matrix4d locus = quad.GetLocus();
+  Eigen::Matrix4d locus = quad.getLocus();
   // locus(3,3) = 0;
   double maxVal = locus.cwiseAbs().maxCoeff();
   // maxVal = locus(0, 0);

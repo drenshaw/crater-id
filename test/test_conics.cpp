@@ -171,7 +171,7 @@ TEST(ConicTest, ConvertEigenVectorToVector) {
   vec.reserve(CONIC_DIM);
   Eigen::Vector3d evec;
   evec << 1,2,3;
-  convertEigenVectorToVector(evec, arr);
+  convertEigenVectorToArray(evec, arr);
   convertEigenVectorToVector(evec, vec);
   EXPECT_EQ(arr.at(0), evec(0));
   EXPECT_EQ(arr.at(1), evec(1));

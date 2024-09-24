@@ -13,18 +13,20 @@ class Quadric {
     Quadric(const std::string id, const Eigen::Vector3d&, const double);
     Quadric(const std::string id, const double, const double, const double);
     Quadric(const std::string id, const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal);
-    Eigen::Matrix3d GetQuadricTransformationMatrix() const;
-    Eigen::Matrix4d GetLocus() const;
-    Eigen::Vector3d GetLocation() const;
-    void GetLocation(Eigen::Vector3d& location) const;
-    Eigen::Vector3d GetNormal() const;
-    void GetNormal(Eigen::Vector3d& surface_normal) const;
-    Eigen::Vector4d GetPlane() const;
-    void GetPlane(Eigen::Vector4d& surface_normal) const;
+    Eigen::Matrix3d getQuadricTransformationMatrix() const;
+    Eigen::Matrix4d getLocus() const;
+    Eigen::Vector3d getLocation() const;
+    void getLocation(Eigen::Vector3d& location) const;
+    Eigen::Vector3d getNormal() const;
+    void getNormal(Eigen::Vector3d& surface_normal) const;
+    Eigen::Vector4d getPlane() const;
+    void getPlane(Eigen::Vector4d& surface_normal) const;
+    double getAngleBetweenQuadrics(const Quadric& other_quadric) const;
+    Eigen::Vector3d getAxisNormalToQuadrics(const Quadric& other_quadric) const;
 
   private:
-    Eigen::Matrix4d GenerateQuadricLocus() const ;    
-    void LoadQuadric(const Eigen::Matrix3d& conic_locus);
+    Eigen::Matrix4d generateQuadricLocus() const ;    
+    void loadQuadric(const Eigen::Matrix3d& conic_locus);
     // All positions or directions are given in the Moon-centered frame
     // aka, the 'selenographic' frame
     std::string id_;

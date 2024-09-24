@@ -12,12 +12,6 @@
 // #include <boost/log/trivial.hpp>
 // #include "crater-id.h"
 
-#define GEOMETRIC_PARAM 5
-#define IMPLICIT_PARAM 6
-#define CONIC_DIM 3
-#define NONCOPLANAR_INVARIANTS 3
-#define    COPLANAR_INVARIANTS 7
-
 const double EPS = (10 * std::numeric_limits<double>::epsilon());
 
 double getCofactor(const Eigen::MatrixXd& matrix, int p, int q);
@@ -46,8 +40,9 @@ Eigen::Vector3d latlon2bearing(const T crater);
 // template<typename T>
 // T vectorNorm(std::vector<T> vec);
 double vdot(const Eigen::Vector3d& pt1, const Eigen::Vector3d& pt2);
-double angularPseudoDistance(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
-double angularDistance(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
+double getPseudoAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
+double getAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
+Eigen::Vector3d getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen::Vector3d& vec2);
 
 bool normalizeDeterminant(Eigen::MatrixXd& mtx);
 Eigen::Matrix3d crossMatrix(const Eigen::Vector3d&);
@@ -66,11 +61,15 @@ void eulerToDCM(const double roll,
                 Eigen::Matrix3d& dcm);    
 
 bool vectorContainsNaN(const Eigen::Vector3d& eV);
-void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM>& arr);
 void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec);
 
 
 /**** Template definitions ****/
+
+template <typename T, size_t SIZE>
+void convertEigenVectorToArray(const Eigen::Vector3d& eig, std::array<T, SIZE>& arr){
+  Eigen::Vector3d::Map(&arr[0], eig.size()) = eig;
+}
 
 template <typename T, size_t SIZE>
 bool vectorContainsNaN(const std::array<T, SIZE>& vec) {
@@ -80,6 +79,13 @@ template <typename T, size_t SIZE>
 bool vectorContainsNaN(const std::vector<T>& vec) {
   return std::any_of(vec.begin(), vec.end(), [](T i){return std::isnan(i);});
 }
+template <typename T, size_t SIZE>
+bool vectorContainsNaN(const Eigen::Vector3d& eV) {
+  std::array<T, SIZE> vec;
+  convertEigenVectorToArray(eV, vec);
+  return vectorContainsNaN(vec);
+}
+
 template <typename T, typename A>
 int arg_max(std::vector<T, A> const& vec) {
   return static_cast<int>(
@@ -153,17 +159,17 @@ T vectorNorm(const std::array<T, SIZE> vec) {
 
 
 template <typename T>
-double latlon_dist(const T crater1, const T crater2) {
-  return latlon_dist(crater1.lat, crater1.lon, crater2.lat, crater2.lon);
+double getAngleBetweenLatLon(const T crater1, const T crater2) {
+  return getAngleBetweenLatLon(crater1.lat, crater1.lon, crater2.lat, crater2.lon);
 }
 
 template <typename T>
-double latlon_dist(const T lat1, const T lon1, const T lat2, const T lon2) {
+double getAngleBetweenLatLon(const T lat1, const T lon1, const T lat2, const T lon2) {
   Eigen::Vector3d point1 = latlon2bearing(lat1, lon1);
   // normalizeVector(point1);
   Eigen::Vector3d point2 = latlon2bearing(lat2, lon2);
   // normalizeVector(point2);
-  return angularDistance(point1, point2);
+  return getAngleBetweenVectors(point1, point2);
 }
 
 template <typename T>

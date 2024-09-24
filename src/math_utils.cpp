@@ -109,12 +109,20 @@ double vdot(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2) {
   return point1.dot(point2);
 }
 
-double angularPseudoDistance(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2) {
+double getPseudoAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2) {
   return vdot(point1, point2);
 }
 
-double angularDistance(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2) {
-  return acos(angularPseudoDistance(point1, point2));
+double getAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2) {
+  return acos(getPseudoAngleBetweenVectors(point1, point2));
+}
+
+
+Eigen::Vector3d getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen::Vector3d& vec2) {
+  if(vec1.isApprox(vec2)) {
+    throw std::runtime_error("Vectors too close to have an axis formed");
+  }
+  return vec1.cross(vec2).normalized();
 }
 
 // template <typename T>
@@ -255,17 +263,12 @@ void eulerToDCM(const double roll,
   dcm = yawAngle * pitchAngle * rollAngle;
 }
 
-void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM>& vec) {
-  Eigen::Vector3d::Map(&vec[0], eig.size()) = eig;
-}
-
+// Templated version is in header
 void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec) {
   Eigen::Vector3d::Map(&vec[0], eig.size()) = eig;
 }
 
-// Templated version of vectorContainsNaN in header
-bool vectorContainsNaN(const Eigen::Vector3d& eV) {
-  std::array<double, CONIC_DIM> vec;
-  convertEigenVectorToVector(eV, vec);
-  return vectorContainsNaN(vec);
+// Templated version is in header
+bool vectorContainsNaN(const Eigen::Vector3d& vec) {
+  return vec.hasNaN();
 }

@@ -11,6 +11,12 @@
 
 #include "math_utils.h"
 
+#define GEOMETRIC_PARAM 5
+#define IMPLICIT_PARAM 6
+#define CONIC_DIM 3
+#define NONCOPLANAR_INVARIANTS 3
+#define    COPLANAR_INVARIANTS 7
+
 template <typename T>
 bool almost_equal(const T a, const T b) {
   return std::abs(a-b)<EPS;
