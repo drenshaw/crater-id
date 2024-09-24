@@ -423,18 +423,15 @@ bool IntersectConics(const Eigen::Matrix3d& Ai,
   Bij_star = getAdjugateMatrix(Bij);
 
   bkk_eig = Bij_star.diagonal();
-  std::vector<double> bkk;
-  convertEigenVectorToVector(bkk_eig, bkk);
-  // eq 86: all diagonal entries of Bij_star are negative
-  if ( std::any_of(bkk.begin(), bkk.end(), [&eps](double i){return i>eps;}) ) {
-      // std::cerr << "bkk contains positive numbers: \n" << bkk_eig << std::endl;
-      return false;
+  auto valid = bkk_eig.array() < eps;
+  if(!valid.all()) {
+    return false;
   }
-  int min_idx = arg_min(bkk);
+  Eigen::Vector3d::Index min_idx;
+  min_idx = bkk_eig.minCoeff();
 
   // eq 87
-  Eigen::Vector3d z = -Bij_star.row(min_idx)/sqrt(-bkk.at(min_idx));
-  // Eigen::Vector3d z = -Bij_star.row(min_idx)/sqrt(-min_elem);
+  Eigen::Vector3d z = -Bij_star.row(min_idx)/sqrt(-bkk_eig[min_idx]);
   Eigen::Matrix3d D = Bij + crossMatrix(z);
   Eigen::Matrix3d Dabs = D.cwiseAbs();
   

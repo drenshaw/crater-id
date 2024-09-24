@@ -214,7 +214,7 @@ TEST(MathTest, AngularDistance) {
   double lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 90;
   Eigen::Vector3d bearing1 = latlon2bearing(lat1, lon1);
   Eigen::Vector3d bearing2 = latlon2bearing(lat2, lon2);
-  double angular_distance = getAngleBetween(bearing1, bearing2);
+  double angular_distance = getAngleBetweenVectors(bearing1, bearing2);
   double dist_check = M_PI/2;
   ASSERT_DOUBLE_EQ(angular_distance, dist_check);
 }
