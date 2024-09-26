@@ -38,21 +38,24 @@ Conic::Conic(const std::vector<double>& vec) :
   angle_         {vec.at(4)} {
     setID();
 }
+Conic::Conic(const Eigen::Matrix3d& locus) {
+  this->setLocus(locus);
+}
 
 void Conic::setID() {
   id_ = next_id++;
 }
 
-int Conic::GetID() const {
+int Conic::getID() const {
   return id_;
 }
 
 bool Conic::operator==(const Conic& other_conic) const {
-  return  almost_equal(this->semimajor_axis_, other_conic.GetSemiMajorAxis()) &&
-          almost_equal(this->semiminor_axis_, other_conic.GetSemiMinorAxis()) &&
-          almost_equal(this->x_center_, other_conic.GetCenterX()) &&
-          almost_equal(this->y_center_, other_conic.GetCenterY()) &&
-          almost_equal(this->angle_, other_conic.GetAngle());
+  return  almost_equal(this->semimajor_axis_, other_conic.getSemiMajorAxis()) &&
+          almost_equal(this->semiminor_axis_, other_conic.getSemiMinorAxis()) &&
+          almost_equal(this->x_center_, other_conic.getCenterX()) &&
+          almost_equal(this->y_center_, other_conic.getCenterY()) &&
+          almost_equal(this->angle_, other_conic.getAngle());
 }
 
 bool Conic::operator!=(const Conic& other_conic) const {
@@ -74,23 +77,23 @@ std::ostream& operator<<(std::ostream& os, const Conic& conic) {
         << "\n\tAngle (deg): " << rad2deg(conic.angle_) << " ";
 }
 
-void Conic::SetGeometricParameters(const std::array<double, GEOMETRIC_PARAM>& geom_vec) {
-  SetGeometricParameters( geom_vec.at(0), 
+void Conic::setGeometricParameters(const std::array<double, GEOMETRIC_PARAM>& geom_vec) {
+  setGeometricParameters( geom_vec.at(0), 
                           geom_vec.at(1), 
                           geom_vec.at(2), 
                           geom_vec.at(3), 
                           geom_vec.at(4));
 }
 
-void Conic::SetGeometricParameters(const std::vector<double>& geom_vec) {
-  SetGeometricParameters( geom_vec.at(0), 
+void Conic::setGeometricParameters(const std::vector<double>& geom_vec) {
+  setGeometricParameters( geom_vec.at(0), 
                           geom_vec.at(1), 
                           geom_vec.at(2), 
                           geom_vec.at(3), 
                           geom_vec.at(4));
 }
 
-void Conic::SetGeometricParameters( const double semimajor_axis, 
+void Conic::setGeometricParameters( const double semimajor_axis, 
                                     const double semiminor_axis, 
                                     const double x_center, 
                                     const double y_center, 
@@ -102,69 +105,169 @@ void Conic::SetGeometricParameters( const double semimajor_axis,
   angle_ = angle;
 }
 
-void Conic::SetSemimajorAxis(const double semimajor_axis) {
+void Conic::setSemimajorAxis(const double semimajor_axis) {
   semimajor_axis_ = semimajor_axis;
 }
 
-void Conic::SetSemiminorAxis(const double semiminor_axis) {
+void Conic::setSemiminorAxis(const double semiminor_axis) {
   semiminor_axis_ = semiminor_axis;
 }
 
-void Conic::SetCenterX(const double x_center) {
+void Conic::setCenterX(const double x_center) {
   x_center_ = x_center;
 }
 
-void Conic::SetCenterY(const double y_center) {
+void Conic::setCenterY(const double y_center) {
   y_center_ = y_center;
 }
 
-void Conic::SetAngle(const double angle) {
+void Conic::setAngle(const double angle) {
   angle_ = angle;
 }
 
 
-void Conic::SetImplicitParameters(const std::array<double, IMPLICIT_PARAM>& impl_params) {
-  std::array<double, GEOMETRIC_PARAM> geom_params = Implicit2Geom(impl_params);
-  SetGeometricParameters(geom_params);
+void Conic::setImplicitParameters(const std::array<double, IMPLICIT_PARAM>& impl_params) {
+  setGeometricParameters(implicit2Geom(impl_params));
 }
 
-void Conic::SetLocus(const Eigen::Matrix3d& locus) {
-  std::array<double, GEOMETRIC_PARAM> geom_params = Locus2Geom(locus);
-  SetGeometricParameters(geom_params);
+void Conic::setLocus(const Eigen::Matrix3d& locus) {
+  std::array<double, GEOMETRIC_PARAM> geom_params = fromLocus(locus);
+  setGeometricParameters(geom_params);
 }
 
-void Conic::NormalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>& impl_params) const {
-  // double vecNormRecip = 1/vectorNorm(impl_params);
-  double vecNormRecip = 1/impl_params.at(5);
-  std::transform(impl_params.begin(), impl_params.end(), impl_params.begin(),
-               std::bind(std::multiplies<double>(), std::placeholders::_1, vecNormRecip));
-}
-
-// TODO: possibly create template or call to same function for std::array above
-void Conic::NormalizeImplicitParameters(std::vector<double>& impl_params) const {
-  // double vecNormRecip = 1/vectorNorm(impl_params);
-  double vecNormRecip = 1/impl_params.at(5);
-  std::transform(impl_params.begin(), impl_params.end(), impl_params.begin(),
-               std::bind(std::multiplies<double>(), std::placeholders::_1, vecNormRecip));
-}
-
-std::array<double, GEOMETRIC_PARAM> Conic::GetGeom() const {
+std::array<double, GEOMETRIC_PARAM> Conic::getGeom() const {
   return {semimajor_axis_, semiminor_axis_, x_center_, y_center_, angle_};
 }
 
-std::array<double, IMPLICIT_PARAM> Conic::GetImplicit() const {
-  return Geom2Implicit();
+std::array<double, IMPLICIT_PARAM> Conic::getImplicit() const {
+  return toImplicit();
 }
 
-Eigen::Matrix3d Conic::GetLocus() const {
-  return Geom2Locus();
+Eigen::Matrix3d Conic::getLocus() const {
+  return toLocus();
 }
 
-Eigen::Matrix3d Conic::GetEnvelope() const {
-  return getAdjugateMatrix(Geom2Locus());
+Eigen::Matrix3d Conic::getEnvelope() const {
+  return getAdjugateMatrix(toLocus());
 }
 
-std::array<double, IMPLICIT_PARAM> Conic::Locus2Implicit(const Eigen::Matrix3d& locus) const {
+Eigen::Matrix3d Conic::toLocus() const {
+  return implicit2Locus(this->getImplicit());
+ }
+
+ std::array<double, GEOMETRIC_PARAM> Conic::fromLocus(const Eigen::Matrix3d& locus) const {
+  return implicit2Geom(locus2Implicit(locus));
+}
+
+
+std::array<double, IMPLICIT_PARAM> Conic::toImplicit() const {
+  return geom2Implicit( this->semimajor_axis_, 
+                        this->semiminor_axis_, 
+                        this->x_center_, 
+                        this->y_center_, 
+                        this->angle_);
+}
+
+bool Conic::intersectsConic(const Eigen::Matrix3d& Aj, 
+                                   std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) const {
+  Eigen::Matrix3d Ai = getLocus();
+  return invariants::intersectionLines(Ai, Aj, gh);
+}
+
+bool Conic::intersectsConicLines(const Conic& conicB, 
+                                   std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) const {
+  Eigen::Matrix3d Ai = getLocus();
+  Eigen::Matrix3d Aj = conicB.getLocus();
+  return invariants::intersectionLines(Ai, Aj, gh);
+}
+
+double Conic::getCenterX() const {
+  return x_center_;
+}
+
+double Conic::getCenterY() const {
+  return y_center_;
+}
+
+Eigen::Vector2d Conic::getCenter() const {
+  Eigen::Vector2d center;
+  center << x_center_, y_center_;
+  return center;
+}
+
+void Conic::getCenter(cv::Point& center) const {
+  center.x = x_center_;
+  center.y = y_center_;
+}
+
+void Conic::getCenter(Eigen::Vector2d& center) const {
+  center << x_center_, y_center_;
+}
+
+double Conic::getSemiMajorAxis() const {
+  return semimajor_axis_;
+}
+
+double Conic::getSemiMinorAxis() const {
+  return semiminor_axis_;
+}
+
+cv::Size Conic::getSemiAxes() const {
+  cv::Size axes(semimajor_axis_, semiminor_axis_);
+  return axes;
+}
+
+void Conic::getSemiAxes(Eigen::Vector2d& semiaxes) const {
+  semiaxes << semimajor_axis_, semiminor_axis_;
+}
+
+void Conic::getSemiAxes(cv::Point& semiaxes) const {
+  semiaxes.x = semimajor_axis_;
+  semiaxes.y = semiminor_axis_;
+}
+
+void Conic::getSemiAxes(cv::Size& semiaxes) const {
+  semiaxes.width  = semimajor_axis_;
+  semiaxes.height = semiminor_axis_;
+}
+
+// GetSize is an alias for GetSemiAxes
+cv::Size Conic::getSize() const {
+  return getSemiAxes();
+}
+
+void Conic::getSize(cv::Size& semiaxes) const {
+  return getSemiAxes(semiaxes);
+}
+
+double Conic::getAngle() const {
+  return angle_;
+}
+
+void Conic::normalizeImplicitParams() {
+  // normalizeImplicitParameters(this->impl)
+}
+
+bool Conic::chooseIntersection(const Conic& other, Eigen::Vector3d& l) const {
+  std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
+  if(!invariants::intersectionLines(getLocus(), other.getLocus(), gh)) {
+    std::cerr<<"IntersectionLines error ij\n";
+    return false;
+  }
+  if(!invariants::chooseIntersection(gh, getCenter(), other.getCenter(), l)) {
+    std::cerr<<"ChooseIntersection error jk\n";
+    return false;
+  }
+
+  return true;
+}
+
+
+/*********************************************************/
+/***********************Conic Utils***********************/
+/*********************************************************/
+
+std::array<double, IMPLICIT_PARAM> locus2Implicit(const Eigen::Matrix3d& locus) {
   return {
     locus.coeff(0,0),
     2*locus.coeff(0,1),
@@ -175,7 +278,12 @@ std::array<double, IMPLICIT_PARAM> Conic::Locus2Implicit(const Eigen::Matrix3d& 
   };
 }
 
-std::array<double, GEOMETRIC_PARAM> Conic::Implicit2Geom(const std::array<double, IMPLICIT_PARAM>& impl_params) const {
+std::array<double, GEOMETRIC_PARAM> locus2Geom(const Eigen::Matrix3d& locus) {
+  const std::array<double, IMPLICIT_PARAM> impl_params = locus2Implicit(locus);
+  return implicit2Geom(impl_params);
+}
+
+std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLICIT_PARAM>& impl_params) {
   double numerator, denominator_a, denominator_b;
   double B2_minus_4AC, xc, yc, phi;
   double semimajor_axis, semiminor_axis, amc2, b2;
@@ -212,47 +320,17 @@ std::array<double, GEOMETRIC_PARAM> Conic::Implicit2Geom(const std::array<double
   return {semimajor_axis, semiminor_axis, xc, yc, phi};
 }
 
-Eigen::Matrix3d Conic::Geom2Locus() const {
-  const std::array<double, IMPLICIT_PARAM> impl_params = Geom2Implicit();
-  // return normalize_determinant(Implicit2Locus(impl_params))
-  return Implicit2Locus(impl_params);
- }
-
-Eigen::Matrix3d Conic::Implicit2Locus(const std::array<double, IMPLICIT_PARAM>& impl_params) const {
-  Eigen::Matrix3d locus_mtx(3,3);
-  double A, B, C, D, E, F;
-
-  F = impl_params.at(5);
-  double F_recip = 1/F;
-  A = F_recip * impl_params.at(0);
-  B = F_recip * impl_params.at(1);
-  C = F_recip * impl_params.at(2);
-  D = F_recip * impl_params.at(3);
-  E = F_recip * impl_params.at(4);
-  locus_mtx << A,  B/2, D/2,
-              B/2,  C,  E/2,
-              D/2, E/2, 1.0;
-
-  return locus_mtx;
-}
-
-Eigen::Matrix3d Conic::Implicit2Locus() const {
-  return Implicit2Locus(Geom2Implicit());
-}
-
- std::array<double, GEOMETRIC_PARAM> Conic::Locus2Geom(const Eigen::Matrix3d& locus) const {
-  const std::array<double, IMPLICIT_PARAM> impl_params = Locus2Implicit(locus);
-  return Implicit2Geom(impl_params);
-}
-
-
-std::array<double, IMPLICIT_PARAM> Conic::Geom2Implicit() const {
+std::array<double, IMPLICIT_PARAM> geom2Implicit( const double semimajor_axis, 
+                                                  const double semiminor_axis, 
+                                                  const double x_center, 
+                                                  const double y_center, 
+                                                  const double angle) {
   // unpack geometric parameters
-  double a   = semimajor_axis_;
-  double b   = semiminor_axis_;
-  double xc  = x_center_;
-  double yc  = y_center_;
-  double phi = angle_;
+  double a   = semimajor_axis;
+  double b   = semiminor_axis;
+  double xc  = x_center;
+  double yc  = y_center;
+  double phi = angle;
 
   // perform some computations beforehand
   double a2 = pow(a, 2);
@@ -273,114 +351,42 @@ std::array<double, IMPLICIT_PARAM> Conic::Geom2Implicit() const {
   coeff.at(4) = -coeff[1]*xc - 2*coeff[2]*yc;
   coeff.at(5) =  coeff[0]*xc_2 + coeff[1]*xc*yc + coeff[2]*yc_2 - a2*b2;
 
-  NormalizeImplicitParameters(coeff);
+  normalizeImplicitParameters(coeff);
   return coeff;
 }
 
-bool Conic::conicIntersectionLines(const Eigen::Matrix3d& Aj, 
-                                   std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) const {
-  Eigen::Matrix3d Ai = GetLocus();
-  return invariants::intersectionLines(Ai, Aj, gh);
+Eigen::Matrix3d implicit2Locus(const std::array<double, IMPLICIT_PARAM>& impl_params) {
+  Eigen::Matrix3d locus_mtx(3,3);
+  double A, B, C, D, E, F;
+
+  F = impl_params.at(5);
+  double F_recip = 1/F;
+  A = F_recip * impl_params.at(0);
+  B = F_recip * impl_params.at(1);
+  C = F_recip * impl_params.at(2);
+  D = F_recip * impl_params.at(3);
+  E = F_recip * impl_params.at(4);
+  locus_mtx << A,  B/2, D/2,
+              B/2,  C,  E/2,
+              D/2, E/2, 1.0;
+
+  return locus_mtx;
 }
 
-bool Conic::conicIntersectionLines(const Conic& conicB, 
-                                   std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) const {
-  Eigen::Matrix3d Ai = GetLocus();
-  Eigen::Matrix3d Aj = conicB.GetLocus();
-  return invariants::intersectionLines(Ai, Aj, gh);
+void normalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>& impl_params) {
+  // double vecNormRecip = 1/vectorNorm(impl_params);
+  double vecNormRecip = 1/impl_params.at(5);
+  std::transform(impl_params.begin(), impl_params.end(), impl_params.begin(),
+               std::bind(std::multiplies<double>(), std::placeholders::_1, vecNormRecip));
 }
 
-double Conic::GetCenterX() const {
-  return x_center_;
+// TODO: possibly create template or call to same function for std::array above
+void normalizeImplicitParameters(std::vector<double>& impl_params) {
+  // double vecNormRecip = 1/vectorNorm(impl_params);
+  double vecNormRecip = 1/impl_params.at(5);
+  std::transform(impl_params.begin(), impl_params.end(), impl_params.begin(),
+               std::bind(std::multiplies<double>(), std::placeholders::_1, vecNormRecip));
 }
-
-double Conic::GetCenterY() const {
-  return y_center_;
-}
-
-Eigen::Vector2d Conic::GetCenter() const {
-  Eigen::Vector2d center;
-  center << x_center_, y_center_;
-  return center;
-}
-
-void Conic::GetCenter(cv::Point& center) const {
-  center.x = x_center_;
-  center.y = y_center_;
-}
-
-void Conic::GetCenter(Eigen::Vector2d& center) const {
-  center << x_center_, y_center_;
-}
-
-double Conic::GetSemiMajorAxis() const {
-  return semimajor_axis_;
-}
-
-double Conic::GetSemiMinorAxis() const {
-  return semiminor_axis_;
-}
-
-cv::Size Conic::GetSemiAxes() const {
-  cv::Size axes(semimajor_axis_, semiminor_axis_);
-  return axes;
-}
-
-void Conic::GetSemiAxes(Eigen::Vector2d& semiaxes) const {
-  semiaxes << semimajor_axis_, semiminor_axis_;
-}
-
-void Conic::GetSemiAxes(cv::Point& semiaxes) const {
-  semiaxes.x = semimajor_axis_;
-  semiaxes.y = semiminor_axis_;
-}
-
-void Conic::GetSemiAxes(cv::Size& semiaxes) const {
-  semiaxes.width  = semimajor_axis_;
-  semiaxes.height = semiminor_axis_;
-}
-
-// GetSize is an alias for GetSemiAxes
-cv::Size Conic::GetSize() const {
-  return GetSemiAxes();
-}
-
-void Conic::GetSize(cv::Size& semiaxes) const {
-  return GetSemiAxes(semiaxes);
-}
-
-double Conic::GetAngle() const {
-  return angle_;
-}
-
-bool Conic::chooseConicIntersection(const Conic& other, Eigen::Vector3d& l) const {
-  std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh;
-  if(!invariants::intersectionLines(GetLocus(), other.GetLocus(), gh)) {
-    std::cerr<<"IntersectionLines error ij\n";
-    return false;
-  }
-  if(!invariants::chooseIntersection(gh, GetCenter(), other.GetCenter(), l)) {
-    std::cerr<<"ChooseIntersection error jk\n";
-    return false;
-  }
-
-  return true;
-}
-
-// void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM>& arr) {
-//   Eigen::Vector3d::Map(&arr[0], eig.size()) = eig;
-// }
-
-// void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec) {
-//   Eigen::Vector3d::Map(&vec[0], eig.size()) = eig;
-// }
-
-// // Templated version of vectorContainsNaN in header
-// bool vectorContainsNaN(const Eigen::Vector3d& eV) {
-//   std::vector<double> vec;
-//   convertEigenVectorToVector(eV, vec);
-//   return vectorContainsNaN(vec);
-// }
 
 /*********************************************************/
 /***********************INVARIANTS************************/
@@ -542,22 +548,22 @@ bool computeCraterTriadInvariants(const Conic& A, const Conic& B, const Conic& C
   double invA, invB, invC;
   Eigen::Matrix3d locusA, locusB, locusC;
   Eigen::Vector2d centerA, centerB, centerC;
-  locusA = A.GetLocus();
-  locusB = B.GetLocus();
-  locusC = C.GetLocus();
-  centerA = A.GetCenter();
-  centerB = B.GetCenter();
-  centerC = C.GetCenter();
+  locusA = A.getLocus();
+  locusB = B.getLocus();
+  locusC = C.getLocus();
+  centerA = A.getCenter();
+  centerB = B.getCenter();
+  centerC = C.getCenter();
 
-  if(!A.chooseConicIntersection(B, lij)) {
+  if(!A.chooseIntersection(B, lij)) {
     std::cerr<<"IntersectionLines error ij\n";
     return false;
   }
-  if(!B.chooseConicIntersection(C, ljk)) {
+  if(!B.chooseIntersection(C, ljk)) {
     std::cerr<<"IntersectionLines error jk\n";
     return false;
   }
-  if(!C.chooseConicIntersection(A, lki)) {
+  if(!C.chooseIntersection(A, lki)) {
     std::cerr<<"IntersectionLines error ki\n";
     return false;
   }

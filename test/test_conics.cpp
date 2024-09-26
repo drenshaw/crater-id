@@ -27,7 +27,7 @@ class ConicTest : public testing::Test {
     ConicTest() {
       // std::array<double, 5> arr = {10.0, 7.0, 300.0, 50.0, 0.0};
       // Conic conic_arr(arr);
-      // c_arr.SetGeometricParameters(arr);
+      // c_arr.setGeometricParameters(arr);
     }
   public:
       // // ~QueueTest() override = default;
@@ -40,9 +40,9 @@ TEST(ConicTest, CheckId) {
   // TODO: Can we ensure that this test runs first of all the conic tests?
   // TODO: Maybe the test should only ensure ID increments from one to another
   Conic conic1(100.0, 70.0, 300.0, 50.0, 0.0);
-  EXPECT_EQ(conic1.GetID(), 0);
+  EXPECT_EQ(conic1.getID(), 0);
   Conic conic2(100.0, 70.0, 300.0, 50.0, 0.0);
-  EXPECT_EQ(conic2.GetID(), 1);
+  EXPECT_EQ(conic2.getID(), 1);
 }
 
 TEST(ConicTest, ConicInit) {
@@ -50,11 +50,11 @@ TEST(ConicTest, ConicInit) {
   std::array<double, GEOMETRIC_PARAM> arr = {smajor, sminor, xcen, ycen, angle};
 
   Conic conic_arr(arr);
-  ASSERT_DOUBLE_EQ(conic_arr.GetSemiMajorAxis(), smajor);
-  ASSERT_DOUBLE_EQ(conic_arr.GetSemiMinorAxis(), sminor);
-  ASSERT_DOUBLE_EQ(conic_arr.GetCenterX(), xcen);
-  ASSERT_DOUBLE_EQ(conic_arr.GetCenterY(), ycen);
-  ASSERT_DOUBLE_EQ(conic_arr.GetAngle(), angle);
+  ASSERT_DOUBLE_EQ(conic_arr.getSemiMajorAxis(), smajor);
+  ASSERT_DOUBLE_EQ(conic_arr.getSemiMinorAxis(), sminor);
+  ASSERT_DOUBLE_EQ(conic_arr.getCenterX(), xcen);
+  ASSERT_DOUBLE_EQ(conic_arr.getCenterY(), ycen);
+  ASSERT_DOUBLE_EQ(conic_arr.getAngle(), angle);
 }
 
 TEST(ConicTest, ConicEqual) {
@@ -92,24 +92,24 @@ TEST(ConicTest, ConicSetIndividualParameters) {
 
   // Changing values
   double d_smajor = 200., d_sminor = 60., d_xcen = 200., d_ycen = 70., d_angle = 10.;
-  conic_var.SetSemimajorAxis(d_smajor);
-  conic_var.SetSemiminorAxis(d_sminor);
-  conic_var.SetCenterX(d_xcen);
-  conic_var.SetCenterY(d_ycen);
-  conic_var.SetAngle(d_angle);
+  conic_var.setSemimajorAxis(d_smajor);
+  conic_var.setSemiminorAxis(d_sminor);
+  conic_var.setCenterX(d_xcen);
+  conic_var.setCenterY(d_ycen);
+  conic_var.setAngle(d_angle);
 
-  EXPECT_DOUBLE_EQ(conic_var.GetSemiMajorAxis(), d_smajor);
-  EXPECT_DOUBLE_EQ(conic_var.GetSemiMinorAxis(), d_sminor);
-  EXPECT_DOUBLE_EQ(conic_var.GetCenterX(), d_xcen);
-  EXPECT_DOUBLE_EQ(conic_var.GetCenterY(), d_ycen);
-  EXPECT_DOUBLE_EQ(conic_var.GetAngle(), d_angle);
+  EXPECT_DOUBLE_EQ(conic_var.getSemiMajorAxis(), d_smajor);
+  EXPECT_DOUBLE_EQ(conic_var.getSemiMinorAxis(), d_sminor);
+  EXPECT_DOUBLE_EQ(conic_var.getCenterX(), d_xcen);
+  EXPECT_DOUBLE_EQ(conic_var.getCenterY(), d_ycen);
+  EXPECT_DOUBLE_EQ(conic_var.getAngle(), d_angle);
 }
 
 TEST(ConicTest, ConicSetImplicit) {
   double smajor = 100., sminor = 70., xcen = 300., ycen = 50., angle = 0.;
   Conic conic_var(smajor, sminor, xcen, ycen, angle);
   std::array<double, IMPLICIT_PARAM> impl;
-  impl = conic_var.GetImplicit();
+  impl = conic_var.getImplicit();
 
   // Comparing with MATLAB version of software to ensure alignment and correct values
   // double impl_a = 1.1750273695215061e-05;
@@ -133,7 +133,7 @@ TEST(ConicTest, ConicSetImplicit) {
   EXPECT_DOUBLE_EQ(impl.at(5), impl_f);
 
   Eigen::Matrix3d locus;
-  locus = conic_var.GetLocus();
+  locus = conic_var.getLocus();
 
   EXPECT_DOUBLE_EQ(locus(0,0), impl_a);
   EXPECT_DOUBLE_EQ(locus(0,1), impl_b/2);
@@ -154,8 +154,8 @@ TEST(ConicTest, LocusEnvelopeConversion) {
   double last_impl = 1/impl.at(5);
   
   Conic conic_var;
-  conic_var.SetImplicitParameters(impl);
-  conic_var.NormalizeImplicitParameters(impl);
+  conic_var.setImplicitParameters(impl);
+  normalizeImplicitParameters(impl);
 
   EXPECT_DOUBLE_EQ(impl.at(0), 1.*last_impl);
   EXPECT_DOUBLE_EQ(impl.at(1), 0.*last_impl);

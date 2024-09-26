@@ -33,7 +33,7 @@ TEST(QuadricTest, MakingQuadric) {
   double lat = 0, lon = 0, radius = 200;
   std::string id = "testLatLon";
   Quadric quad(lat, lon, radius, id);
-  std::cerr << quad << std::endl;
+  // std::cerr << quad << std::endl;
   // std::cerr << quad.GetLocus() << std::endl;
   Eigen::Matrix3d t_e2m;
   // For clarity: we use a passive transformation, not an active rotation
@@ -43,18 +43,18 @@ TEST(QuadricTest, MakingQuadric) {
   t_e2m <<  0, 0, 1, 
             1, 0, 0, 
             0, 1, 0;
-  Eigen::Vector3d X = Eigen::Vector3d::UnitX();
-  Eigen::Vector3d Y = Eigen::Vector3d::UnitY();
-  Eigen::Vector3d Z = Eigen::Vector3d::UnitZ();
   ASSERT_TRUE(quad.getQuadricTransformationMatrix()==t_e2m);
-  std::cout << "X vector pointing here : " << (t_e2m*X).transpose() << std::endl;
-  std::cout << "Y vector pointing here : " << (t_e2m*Y).transpose() << std::endl;
-  std::cout << "Z vector pointing here : " << (t_e2m*Z).transpose() << std::endl;
+  // Eigen::Vector3d X = Eigen::Vector3d::UnitX();
+  // Eigen::Vector3d Y = Eigen::Vector3d::UnitY();
+  // Eigen::Vector3d Z = Eigen::Vector3d::UnitZ();
+  // std::cout << "X vector pointing here : " << (t_e2m*X).transpose() << std::endl;
+  // std::cout << "Y vector pointing here : " << (t_e2m*Y).transpose() << std::endl;
+  // std::cout << "Z vector pointing here : " << (t_e2m*Z).transpose() << std::endl;
   
   Quadric north_pole(89, 0, radius, "northPole");
-  std::cerr << north_pole << std::endl;
+  // std::cerr << north_pole << std::endl;
   // std::cerr << north_pole.GetLocus() << std::endl;
-  std::cerr << north_pole.getQuadricTransformationMatrix() << std::endl;
+  // std::cerr << north_pole.getQuadricTransformationMatrix() << std::endl;
   // std::cerr << "Center to crater radius: " << calculateCraterRimFromRadius(500) << std::endl;
 }
 
@@ -104,7 +104,6 @@ TEST(QuadricTest, AxisOfRotationQuadrics) {
   Eigen::Vector3d axis_check(3);
   // Moving from 0 degrees latitude up to 30 degrees latitude makes axis in -y direction
   axis_check << 0, -1, 0;
-  std::cout << "Axis normal: " << axis_normal.transpose() << std::endl;
   ASSERT_TRUE(axis_normal.isApprox(axis_check));
   ASSERT_THROW(q1.getAxisNormalToQuadrics(q1_copy), std::runtime_error);
 }

@@ -19,10 +19,10 @@ void drawEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
     return; 
   }
   cv::Point center;
-  conic.GetCenter(center);
+  conic.getCenter(center);
   // Drawing the ellipse 
   cv::ellipse(image, center, 
-              conic.GetSize(), conic.GetAngle(), 
+              conic.getSize(), conic.getAngle(), 
               0, 360, 
               color, -1, cv::LINE_AA); 
 
@@ -34,7 +34,7 @@ void drawEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
   cv::Point ll_offset(-10, -35);
   cv::Point ur_offset( 50,  20);
   cv::rectangle (image, center+ll_offset, center+ur_offset, rect_color, cv::FILLED, cv::LINE_8, 0);
-  cv::putText(image, std::to_string(conic.GetID()), center, font, font_scale,
+  cv::putText(image, std::to_string(conic.getID()), center, font, font_scale,
               text_color, thickness, cv::LINE_AA, false);
 }
 

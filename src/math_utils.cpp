@@ -265,7 +265,17 @@ void eulerToDCM(const double roll,
 
 // Templated version is in header
 void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec) {
-  Eigen::Vector3d::Map(&vec[0], eig.size()) = eig;
+  try {
+    Eigen::Vector3d::Map(&vec[0], eig.size()) = eig;
+  }
+  catch (const std::exception& e) {
+    std::cerr << "Could not convert " << eig.transpose() << " to ";
+    for (const auto& elem : vec) {
+      std::cerr << elem << ", ";
+    }
+    std::cout << std::endl;
+    throw std::runtime_error("Cannot convert eigen3 vector to std::vector.");
+  }
 }
 
 // Templated version is in header

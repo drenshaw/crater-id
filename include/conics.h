@@ -25,60 +25,55 @@ bool almost_equal(const T a, const T b) {
 class Conic {
   public:
   // TODO: update constructor with modern C++ member initializers
-    Conic(const double=1, const double=1, const double=0, 
-          const double=0, const double=0);
+    Conic(const double semimajor_axis=1, const double semiminor_axis=1, 
+          const double x_center=0, const double y_center=0, const double angle=0);
     Conic(const std::array<double, GEOMETRIC_PARAM>&);
     Conic(const std::vector<double>&);
+    Conic(const Eigen::Matrix3d& locus);
     bool operator==(const Conic& other_conic) const;
     bool operator!=(const Conic& other_conic) const;
-    void SetGeometricParameters(const std::array<double, GEOMETRIC_PARAM>&);
-    void SetGeometricParameters(const std::vector<double>&);
-    void SetGeometricParameters(const double, 
+    void setGeometricParameters(const std::array<double, GEOMETRIC_PARAM>&);
+    void setGeometricParameters(const std::vector<double>&);
+    void setGeometricParameters(const double, 
                                 const double, 
                                 const double, 
                                 const double, 
                                 const double);
-    void SetSemimajorAxis(const double semimajor_axis);
-    void SetSemiminorAxis(const double semiminor_axis);
-    void SetCenterX(const double x_center);
-    void SetCenterY(const double y_center);
-    void SetAngle(const double angle);                                
-    void SetImplicitParameters(const std::array<double, IMPLICIT_PARAM>&);
-    void SetLocus(const Eigen::Matrix3d& locus);
-    void NormalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>&) const ;
-    void NormalizeImplicitParameters(std::vector<double>&) const ;
-    Eigen::Vector2d GetCenter() const;
-    double GetCenterX() const;
-    double GetCenterY() const;
-    void GetCenter(Eigen::Vector2d& center) const;
-    void GetCenter(cv::Point& center) const;
-    double GetSemiMajorAxis() const;
-    double GetSemiMinorAxis() const;
-    cv::Size GetSemiAxes() const;
-    void GetSemiAxes(Eigen::Vector2d& semiaxes) const;
-    void GetSemiAxes(cv::Point& semiaxes) const;
-    void GetSemiAxes(cv::Size& semiaxes) const;
-    cv::Size GetSize() const;
-    void GetSize(cv::Size& semiaxes) const;
-    double GetAngle() const;
-    int GetID() const;
-    std::array<double, GEOMETRIC_PARAM> GetGeom() const ;
-    std::array<double, IMPLICIT_PARAM> GetImplicit() const ;
-    Eigen::Matrix3d GetLocus() const ;
-    Eigen::Matrix3d GetEnvelope() const ;
-    // Eigen::Matrix3d getAdjugateMatrix(const Eigen::Matrix3d&) const ;
-    std::array<double, IMPLICIT_PARAM> Locus2Implicit(const Eigen::Matrix3d&) const ;
-    std::array<double, GEOMETRIC_PARAM> Implicit2Geom(const std::array<double, IMPLICIT_PARAM>&) const ;
-    Eigen::Matrix3d Geom2Locus() const ;
-    Eigen::Matrix3d Implicit2Locus(const std::array<double, IMPLICIT_PARAM>&) const ;
-    Eigen::Matrix3d Implicit2Locus() const ;
-    std::array<double, GEOMETRIC_PARAM> Locus2Geom(const Eigen::Matrix3d&) const ;
-    std::array<double, IMPLICIT_PARAM> Geom2Implicit() const ;
-    bool conicIntersectionLines(const Eigen::Matrix3d&, 
+    void setSemimajorAxis(const double semimajor_axis);
+    void setSemiminorAxis(const double semiminor_axis);
+    void setCenterX(const double x_center);
+    void setCenterY(const double y_center);
+    void setAngle(const double angle);                                
+    void setImplicitParameters(const std::array<double, IMPLICIT_PARAM>&);
+    void setLocus(const Eigen::Matrix3d& locus);
+    Eigen::Vector2d getCenter() const;
+    double getCenterX() const;
+    double getCenterY() const;
+    void getCenter(Eigen::Vector2d& center) const;
+    void getCenter(cv::Point& center) const;
+    double getSemiMajorAxis() const;
+    double getSemiMinorAxis() const;
+    cv::Size getSemiAxes() const;
+    void getSemiAxes(Eigen::Vector2d& semiaxes) const;
+    void getSemiAxes(cv::Point& semiaxes) const;
+    void getSemiAxes(cv::Size& semiaxes) const;
+    cv::Size getSize() const;
+    void getSize(cv::Size& semiaxes) const;
+    double getAngle() const;
+    int getID() const;
+    void normalizeImplicitParams();
+    std::array<double, GEOMETRIC_PARAM> getGeom() const ;
+    std::array<double, IMPLICIT_PARAM> getImplicit() const ;
+    Eigen::Matrix3d getLocus() const ;
+    Eigen::Matrix3d getEnvelope() const ;
+    Eigen::Matrix3d toLocus() const ;
+    std::array<double, GEOMETRIC_PARAM> fromLocus(const Eigen::Matrix3d&) const ;
+    std::array<double, IMPLICIT_PARAM> toImplicit() const ;
+    bool intersectsConic(const Eigen::Matrix3d&, 
                                 std::tuple<Eigen::Vector3d, Eigen::Vector3d>&) const ;
-    bool conicIntersectionLines(const Conic&,
+    bool intersectsConicLines(const Conic&,
                                 std::tuple<Eigen::Vector3d, Eigen::Vector3d>&) const ;
-    bool chooseConicIntersection(const Conic& other, Eigen::Vector3d&) const ;
+    bool chooseIntersection(const Conic& other, Eigen::Vector3d&) const ;
     
   protected:
     static int next_id;
@@ -95,19 +90,27 @@ class Conic {
     friend std::ostream& operator<<(std::ostream& os, const Conic&);
 };
 
-class ConicImplicit {
-  ConicImplicit();
-};
 
-class ConicGeometry {
-  ConicGeometry();
-};
+/*********************************************************/
+/***********************Conic Utils***********************/
+/*********************************************************/
 
-class ConicMatrix {
-  ConicMatrix();
-}; 
-// void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::array<double, CONIC_DIM>& arr);
-// void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec);
+// Convert to/from representations
+std::array<double, IMPLICIT_PARAM> locus2Implicit(const Eigen::Matrix3d& locus);
+std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLICIT_PARAM>& impl_params);
+std::array<double, IMPLICIT_PARAM> geom2Implicit( const double semimajor_axis, 
+                                                  const double semiminor_axis, 
+                                                  const double x_center, 
+                                                  const double y_center, 
+                                                  const double angle);
+
+std::array<double, GEOMETRIC_PARAM> locus2Geom(const Eigen::Matrix3d& locus);
+Eigen::Matrix3d implicit2Locus(const std::array<double, IMPLICIT_PARAM>& impl_params);
+
+ // General Conic Utils
+void normalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>& impl_params) ;
+void normalizeImplicitParameters(std::vector<double>& impl_params) ;
+
 
 /*********************************************************/
 /***********************INVARIANTS************************/

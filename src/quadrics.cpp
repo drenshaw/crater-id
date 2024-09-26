@@ -128,7 +128,7 @@ Eigen::Vector4d SurfacePointToPlane(const Eigen::Matrix3d& T_e2m,
 
 Eigen::Matrix4d GenerateQuadricLocusFromRadiusNormal(const Eigen::Vector3d& position, const double radius) {
   Conic conic(radius, radius, 0, 0, 0);
-  Eigen::Matrix3d conic_envelope = conic.GetEnvelope();
+  Eigen::Matrix3d conic_envelope = conic.getEnvelope();
 
   Eigen::Matrix3d T_enu_to_ref = getENUFrame(position);
   std::cout << T_enu_to_ref << std::endl;
