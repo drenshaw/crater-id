@@ -25,91 +25,90 @@ TEST_CASE( "Factorial of 0 is 1 (fail)", "[single-file]" ) {
 class ConicTest : public testing::Test {
   protected:
     ConicTest() {
-      // std::array<double, 5> arr = {10.0, 7.0, 300.0, 50.0, 0.0};
-      // Conic conic_arr(arr);
+      smajor = 100., sminor = 70., xcen = 300., ycen = 50., angle = 0.;
+      arr = {smajor, sminor, xcen, ycen, angle};
+      conic_a = new Conic(smajor, sminor, xcen, ycen, angle);
+      conic_arr = new Conic(arr);
       // c_arr.setGeometricParameters(arr);
     }
   public:
-      // // ~QueueTest() override = default;
-  // Queue<int> q0_;
-  // Queue<int> q1_;
-  // Queue<int> q2_;
+    Conic* conic_a;
+    Conic* conic_b;
+    Conic* conic_arr;
+    double smajor, sminor, xcen, ycen, angle;
+    std::array<double, GEOMETRIC_PARAM> arr;
+    // ~QueueTest() override = default;
 };
 
-TEST(ConicTest, CheckId) {
+TEST_F(ConicTest, CheckId) {
   // TODO: Can we ensure that this test runs first of all the conic tests?
   // TODO: Maybe the test should only ensure ID increments from one to another
-  Conic conic1(100.0, 70.0, 300.0, 50.0, 0.0);
-  EXPECT_EQ(conic1.getID(), 0);
-  Conic conic2(100.0, 70.0, 300.0, 50.0, 0.0);
-  EXPECT_EQ(conic2.getID(), 1);
+  EXPECT_EQ(conic_a  ->getID(), 0);
+  EXPECT_EQ(conic_arr->getID(), 1);
 }
 
-TEST(ConicTest, ConicInit) {
-  double smajor = 100., sminor = 70., xcen = 300., ycen = 50., angle = 0.;
-  std::array<double, GEOMETRIC_PARAM> arr = {smajor, sminor, xcen, ycen, angle};
-
-  Conic conic_arr(arr);
-  ASSERT_DOUBLE_EQ(conic_arr.getSemiMajorAxis(), smajor);
-  ASSERT_DOUBLE_EQ(conic_arr.getSemiMinorAxis(), sminor);
-  ASSERT_DOUBLE_EQ(conic_arr.getCenterX(), xcen);
-  ASSERT_DOUBLE_EQ(conic_arr.getCenterY(), ycen);
-  ASSERT_DOUBLE_EQ(conic_arr.getAngle(), angle);
+TEST_F(ConicTest, ConicInit) {
+  ASSERT_DOUBLE_EQ(conic_arr->getSemiMajorAxis(), smajor);
+  ASSERT_DOUBLE_EQ(conic_arr->getSemiMinorAxis(), sminor);
+  ASSERT_DOUBLE_EQ(conic_arr->getCenterX(), xcen);
+  ASSERT_DOUBLE_EQ(conic_arr->getCenterY(), ycen);
+  ASSERT_DOUBLE_EQ(conic_arr->getAngle(), angle);
 }
 
-TEST(ConicTest, ConicEqual) {
-  double smajor = 100., sminor = 70., xcen = 300., ycen = 50., angle = 0.;
+TEST_F(ConicTest, ConicEqual) {
   std::vector<double> vec = {smajor, sminor, xcen, ycen, angle};
-  std::array<double, GEOMETRIC_PARAM> arr;
-  io::copy_vec2array(vec, arr);
+  std::array<double, GEOMETRIC_PARAM> tmp_arr;
+  io::copy_vec2array(vec, tmp_arr);
 
   Conic conic_vec(vec);
-  Conic conic_arr(arr);
-  Conic conic_var(smajor, sminor, xcen, ycen, angle);  
-  ASSERT_EQ(conic_arr, conic_var);
-  ASSERT_EQ(conic_arr, conic_vec);
+  // Conic conic_arr(tmp_arr);
+  // Conic conic_var(smajor, sminor, xcen, ycen, angle);  
+  EXPECT_EQ(*conic_a,   conic_arr);
+  EXPECT_EQ(conic_vec, conic_arr);
 }
 
-TEST(ConicTest, ConicNotEqual) {
-  double smajor = 100., sminor = 70., xcen = 300., ycen = 50., angle = 0.;
-  Conic conic_var(smajor, sminor, xcen, ycen, angle); 
+TEST_F(ConicTest, ConicNotEqual) {
   Conic conic_major(smajor+1, sminor, xcen, ycen, angle); 
   Conic conic_minor(smajor, sminor+1, xcen, ycen, angle); 
   Conic conic_xcenter(smajor, sminor, xcen+1, ycen, angle); 
   Conic conic_ycenter(smajor, sminor, xcen, ycen+1, angle); 
   Conic conic_angle(smajor, sminor, xcen, ycen, angle+1); 
 
-  ASSERT_NE(conic_var, conic_major);
-  ASSERT_NE(conic_var, conic_minor);
-  ASSERT_NE(conic_var, conic_xcenter);
-  ASSERT_NE(conic_var, conic_ycenter);
-  ASSERT_NE(conic_var, conic_angle);
+  // Messing with malloc'd objects makes things interesting
+  ASSERT_NE(*conic_a, conic_major);
+  ASSERT_NE(*conic_a, conic_minor);
+  ASSERT_NE(*conic_a, conic_xcenter);
+  ASSERT_NE(*conic_a, conic_ycenter);
+  ASSERT_NE(*conic_a, conic_angle);
+  ASSERT_NE(conic_major,   *conic_a);
+  ASSERT_NE(conic_minor,   *conic_a);
+  ASSERT_NE(conic_xcenter, *conic_a);
+  ASSERT_NE(conic_ycenter, *conic_a);
+  ASSERT_NE(conic_angle,   *conic_a);
 }
 
-TEST(ConicTest, ConicSetIndividualParameters) {
-  double smajor = 100., sminor = 70., xcen = 300., ycen = 50., angle = 0.;
-  Conic conic_var(smajor, sminor, xcen, ycen, angle);
+TEST_F(ConicTest, ConicSetIndividualParameters) {
+  Conic conic_empty(smajor, sminor, xcen, ycen, angle);
+  // Conic conic_empty();
 
   // Changing values
   double d_smajor = 200., d_sminor = 60., d_xcen = 200., d_ycen = 70., d_angle = 10.;
-  conic_var.setSemimajorAxis(d_smajor);
-  conic_var.setSemiminorAxis(d_sminor);
-  conic_var.setCenterX(d_xcen);
-  conic_var.setCenterY(d_ycen);
-  conic_var.setAngle(d_angle);
+  conic_empty.setSemimajorAxis(d_smajor);
+  conic_empty.setSemiminorAxis(d_sminor);
+  conic_empty.setCenterX(d_xcen);
+  conic_empty.setCenterY(d_ycen);
+  conic_empty.setAngle(d_angle);
 
-  EXPECT_DOUBLE_EQ(conic_var.getSemiMajorAxis(), d_smajor);
-  EXPECT_DOUBLE_EQ(conic_var.getSemiMinorAxis(), d_sminor);
-  EXPECT_DOUBLE_EQ(conic_var.getCenterX(), d_xcen);
-  EXPECT_DOUBLE_EQ(conic_var.getCenterY(), d_ycen);
-  EXPECT_DOUBLE_EQ(conic_var.getAngle(), d_angle);
+  EXPECT_DOUBLE_EQ(conic_empty.getSemiMajorAxis(), d_smajor);
+  EXPECT_DOUBLE_EQ(conic_empty.getSemiMinorAxis(), d_sminor);
+  EXPECT_DOUBLE_EQ(conic_empty.getCenterX(), d_xcen);
+  EXPECT_DOUBLE_EQ(conic_empty.getCenterY(), d_ycen);
+  EXPECT_DOUBLE_EQ(conic_empty.getAngle(), d_angle);
 }
 
-TEST(ConicTest, ConicSetImplicit) {
-  double smajor = 100., sminor = 70., xcen = 300., ycen = 50., angle = 0.;
-  Conic conic_var(smajor, sminor, xcen, ycen, angle);
+TEST_F(ConicTest, ConicSetImplicit) {
   std::array<double, IMPLICIT_PARAM> impl;
-  impl = conic_var.getImplicit();
+  impl = conic_a->getImplicit();
 
   // Comparing with MATLAB version of software to ensure alignment and correct values
   // double impl_a = 1.1750273695215061e-05;
@@ -132,8 +131,7 @@ TEST(ConicTest, ConicSetImplicit) {
   EXPECT_DOUBLE_EQ(impl.at(4), impl_e);
   EXPECT_DOUBLE_EQ(impl.at(5), impl_f);
 
-  Eigen::Matrix3d locus;
-  locus = conic_var.getLocus();
+  Eigen::Matrix3d locus = conic_a->getLocus();
 
   EXPECT_DOUBLE_EQ(locus(0,0), impl_a);
   EXPECT_DOUBLE_EQ(locus(0,1), impl_b/2);
@@ -147,14 +145,14 @@ TEST(ConicTest, ConicSetImplicit) {
   EXPECT_DOUBLE_EQ(locus(1,2), locus(2,1));
 }
 
-TEST(ConicTest, LocusEnvelopeConversion) {
+TEST_F(ConicTest, LocusEnvelopeConversion) {
   std::array<double, IMPLICIT_PARAM> impl = {1, 0, 3, 4, 5, 7};
   double impl_norm = vectorNorm(impl);
   ASSERT_NE(impl_norm, 0);
   double last_impl = 1/impl.at(5);
   
-  Conic conic_var;
-  conic_var.setImplicitParameters(impl);
+  Conic conic_env_conversion;
+  conic_env_conversion.setImplicitParameters(impl);
   normalizeImplicitParameters(impl);
 
   EXPECT_DOUBLE_EQ(impl.at(0), 1.*last_impl);
@@ -165,7 +163,7 @@ TEST(ConicTest, LocusEnvelopeConversion) {
   EXPECT_DOUBLE_EQ(impl.at(5), 1.0);
 }
 
-TEST(ConicTest, ConvertEigenVectorToVector) {
+TEST_F(ConicTest, ConvertEigenVectorToVector) {
   std::array<double, CONIC_DIM> arr;
   std::vector<double> vec;
   vec.reserve(CONIC_DIM);

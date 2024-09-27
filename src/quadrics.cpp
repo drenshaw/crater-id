@@ -79,7 +79,25 @@ Quadric::Quadric(const std::string id, const double lat, const double lon, const
   Quadric(calculateCraterRimFromRadius(radius)*latlon2bearing(lat, lon), radius, id) {}
 Quadric::Quadric(const std::string id, const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal) :
   Quadric(position, radius, surface_normal, id) {}
-        
+
+bool Quadric::operator==(const Quadric& other_quadric) const {
+  return  this->getPlane().isApprox(other_quadric.getPlane()) &&
+          this->getLocation().isApprox(other_quadric.getLocation()) &&
+          std::abs(this->getRadius() - other_quadric.getRadius()) < 1e-3;
+}
+
+bool Quadric::operator!=(const Quadric& other_quadric) const {
+  return  !operator==(other_quadric);
+}
+
+bool Quadric::operator==(const Quadric* other_quadric) const {
+  return  operator==(*other_quadric);
+}
+
+bool Quadric::operator!=(const Quadric* other_quadric) const {
+  return  !operator==(other_quadric);
+}
+
 Eigen::Matrix4d Quadric::generateQuadricLocus() const {
   return GenerateQuadricLocusFromRadiusNormal(surface_point_, radius_);
 }
@@ -136,6 +154,10 @@ Eigen::Vector3d Quadric::getAxisNormalToQuadrics(const Quadric& other_quadric) c
 
 double Quadric::getRadius() const {
   return radius_;
+}
+
+std::string Quadric::getID() const {
+  return id_;
 }
 
 

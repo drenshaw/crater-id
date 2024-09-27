@@ -10,6 +10,7 @@
 
 int Conic::next_id = 0;
 
+// Conic::Conic() : Conic(1, 1, 0, 0, 0) {}
 Conic::Conic(const double semimajor_axis, 
              const double semiminor_axis, 
              const double x_center, 
@@ -59,11 +60,15 @@ bool Conic::operator==(const Conic& other_conic) const {
 }
 
 bool Conic::operator!=(const Conic& other_conic) const {
-  return  !almost_equal(semimajor_axis_, other_conic.semimajor_axis_) ||
-          !almost_equal(semiminor_axis_, other_conic.semiminor_axis_) ||
-          !almost_equal(x_center_, other_conic.x_center_) ||
-          !almost_equal(y_center_, other_conic.y_center_) ||
-          !almost_equal(angle_, other_conic.angle_);
+  return  !operator==(other_conic);
+}
+
+bool Conic::operator==(const Conic* other_conic) const {
+  return  operator==(*other_conic);
+}
+
+bool Conic::operator!=(const Conic* other_conic) const {
+  return  !operator==(other_conic);
 }
 
 std::ostream& operator<<(std::ostream& os, const Conic& conic) {

@@ -32,6 +32,8 @@ class Conic {
     Conic(const Eigen::Matrix3d& locus);
     bool operator==(const Conic& other_conic) const;
     bool operator!=(const Conic& other_conic) const;
+    bool operator==(const Conic* other_conic) const;
+    bool operator!=(const Conic* other_conic) const;
     void setGeometricParameters(const std::array<double, GEOMETRIC_PARAM>&);
     void setGeometricParameters(const std::vector<double>&);
     void setGeometricParameters(const double, 

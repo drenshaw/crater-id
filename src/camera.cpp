@@ -6,10 +6,6 @@
 #include "camera.h"
 // TODO: Ensure that the "rotation" matrix is a transformation matrix, or transpose it
 
-cv::viz::Camera camera( 1000, 1000, 
-                        1296.5, 1024.5, 
-                        cv::Size(2048,1920));
-
 // This is the base constructor
 Camera::Camera( const double dx,
                 const double dy,
@@ -25,6 +21,13 @@ Camera::Camera( const double dx,
   intrinsic_matrix_ << dx, skew, up,
                         0,   dy, vp,
                         0,    0,  1;
+}
+
+Camera::Camera() : Camera(1000, 1000, 
+                          1296.5, 1024.5, 
+                          0.0, 
+                          cv::Size2i(2592, 2048)) {
+
 }
 
 // These are delegating constructors
@@ -148,13 +151,7 @@ std::array<double, CAMERA_INTRINSIC_PARAM> Camera::getIntrinsicParams() const {
 
 void Camera::getIntrinsicParams(std::array<double, CAMERA_INTRINSIC_PARAM>& params) const {
   Eigen::Matrix3d cam_intrinsic_mtx = this->getIntrinsicMatrix();
-  params = {
-    cam_intrinsic_mtx(0, 0),
-    cam_intrinsic_mtx(0, 1),
-    cam_intrinsic_mtx(0, 2),
-    cam_intrinsic_mtx(1, 1),
-    cam_intrinsic_mtx(1, 2)
-  };
+  getCameraIntrinsicParams(cam_intrinsic_mtx, params);
 }
 
 Eigen::Vector3d Camera::getPointWrtCameraFrame(const Eigen::Vector3d& pt) const {
@@ -162,6 +159,24 @@ Eigen::Vector3d Camera::getPointWrtCameraFrame(const Eigen::Vector3d& pt) const 
   Eigen::Vector3d pt_cam = this->getAttitudeMatrix() * pt;
   return pt_cam - cam_position;
 }
+
+double Camera::getImageWidth() const {
+  return this->image_size_.width;
+}
+
+double Camera::getImageHeight() const {
+  return this->image_size_.height;
+}
+
+
+double Camera::getFovX() const {
+  return getCameraFovX(this->intrinsic_matrix_, this->image_size_);
+}
+
+double Camera::getFovY() const {
+  return getCameraFovY(this->intrinsic_matrix_, this->image_size_);
+}
+
 
 bool Camera::isInFrontOfCamera(const Eigen::Vector3d& pt) const {
   Eigen::Vector3d pt_wrt_cam_cam = this->getPointWrtCameraFrame(pt);
@@ -233,5 +248,51 @@ bool Camera::setExtrinsicMatrix(const Eigen::Matrix3d& extrinsic) {
 }
 
 
-/*****************************************************/
+/***********************Utils**************************/
 
+
+void getCameraIntrinsicParams(const Eigen::Matrix3d& cam_intrinsic_mtx,
+                        std::array<double, CAMERA_INTRINSIC_PARAM>& params) {
+  params = {
+    cam_intrinsic_mtx(0, 0),
+    cam_intrinsic_mtx(0, 1),
+    cam_intrinsic_mtx(0, 2),
+    cam_intrinsic_mtx(1, 1),
+    cam_intrinsic_mtx(1, 2)
+  };
+}
+
+Eigen::Matrix3d getCameraInverseIntrinsicMatrix(const Eigen::Matrix3d& camera_intrinsic_mtx) {
+  Eigen::Matrix3d inv_intrinsic;
+  double dx, dy, up, vp, skew;
+  std::array<double, CAMERA_INTRINSIC_PARAM> params;
+  getCameraIntrinsicParams(camera_intrinsic_mtx, params);
+  dx   = params.at(0);
+  skew = params.at(1);
+  up   = params.at(2);
+  dy   = params.at(3);
+  vp   = params.at(4);
+  inv_intrinsic <<  1/dx, -skew/(dx*dy), (skew*vp - dy*up)/(dx*dy),
+                    0, 1/dy, -vp/dy,
+                    0, 0, 1;
+  return inv_intrinsic;
+}
+double getCameraFovX(const Eigen::Matrix3d& camera_intrinsic_mtx, const cv::Size2i& image_size) {
+  double width = image_size.width;
+  Eigen::Matrix3d inv_intrinsic = getCameraInverseIntrinsicMatrix(camera_intrinsic_mtx);
+  Eigen::Vector3d topLeft = Eigen::Vector3d::UnitZ();
+  Eigen::Vector3d topRight(width, 0, 1);
+  Eigen::Vector3d p1 = (inv_intrinsic * topLeft ).normalized();
+  Eigen::Vector3d p2 = (inv_intrinsic * topRight).normalized();
+  return std::acos(p1.dot(p2));
+}
+
+double getCameraFovY(const Eigen::Matrix3d& camera_intrinsic_mtx, const cv::Size2i& image_size) {
+  double height = image_size.height;
+  Eigen::Matrix3d inv_intrinsic = getCameraInverseIntrinsicMatrix(camera_intrinsic_mtx);
+  Eigen::Vector3d topLeft = Eigen::Vector3d::UnitZ();
+  Eigen::Vector3d bottomLeft(0, height, 1);
+  Eigen::Vector3d p1 = (inv_intrinsic * topLeft   ).normalized();
+  Eigen::Vector3d p2 = (inv_intrinsic * bottomLeft).normalized();
+  return std::acos(p1.dot(p2));
+}

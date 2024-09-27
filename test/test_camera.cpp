@@ -13,38 +13,42 @@
 class CameraTest : public testing::Test {
   protected:
     CameraTest() {
-      // std::array<double, 5> arr = {10.0, 7.0, 300.0, 50.0, 0.0};
-      // Conic conic_arr(arr);
-      // c_arr.SetGeometricParameters(arr);
+      dx = 1000, dy = 1000, skew = 0, im_height = 2048, im_width = 2592;
+      up = (im_width+1)/2;
+      vp = (im_height+1)/2;
+      image_size = cv::Size(im_width, im_height);
+      cam = new Camera(dx, dy, up, vp, skew, image_size, quat, position);
+      cv_cam = new cv::viz::Camera(dx, dy, up, vp, image_size);
+    }
+    ~CameraTest() override {
+      delete cam;
+      delete cv_cam;
     }
   public:
+      double dx, dy, skew, im_height, im_width, up, vp;
+      cv::Size2i image_size;
+      Eigen::Quaterniond quat = Eigen::Quaterniond::Identity();
+      Eigen::Vector3d position{1,2,-3e4};
+
+      Camera* cam;
+      cv::viz::Camera* cv_cam;
       // // ~QueueTest() override = default;
   // Queue<int> q0_;
   // Queue<int> q1_;
   // Queue<int> q2_;
 };
 
-TEST(CameraTest, InitCamera) {
-  cv::viz::Camera camera(1000, 1000, 1296.5, 1024.5, cv::Size(2048,1920));
-  // std::cerr << "Camera fov: \n" << rad2deg(camera.getFov()[0]) << " | " << rad2deg(camera.getFov()[1]) << std::endl;
-  cv::Matx44d proj;
-  camera.computeProjectionMatrix(proj);
-  // std::cerr << "Projection matrix:\n" << proj;
-  Eigen::Quaterniond quat = Eigen::Quaterniond::Identity();
-
-  Eigen::Vector3d position{1,2,-3e4};
-  cv::Size2i image_size(2048, 1920);
-  Camera cam(1000, 1000, 1296.5, 1024.5, 0.0, image_size, quat, position);
-  Eigen::Matrix4d extrinsic_h = cam.getHomogeneousExtrinsicMatrix();
-  Eigen::Matrix3d intrinsic = cam.getIntrinsicMatrix();
-  Eigen::MatrixXd extrinsic = cam.getExtrinsicMatrix();
-  Eigen::MatrixXd proj_mtx = cam.getProjectionMatrix();
+TEST_F(CameraTest, InitCamera) {
+  Eigen::Matrix4d extrinsic_h = cam->getHomogeneousExtrinsicMatrix();
+  Eigen::Matrix3d intrinsic   = cam->getIntrinsicMatrix();
+  Eigen::MatrixXd extrinsic   = cam->getExtrinsicMatrix();
+  Eigen::MatrixXd proj_mtx    = cam->getProjectionMatrix();
   std::cout << "Extrinsic Matrix:\n" << extrinsic_h << std::endl;
   std::cout << "Intrinsic Matrix:\n" << intrinsic << std::endl;
   std::cout << "Intrinsic Matrix:\n" << intrinsic << std::endl;
   std::cout << "\nExtrinsic (nonhomogeneous) Matrix:\n" << extrinsic << std::endl;
   std::cout << "\nExpected Projection Matrix:\n" << intrinsic*extrinsic << std::endl;
-  std::cout << "\nProjection Matrix:\n" << cam.getHomogeneousProjectionMatrix() << std::endl;
+  std::cout << "\nProjection Matrix:\n" << cam->getHomogeneousProjectionMatrix() << std::endl;
 
   Quadric quad(-89, 0, 200, "south_pole");
   Eigen::Matrix4d q_locus = quad.getLocus();
@@ -56,14 +60,14 @@ TEST(CameraTest, InitCamera) {
   for(int i = 0; i < 10; i++) {
     Eigen::Vector3d pt = {i*5e3,0,0};
     Eigen::Vector2d proj_pt;
-    cam.projectXYZtoImage(pt, proj_pt);
+    cam->projectXYZtoImage(pt, proj_pt);
     std::cout << "Projected point: " << proj_pt.transpose() << " | " << pt.transpose() << std::endl;
-    std::cout << "Point is in front of camera? " << (cam.isInCameraFrame(pt) ? "yes":"no") << std::endl;
+    std::cout << "Point is in front of camera? " << (cam->isInCameraFrame(pt) ? "yes":"no") << std::endl;
 
   }
 
-  Eigen::Quaterniond rot1 = Eigen::Quaterniond::Identity();
-  std::cout << "Quat:" << rot1 << std::endl;
+  // Eigen::Quaterniond rot1 = Eigen::Quaterniond::Identity();
+  // std::cout << "Quat:" << rot1 << std::endl;
   Eigen::Transform<double, 3, Eigen::Projective>  transformation;
   // Eigen::Transform<double, 3, Eigen::AffineCompact3d>  iso;
   double rx = 0, ry = 0, rz = 10, rw = 10;
@@ -75,4 +79,6 @@ TEST(CameraTest, InitCamera) {
   std::cout << "Transform\n" << transformation.rotation()*vec + transformation.translation() << std::endl;
 }
 
-// TODO LIST: flesh out the camera class and constructors, then test, then work on projections
+TEST_F(CameraTest, CameraFOVX) {
+
+}

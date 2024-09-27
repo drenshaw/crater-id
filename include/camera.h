@@ -8,6 +8,7 @@
 
 class Camera {
   public:
+    Camera();
     Camera( const double dx,
             const double dy,
             const double up,
@@ -57,6 +58,10 @@ class Camera {
     std::array<double, CAMERA_INTRINSIC_PARAM> getIntrinsicParams() const ;
     void getIntrinsicParams(std::array<double, CAMERA_INTRINSIC_PARAM>& params) const;
     Eigen::Vector3d getPointWrtCameraFrame(const Eigen::Vector3d& pt) const;
+    double getImageWidth() const;
+    double getImageHeight() const;
+    double getFovX() const;
+    double getFovY() const;
     bool isInFrontOfCamera(const Eigen::Vector3d& pt) const;
     bool isInCameraFrame(const Eigen::Vector3d& pt) const ;
     bool isInCameraFrame(const Eigen::Vector3d& pt, Eigen::Vector2d& pt_pxl) const;
@@ -83,4 +88,11 @@ class Camera {
     bool pointUVinImage(const Eigen::Vector2d& pt_uv) const;
 };
 
+
+/********************************************/
+void getCameraIntrinsicParams(const Eigen::Matrix3d& cam_intrinsic_mtx,
+                        std::array<double, CAMERA_INTRINSIC_PARAM>& params);
+Eigen::Matrix3d getCameraInverseIntrinsicMatrix(const Eigen::Matrix3d& camera_intrinsic_mtx);
+double getCameraFovX(const Eigen::Matrix3d& camera_intrinsic_mtx, const cv::Size2i& image_size);
+double getCameraFovY(const Eigen::Matrix3d& camera_intrinsic_mtx, const cv::Size2i& image_size);
 #endif

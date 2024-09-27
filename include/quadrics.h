@@ -13,7 +13,13 @@ class Quadric {
     Quadric(const std::string id, const Eigen::Vector3d&, const double);
     Quadric(const std::string id, const double, const double, const double);
     Quadric(const std::string id, const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal);
-    Quadric(const Eigen::Vector3d& pt1, const Eigen::Vector3d& pt2, const Eigen::Vector3d& pt3, std::string id);
+    Quadric(const Eigen::Vector3d& pt1, const Eigen::Vector3d& pt2, const Eigen::Vector3d& pt3, std::string id="");
+    
+    bool operator==(const Quadric& other_quadric) const;
+    bool operator!=(const Quadric& other_quadric) const;
+    bool operator==(const Quadric* other_quadric) const;
+    bool operator!=(const Quadric* other_quadric) const;
+    
     Eigen::Matrix3d getQuadricTransformationMatrix() const;
     Eigen::Matrix4d getLocus() const;
     Eigen::Vector3d getLocation() const;
@@ -25,6 +31,7 @@ class Quadric {
     double getAngleBetweenQuadrics(const Quadric& other_quadric) const;
     Eigen::Vector3d getAxisNormalToQuadrics(const Quadric& other_quadric) const;
     double getRadius() const;
+    std::string getID() const;
 
   private:
     Eigen::Matrix4d generateQuadricLocus() const ;    
