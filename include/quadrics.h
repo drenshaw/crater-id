@@ -2,7 +2,7 @@
 #define QUADRICS_H
 
 #include <iostream>
-#include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Geometry>
 
 class Quadric {
   public:
@@ -13,16 +13,18 @@ class Quadric {
     Quadric(const std::string id, const Eigen::Vector3d&, const double);
     Quadric(const std::string id, const double, const double, const double);
     Quadric(const std::string id, const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal);
+    Quadric(const Eigen::Vector3d& pt1, const Eigen::Vector3d& pt2, const Eigen::Vector3d& pt3, std::string id);
     Eigen::Matrix3d getQuadricTransformationMatrix() const;
     Eigen::Matrix4d getLocus() const;
     Eigen::Vector3d getLocation() const;
     void getLocation(Eigen::Vector3d& location) const;
     Eigen::Vector3d getNormal() const;
     void getNormal(Eigen::Vector3d& surface_normal) const;
-    Eigen::Vector4d getPlane() const;
-    void getPlane(Eigen::Vector4d& surface_normal) const;
+    Eigen::Hyperplane<double, 3> getPlane() const;
+    void getPlane(Eigen::Hyperplane<double, 3>& hyperplane) const;
     double getAngleBetweenQuadrics(const Quadric& other_quadric) const;
     Eigen::Vector3d getAxisNormalToQuadrics(const Quadric& other_quadric) const;
+    double getRadius() const;
 
   private:
     Eigen::Matrix4d generateQuadricLocus() const ;    
@@ -32,8 +34,7 @@ class Quadric {
     std::string id_;
     double radius_;
     Eigen::Vector3d surface_point_;
-    Eigen::Vector3d surface_normal_;
-    Eigen::Vector4d plane_;
+    Eigen::Hyperplane<double, 3> plane_;
     
     friend std::ostream& operator<<(std::ostream& os, const Quadric&);
 };
@@ -43,8 +44,8 @@ double calculateCraterRimFromRadius(const double radius);
 Eigen::Matrix4d GenerateQuadricLocusFromRadiusNormal(const Eigen::Vector3d& position, const double radius);
 Eigen::Matrix4d ConicEnvelopeToQuadricEnvelope(const Eigen::Matrix3d& conic_envelope, 
                                                const Eigen::MatrixXd& h_k);
-Eigen::Vector4d SurfacePointToPlane(const Eigen::Matrix3d& T_e2m, 
-                                    const Eigen::Vector3d& surface_point);
+Eigen::Hyperplane<double, 3> SurfacePointToPlane(const Eigen::Matrix3d& T_e2m, 
+                                                      const Eigen::Vector3d& surface_point);
 void GenerateQuadricFromRadiusNormal();
 Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d&, 
                                                     const Eigen::Matrix3d& T_e2m);

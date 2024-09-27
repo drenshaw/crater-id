@@ -58,7 +58,6 @@ class Camera {
     void getIntrinsicParams(std::array<double, CAMERA_INTRINSIC_PARAM>& params) const;
     Eigen::Vector3d getPointWrtCameraFrame(const Eigen::Vector3d& pt) const;
     bool isInFrontOfCamera(const Eigen::Vector3d& pt) const;
-    bool pointUVinImage(const Eigen::Vector2d& pt_uv) const;
     bool isInCameraFrame(const Eigen::Vector3d& pt) const ;
     bool isInCameraFrame(const Eigen::Vector3d& pt, Eigen::Vector2d& pt_pxl) const;
     void projectXYZtoImage(const Eigen::Vector3d& pt, Eigen::Vector2d& pt_pxl) const ;
@@ -81,9 +80,7 @@ class Camera {
     Eigen::Matrix3d intrinsic_matrix_;
     Eigen::Vector3d position_;
     Eigen::Quaterniond attitude_;
-    //  Eigen::Matrix4d extrinsic_matrix_;
-    //  Eigen::Matrix4d extrinsic_matrix4_;
-    // Eigen::Matrix4d projection_matrix_;
+    bool pointUVinImage(const Eigen::Vector2d& pt_uv) const;
 };
 
 #endif

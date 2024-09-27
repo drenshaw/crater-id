@@ -36,8 +36,10 @@ Camera::Camera( const Eigen::Matrix3d& intrinsic_mtx,
                   intrinsic_matrix_(intrinsic_mtx),
                   position_(position), 
                   attitude_(attitude.normalized()) {
-  // Note the Eigen quaternion has the scalar value last (i.e., v0, v1, v2, s)
+  // Note the Eigen quaternion has the scalar value last (i.e., v0, v1, v2, s) 
+  // when printing, BUUUUUUT when inputting the values, scalar part is first
   // However, you can access the elements using quat.vec() and quat.w()
+  // https://tools.glowbuzzer.com/rotationconverter for visualizations
 }
 Camera::Camera( const std::vector<double>& intrinsics, 
                 const cv::Size2i& image_size,

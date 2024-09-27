@@ -58,9 +58,21 @@ TEST(CameraTest, InitCamera) {
     Eigen::Vector2d proj_pt;
     cam.projectXYZtoImage(pt, proj_pt);
     std::cout << "Projected point: " << proj_pt.transpose() << " | " << pt.transpose() << std::endl;
-    // std::cout << "Point is in front of camera? " << (inFrame ? "yes":"no") << std::endl;
+    std::cout << "Point is in front of camera? " << (cam.isInCameraFrame(pt) ? "yes":"no") << std::endl;
 
   }
+
+  Eigen::Quaterniond rot1 = Eigen::Quaterniond::Identity();
+  std::cout << "Quat:" << rot1 << std::endl;
+  Eigen::Transform<double, 3, Eigen::Projective>  transformation;
+  // Eigen::Transform<double, 3, Eigen::AffineCompact3d>  iso;
+  double rx = 0, ry = 0, rz = 10, rw = 10;
+  Eigen::Quaterniond           rotation(Eigen::Quaterniond(rw, rx, ry, rz).normalized());
+  Eigen::Translation<double,3> translation(Eigen::Vector3d(1,2,3));
+  transformation = rotation * translation;
+  Eigen::Vector3d vec = {0.1, 0.2, 10};
+  std::cout << "Rotation:\n" << transformation.rotation() << "\nTranslation:\n" << transformation.translation()<< std::endl;
+  std::cout << "Transform\n" << transformation.rotation()*vec + transformation.translation() << std::endl;
 }
 
 // TODO LIST: flesh out the camera class and constructors, then test, then work on projections
