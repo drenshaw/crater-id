@@ -36,8 +36,8 @@ test_files = files([
   # 'test_io.cpp',
   # 'test_combinatorics.cpp',
   # 'test_invariants.cpp',
-  'test_camera.cpp',
   'test_quadrics.cpp',
+  'test_camera.cpp',
 ])
 
 testexe = executable(

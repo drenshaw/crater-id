@@ -1,8 +1,9 @@
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <opencv2/viz/types.hpp>
 
-// #include "math_utils.h"
+#include "math_utils.h"
 #include "camera.h"
 // TODO: Ensure that the "rotation" matrix is a transformation matrix, or transpose it
 
@@ -21,6 +22,8 @@ Camera::Camera( const double dx,
   intrinsic_matrix_ << dx, skew, up,
                         0,   dy, vp,
                         0,    0,  1;
+  Eigen::Translation3d translation(position);                        
+  this->state_ = attitude * translation;                     
 }
 
 Camera::Camera() : Camera(1000, 1000, 
@@ -75,15 +78,19 @@ Camera::Camera( const Eigen::Matrix3d& intrinsic,
 }
 
 Eigen::Vector3d Camera::getPosition() const {
-  return position_;
+  return this->position_;
+}
+
+Eigen::Vector3d Camera::getLocation() const {
+  return this->position_;
 }
 
 Eigen::Quaterniond Camera::getAttitude() const {
-  return attitude_;
+  return this->attitude_;
 }
 
 void Camera::getAttitude(Eigen::Quaterniond& quat) const {
-  quat = attitude_;
+  quat = this->attitude_;
 }
 
 Eigen::Quaterniond Camera::getAttitudeQuaternion() const {
@@ -91,7 +98,7 @@ Eigen::Quaterniond Camera::getAttitudeQuaternion() const {
 }
 
 Eigen::Matrix3d Camera::getAttitudeMatrix() const {
-  return attitude_.toRotationMatrix();
+  return this->attitude_.toRotationMatrix();
 }
 
 Eigen::Vector3d Camera::getAttitudeEuler(Eigen::Index a0, Eigen::Index a1, Eigen::Index a2) const {
@@ -168,15 +175,21 @@ double Camera::getImageHeight() const {
   return this->image_size_.height;
 }
 
-
 double Camera::getFovX() const {
   return getCameraFovX(this->intrinsic_matrix_, this->image_size_);
+}
+
+double Camera::getFovXDeg() const {
+  return getCameraFovXDeg(this->intrinsic_matrix_, this->image_size_);
 }
 
 double Camera::getFovY() const {
   return getCameraFovY(this->intrinsic_matrix_, this->image_size_);
 }
 
+double Camera::getFovYDeg() const {
+  return getCameraFovYDeg(this->intrinsic_matrix_, this->image_size_);
+}
 
 bool Camera::isInFrontOfCamera(const Eigen::Vector3d& pt) const {
   Eigen::Vector3d pt_wrt_cam_cam = this->getPointWrtCameraFrame(pt);
@@ -247,6 +260,32 @@ bool Camera::setExtrinsicMatrix(const Eigen::Matrix3d& extrinsic) {
   return true;
 }
 
+void Camera::moveCamera(const Eigen::Transform<double, 3, Eigen::Isometry>& transform) {
+  this->state_ = transform * this->state_;
+}
+
+// //Eigen::Transform<double, 3, Eigen::Isometry>
+// Eigen::Matrix3d Camera::getStatePosition() const {
+//   return this->state_.translation();
+// }
+
+
+
+std::ostream& operator<<(std::ostream& os, const Camera& cam) {
+  std::streamsize ss = std::cout.precision();
+  std::streamsize sw = std::cout.width();
+  return os 
+    << std::fixed << std::setw(8) << std::setprecision(1)
+    << "Camera -> (" << cam.getLocation().transpose() << ") "
+    << "\n\tAttitude: (" << cam.getAttitude() << ")"
+    << "\n\tFov: " << cam.getFovXDeg() << ", " << cam.getFovYDeg() << std::endl
+    << std::setprecision(ss) << std::setw(sw) << std::defaultfloat
+    ;
+}
+
+std::ostream& operator<<(std::ostream& os, const Camera* cam) {
+  return operator<<(os, *cam);
+}
 
 /***********************Utils**************************/
 
@@ -287,6 +326,10 @@ double getCameraFovX(const Eigen::Matrix3d& camera_intrinsic_mtx, const cv::Size
   return std::acos(p1.dot(p2));
 }
 
+double getCameraFovXDeg(const Eigen::Matrix3d &camera_intrinsic_mtx, const cv::Size2i &image_size) {
+  return rad2deg(getCameraFovX(camera_intrinsic_mtx, image_size));
+}
+
 double getCameraFovY(const Eigen::Matrix3d& camera_intrinsic_mtx, const cv::Size2i& image_size) {
   double height = image_size.height;
   Eigen::Matrix3d inv_intrinsic = getCameraInverseIntrinsicMatrix(camera_intrinsic_mtx);
@@ -295,4 +338,15 @@ double getCameraFovY(const Eigen::Matrix3d& camera_intrinsic_mtx, const cv::Size
   Eigen::Vector3d p1 = (inv_intrinsic * topLeft   ).normalized();
   Eigen::Vector3d p2 = (inv_intrinsic * bottomLeft).normalized();
   return std::acos(p1.dot(p2));
+}
+
+double getCameraFovYDeg(const Eigen::Matrix3d &camera_intrinsic_mtx, const cv::Size2i &image_size) {
+  return rad2deg(getCameraFovY(camera_intrinsic_mtx, image_size));
+}
+
+Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, const Eigen::Vector3d& desired_location) {
+  Eigen::Matrix3d T_m2c = getENUFrame(desired_location - camera_position);
+  Eigen::Matrix3d z_rot;
+  eulerToDCM(0., 0., M_PI, z_rot);
+  return z_rot * T_m2c.transpose();
 }

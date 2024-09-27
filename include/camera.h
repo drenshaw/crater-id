@@ -61,7 +61,9 @@ class Camera {
     double getImageWidth() const;
     double getImageHeight() const;
     double getFovX() const;
+    double getFovXDeg() const;
     double getFovY() const;
+    double getFovYDeg() const;
     bool isInFrontOfCamera(const Eigen::Vector3d& pt) const;
     bool isInCameraFrame(const Eigen::Vector3d& pt) const ;
     bool isInCameraFrame(const Eigen::Vector3d& pt, Eigen::Vector2d& pt_pxl) const;
@@ -74,6 +76,9 @@ class Camera {
     bool setExtrinsicMatrix(const Eigen::Matrix3d& extrinsic);
     // bool setProjectionMatrix(const Eigen::Matrix3d& projection_matrix);
     // Camera(const Eigen::Matrix4d& projection_matrix);
+    void moveCamera(const Eigen::Transform<double, 3, Eigen::Isometry>& transform);
+    // Eigen::Transform<double, 3, Eigen::Isometry>
+    Eigen::Matrix3d getStatePosition() const;
 
   private:
     double dx_;
@@ -86,6 +91,10 @@ class Camera {
     Eigen::Vector3d position_;
     Eigen::Quaterniond attitude_;
     bool pointUVinImage(const Eigen::Vector2d& pt_uv) const;
+    Eigen::Transform<double, 3, Eigen::Isometry>  state_;
+
+    friend std::ostream& operator<<(std::ostream& os, const Camera& cam);
+    friend std::ostream& operator<<(std::ostream& os, const Camera* cam);
 };
 
 
@@ -94,5 +103,7 @@ void getCameraIntrinsicParams(const Eigen::Matrix3d& cam_intrinsic_mtx,
                         std::array<double, CAMERA_INTRINSIC_PARAM>& params);
 Eigen::Matrix3d getCameraInverseIntrinsicMatrix(const Eigen::Matrix3d& camera_intrinsic_mtx);
 double getCameraFovX(const Eigen::Matrix3d& camera_intrinsic_mtx, const cv::Size2i& image_size);
+double getCameraFovXDeg(const Eigen::Matrix3d &camera_intrinsic_mtx, const cv::Size2i &image_size);
 double getCameraFovY(const Eigen::Matrix3d& camera_intrinsic_mtx, const cv::Size2i& image_size);
+double getCameraFovYDeg(const Eigen::Matrix3d &camera_intrinsic_mtx, const cv::Size2i &image_size);
 #endif

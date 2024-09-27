@@ -78,22 +78,6 @@ TEST_F(QuadricTest, AngleBetweenQuadrics) {
   ASSERT_DOUBLE_EQ(rad2deg(angle12), std::abs(lat2-lat1));
   double angle_zero = q1.getAngleBetweenQuadrics(q1_copy);
   ASSERT_DOUBLE_EQ(angle_zero, 0.);
-  // Eigen::Hyperplane<double, 3> hplane1 = q1.getPlane();
-  // Eigen::Hyperplane<double, 3> hplane2 = q2.getPlane();
-  
-
-  // using Line2 = Eigen::Hyperplane<float,2>;
-  // using Vec2  = Eigen::Vector2f;
-  // Vec2 a(8,2);
-  // Vec2 b(9,5);
-  // Vec2 c(6,6);
-  // Vec2 d(5,9);
-
-  // Line2 ac = Line2::Through(a,c);
-  // Line2 bd = Line2::Through(b,d);
-
-    // std::cout << "Intersection:\n" << ac.intersection(bd) << '\n';
-  // Eigen::Vector3d x = A.jacobiSvd(ComputeFullU|ComputeFullV).solve(b);
 }
 
 TEST_F(QuadricTest, AxisOfRotationQuadrics) {
@@ -117,7 +101,6 @@ TEST_F(QuadricTest, QuadricFrom3Points) {
   Eigen::Vector3d p3 = {10, -10, 0};
 
   Quadric quad(p1, p2, p3, "threePoints");
-  std::cout << quad << std::endl;
   Eigen::Vector3d center = quad.getLocation();
   double radius = quad.getRadius();
   ASSERT_DOUBLE_EQ(radius, 10);
@@ -126,22 +109,58 @@ TEST_F(QuadricTest, QuadricFrom3Points) {
   Eigen::Vector3d normal_check = Eigen::Vector3d::UnitX();
   EXPECT_TRUE(quad.getPlane().normal().isApprox(normal_check) || 
               quad.getPlane().normal().isApprox(-normal_check));
-  // std::cout << "Locus:\n" << quad.getLocus() << std::endl;
+}
+
+TEST_F(QuadricTest, SamePlane) {
+  Eigen::Vector3d p1 = {10,  10,   0};
+  Eigen::Vector3d p2 = {10,   0,  10};
+  Eigen::Vector3d p3 = {10, -10,   0};
+  Eigen::Vector3d p4 = {10,   0, -10.00000001};
+
+  Quadric quad1(p1, p2, p3, "threePoints1");
+  Quadric quad2(p1, p2, p4, "threePoints2");
+  ASSERT_TRUE(isSamePlane(quad1.getPlane(), quad2.getPlane()));
 }
 
 TEST_F(QuadricTest, RadiusCheckFromPoints) {
-  double pts_radius = 100;
-  // double rho = std::sqrt(std::pow(R_MOON, 2) - std::pow(radius, 2));
-  double z = R_MOON * (M_PI_2 - std::asin(pts_radius/R_MOON));
-
-  Eigen::Vector3d p1 = { pts_radius,      0, z};
-  Eigen::Vector3d p2 = {     0,  pts_radius, z};
-  Eigen::Vector3d p3 = {-pts_radius,      0, z};
+  double r = 100;
+  double rho = calculateCraterRimFromRadius(r);
+  double phi0 = deg2rad(10.), phi1 = deg2rad(115.), phi2 = deg2rad(280.);
+  Eigen::Vector3d p1 = {rho, r*std::cos(phi0), r*std::sin(phi0)};
+  Eigen::Vector3d p2 = {rho, r*std::cos(phi1), r*std::sin(phi1)};
+  Eigen::Vector3d p3 = {rho, r*std::cos(phi2), r*std::sin(phi2)};
 
   Quadric quad(p1, p2, p3, "fromRadius");
-  EXPECT_EQ(pts_radius, quad.getRadius());
-  Eigen::Vector3d normal_check = Eigen::Vector3d::UnitZ();
-  EXPECT_TRUE(quad.getPlane().normal().isApprox(normal_check) || 
-              quad.getPlane().normal().isApprox(-normal_check));
+  Quadric quad_check(0, 0, r, "pts_check");
 
+  EXPECT_DOUBLE_EQ(r, quad.getRadius());
+
+  EXPECT_TRUE(isSamePlane(quad, quad_check));
+  EXPECT_TRUE(quad == quad_check);
+
+}
+
+TEST_F(QuadricTest, InPlaneXYQuadric) {
+  double r = 1e4;
+  double z = 0;
+  double phi0 = deg2rad(10.), phi1 = deg2rad(115.), phi2 = deg2rad(280.);
+  Eigen::Vector3d p1 = {r*std::sin(phi0), r*std::cos(phi0), z};
+  Eigen::Vector3d p2 = {r*std::sin(phi1), r*std::cos(phi1), z};
+  Eigen::Vector3d p3 = {r*std::sin(phi2), r*std::cos(phi2), z};
+  Quadric quad_inplane(p1, p2, p3, "inPlane");
+  Eigen::Hyperplane<double, 3> plane(Eigen::Vector3d(0,0,-1),0);
+  EXPECT_TRUE(isSamePlane(plane, quad_inplane.getPlane()));
+}
+
+TEST_F(QuadricTest, InPlaneXZQuadric) {
+  double r = 1e4;
+  double y = 0;
+  // TODO: there are some instances where points like (1,0,0),(0,1,0), and (-1,0,0)
+  // fail to form a valid plane, which is strange
+  Eigen::Vector3d p1 = {0, y,  r};
+  Eigen::Vector3d p2 = {r, y,  0};
+  Eigen::Vector3d p3 = {0, y, -r};
+  Quadric quad_inplane(p1, p2, p3, "inStrangePlane");
+  Eigen::Hyperplane<double, 3> plane(Eigen::Vector3d(0,-1,0),0);
+  EXPECT_TRUE(isSamePlane(plane, quad_inplane.getPlane()));
 }

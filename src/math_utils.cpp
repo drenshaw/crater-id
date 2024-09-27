@@ -120,7 +120,7 @@ double getAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::Vector
 
 Eigen::Vector3d getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen::Vector3d& vec2) {
   if(vec1.isApprox(vec2)) {
-    throw std::runtime_error("Vectors too close to have an axis formed");
+    throw std::runtime_error("Vectors are nearly parallel; invalid axis");
   }
   return vec1.cross(vec2).normalized();
 }
@@ -232,13 +232,6 @@ Eigen::Matrix3d getENUFrame(const double lat, const double lon) {
   }
   enu_frame << ei.normalized(), ni.normalized(), ui.normalized();
   return enu_frame;
-}
-
-Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, const Eigen::Vector3d& desired_location) {
-  Eigen::Matrix3d T_m2c = getENUFrame(desired_location - camera_position);
-  Eigen::Matrix3d z_rot;
-  eulerToDCM(0., 0., M_PI, z_rot);
-  return z_rot * T_m2c.transpose();
 }
 
 Eigen::Quaterniond eulerToQuaternion(const double roll,

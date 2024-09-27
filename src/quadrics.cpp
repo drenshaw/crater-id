@@ -16,7 +16,7 @@ Quadric::Quadric( const Eigen::Vector3d& position,
                   const std::string id) : 
                     id_(id),
                     radius_(radius),
-                    surface_point_{position},
+                    center_{position},
                     plane_(surface_normal.normalized(), position.norm()) {
   // TODO: Uses only Moon radius; change if using another body (e.g., Mars)
   if(radius > R_MOON) {
@@ -30,13 +30,12 @@ Quadric::Quadric( const Eigen::Vector3d& position,
   }
   Eigen::Matrix3d T_e2m_ = getQuadricTransformationMatrix();
   // plane_ = SurfacePointToPlane(T_e2m_, surface_point_);
-  plane_ = SurfacePointToPlane(T_e2m_, surface_point_);
+  plane_ = SurfacePointToPlane(T_e2m_, center_);
 }
 Quadric::Quadric(const Eigen::Vector3d& pt1, const Eigen::Vector3d& pt2, const Eigen::Vector3d& pt3, std::string id) :
   id_(id),
   plane_(Eigen::Hyperplane<double, 3>::Through(pt1, pt2, pt3)) {
   // This is the 3d quadric disk formed by three 3D points
-  Eigen::Hyperplane<double, 3> plane_ = Eigen::Hyperplane<double, 3>::Through(pt1, pt2, pt3);
   // Using ideas from github.com/sergarrido/random/blob/master/circle3d
   // math.stackexchange.com/questions/1076177/3d-coordinates-of-circle-center-given-three-point-on-the-circle
   
@@ -64,7 +63,7 @@ Quadric::Quadric(const Eigen::Vector3d& pt1, const Eigen::Vector3d& pt2, const E
   // double h = num / (2*cy);
   // Eigen::Vector3d center = A + (bx/2)*u + h*v;
 
-  this->surface_point_ = center;
+  this->center_ = center;
   this->radius_ = (pt1 - center).norm();
 }
 
@@ -81,9 +80,10 @@ Quadric::Quadric(const std::string id, const Eigen::Vector3d& position, const do
   Quadric(position, radius, surface_normal, id) {}
 
 bool Quadric::operator==(const Quadric& other_quadric) const {
-  return  this->getPlane().isApprox(other_quadric.getPlane()) &&
-          this->getLocation().isApprox(other_quadric.getLocation()) &&
-          std::abs(this->getRadius() - other_quadric.getRadius()) < 1e-3;
+  return  // TODO: Sometimes the normal can be opposite direction; check
+    isSamePlane(this->getPlane(),other_quadric.getPlane()) &&
+    this->getLocation().isApprox(other_quadric.getLocation()) &&
+    std::abs(this->getRadius() - other_quadric.getRadius()) < 1e-3;
 }
 
 bool Quadric::operator!=(const Quadric& other_quadric) const {
@@ -98,8 +98,22 @@ bool Quadric::operator!=(const Quadric* other_quadric) const {
   return  !operator==(other_quadric);
 }
 
+bool isSamePlane(const Eigen::Hyperplane<double, 3>& p1, const Eigen::Hyperplane<double, 3>& p2, const double thresh) {
+  if(p1.isApprox(p2))
+    return true;
+  if((p1.normal() - p2.normal()).norm() < 1e-3 && std::abs(p1.offset() - p2.offset()) < thresh)
+    return true;
+  if((p1.normal() + p2.normal()).norm() < 1e-3 && std::abs(p1.offset() + p2.offset()) < thresh)
+    return true;
+  return false;
+}
+
+bool isSamePlane(const Quadric& quad1, const Quadric& quad2, const double thresh) {
+  return isSamePlane(quad1.getPlane(), quad2.getPlane(), thresh);
+}
+
 Eigen::Matrix4d Quadric::generateQuadricLocus() const {
-  return GenerateQuadricLocusFromRadiusNormal(surface_point_, radius_);
+  return GenerateQuadricLocusFromRadiusNormal(center_, radius_);
 }
 
 Eigen::Matrix3d Quadric::getQuadricTransformationMatrix() const {
@@ -111,11 +125,11 @@ Eigen::Matrix4d Quadric::getLocus() const {
 }
 
 Eigen::Vector3d Quadric::getLocation() const {
-  return surface_point_;
+  return center_;
 }
 
 void Quadric::getLocation(Eigen::Vector3d& location) const {
-  location = surface_point_;
+  location = center_;
 }
 
 Eigen::Vector3d Quadric::getNormal() const {
@@ -147,7 +161,7 @@ Eigen::Vector3d Quadric::getAxisNormalToQuadrics(const Quadric& other_quadric) c
   }
   catch (const std::exception& e) {
     std::cerr << "Exception: " << e.what() << std::endl;
-    throw std::runtime_error("Quadric normals are too close to form an axis of rotation.");
+    throw std::runtime_error("Quadric normals are nearly parallel.");
   }
   return axis_ret;
 }
@@ -167,7 +181,7 @@ std::ostream& operator<<(std::ostream& os, const Quadric& quad) {
   return os 
     << "Quadric -> \tID: '" << quad.id_ << "'"
     << std::fixed << std::setw(8) << std::setprecision(1)
-    << "\n\t\tLocation: (" << quad.surface_point_.transpose() << ") km | "
+    << "\n\t\tLocation: (" << quad.center_.transpose() << ") km | "
     << "\tRadius: " << quad.radius_ << "km"
     << "\n\t\tPlane: [" << quad.plane_.coeffs().transpose() << " ] "
     << std::setprecision(ss) << std::setw(sw) << std::defaultfloat
@@ -175,7 +189,7 @@ std::ostream& operator<<(std::ostream& os, const Quadric& quad) {
 }
 
 double calculateCraterRimFromRadius(const double radius) {
-  return sqrt(pow(R_MOON, 2) - pow(radius, 2));
+  return std::sqrt(std::pow(R_MOON, 2) - std::pow(radius, 2));
 }
 
 Eigen::Hyperplane<double, 3> SurfacePointToPlane(const Eigen::Matrix3d& T_e2m, 

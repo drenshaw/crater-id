@@ -52,8 +52,6 @@ Eigen::Matrix3d getENUFrame(const Eigen::Vector3d&);
 Eigen::Matrix3d getENUFrame(const double, const double);
 Eigen::Vector3d getNorthPoleUnitVector();
 void GetNorthPoleUnitVector(Eigen::Vector3d&);
-Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, 
-                                       const Eigen::Vector3d& desired_location);
 Eigen::Quaterniond eulerToQuaternion(const double roll, const double pitch, const double yaw);
 void eulerToDCM(const double roll,
                 const double pitch,

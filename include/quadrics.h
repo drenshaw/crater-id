@@ -40,13 +40,14 @@ class Quadric {
     // aka, the 'selenographic' frame
     std::string id_;
     double radius_;
-    Eigen::Vector3d surface_point_;
+    Eigen::Vector3d center_;
     Eigen::Hyperplane<double, 3> plane_;
     
     friend std::ostream& operator<<(std::ostream& os, const Quadric&);
 };
 
-
+bool isSamePlane(const Eigen::Hyperplane<double, 3>& p1, const Eigen::Hyperplane<double, 3>& p2, const double thresh=1e-3);
+bool isSamePlane(const Quadric& quad1, const Quadric& quad2, const double thresh=1e-3);
 double calculateCraterRimFromRadius(const double radius);
 Eigen::Matrix4d GenerateQuadricLocusFromRadiusNormal(const Eigen::Vector3d& position, const double radius);
 Eigen::Matrix4d ConicEnvelopeToQuadricEnvelope(const Eigen::Matrix3d& conic_envelope, 
@@ -56,5 +57,7 @@ Eigen::Hyperplane<double, 3> SurfacePointToPlane(const Eigen::Matrix3d& T_e2m,
 void GenerateQuadricFromRadiusNormal();
 Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d&, 
                                                     const Eigen::Matrix3d& T_e2m);
+Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, 
+                                       const Eigen::Vector3d& desired_location);
 
 #endif
