@@ -170,7 +170,6 @@ Eigen::Matrix4d GenerateQuadricLocusFromRadiusNormal(const Eigen::Vector3d& posi
   Eigen::Matrix3d conic_envelope = conic.getEnvelope();
 
   Eigen::Matrix3d T_enu_to_ref = getENUFrame(position);
-  std::cout << T_enu_to_ref << std::endl;
   Eigen::MatrixXd h_k = transformSelenographicToCraterFrame(position, T_enu_to_ref);
   // eq 40 of Christian, Derksen, and Watkins [2020]
   Eigen::Matrix4d quadric_envelope = ConicEnvelopeToQuadricEnvelope(conic_envelope, h_k);
