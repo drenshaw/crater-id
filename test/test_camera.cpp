@@ -121,13 +121,20 @@ TEST_F(CameraTest, TransformState) {
   Eigen::Transform<double, 3, Eigen::Isometry>  transformation, state;
   transformation = rotation * translation;
   state = attitude * position;
-  std::cout << "Pre -transform:\n" << state.rotation() << "\nTrans:\n" << state.translation() << std::endl;
-  state = transformation * state;
-  std::cout << "Post-transform:\n" << state.rotation() << "\nTrans:\n" << state.translation() << std::endl;
-  state = transformation.inverse() * state;
-  std::cout << "Reg -transform:\n" << state.rotation() << "\nTrans:\n" << state.translation() << std::endl;
+  // std::cout << "Pre -transform:\n" << state.rotation() << "\nTrans:\n" << state.translation() << std::endl;
+  // state = transformation * state;
+  // std::cout << "Post-transform:\n" << state.rotation() << "\nTrans:\n" << state.translation() << std::endl;
+  // state = transformation.inverse() * state;
+  // std::cout << "Reg -transform:\n" << state.rotation() << "\nTrans:\n" << state.translation() << std::endl;
 
-
-  
-  // cam.
+  std::cout << *cam << std::endl;
+  std::cout << "Applying transform: translation: ( " << transformation.translation().transpose()
+            << " )\n\tRotation:\n" << transformation.rotation() << std::endl;
+  cam->moveCamera(transformation);
+  std::cout << *cam << std::endl;
+  transformation = attitude * Eigen::Translation<double,3>(transformation.translation());
+  cam->setAttitude(attitude);
+  std::cout << *cam << std::endl;
+  cam->moveCamera(rotation);
+  std::cout << *cam << std::endl;
 }

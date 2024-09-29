@@ -17,8 +17,7 @@ Camera::Camera( const double dx,
                 const Eigen::Quaterniond& attitude,
                 const Eigen::Vector3d& position) :  
                   image_size_(image_size),
-                  position_(position), 
-                  attitude_(attitude.normalized()) {
+                  state_(attitude * Eigen::Translation3d(position)) {
   intrinsic_matrix_ << dx, skew, up,
                         0,   dy, vp,
                         0,    0,  1;
@@ -40,8 +39,7 @@ Camera::Camera( const Eigen::Matrix3d& intrinsic_mtx,
                 const Eigen::Vector3d& position) : 
                   image_size_(image_size),
                   intrinsic_matrix_(intrinsic_mtx),
-                  position_(position), 
-                  attitude_(attitude.normalized()) {
+                  state_(attitude * Eigen::Translation3d(position)) {
   // Note the Eigen quaternion has the scalar value last (i.e., v0, v1, v2, s) 
   // when printing, BUUUUUUT when inputting the values, scalar part is first
   // However, you can access the elements using quat.vec() and quat.w()
@@ -78,19 +76,21 @@ Camera::Camera( const Eigen::Matrix3d& intrinsic,
 }
 
 Eigen::Vector3d Camera::getPosition() const {
-  return this->position_;
+  return this->state_.translation();
 }
 
 Eigen::Vector3d Camera::getLocation() const {
-  return this->position_;
+  return this->getPosition();
 }
 
 Eigen::Quaterniond Camera::getAttitude() const {
-  return this->attitude_;
+  Eigen::Quaterniond quat;
+  this->getAttitude(quat);
+  return quat;
 }
 
 void Camera::getAttitude(Eigen::Quaterniond& quat) const {
-  quat = this->attitude_;
+  quat = Eigen::Quaterniond(this->state_.rotation());
 }
 
 Eigen::Quaterniond Camera::getAttitudeQuaternion() const {
@@ -98,7 +98,7 @@ Eigen::Quaterniond Camera::getAttitudeQuaternion() const {
 }
 
 Eigen::Matrix3d Camera::getAttitudeMatrix() const {
-  return this->attitude_.toRotationMatrix();
+  return this->getAttitude().toRotationMatrix();
 }
 
 Eigen::Vector3d Camera::getAttitudeEuler(Eigen::Index a0, Eigen::Index a1, Eigen::Index a2) const {
@@ -229,45 +229,50 @@ Eigen::Vector2d Camera::projectXYZtoImage(const Eigen::Vector3d& pt) const {
 }
 
 
-bool Camera::setAttitude(const Eigen::Quaterniond& orientation) {
-
-
-  return true;
+void Camera::setAttitude(const Eigen::Quaterniond& orientation) {
+  // Eigen::Transform<double, 3, Eigen::Isometry> transform;
+  // transform = orientation.inverse() * Eigen::Translation<double,3>(this->state_.translation());
+  this->state_ = orientation.inverse() * Eigen::Translation<double,3>(this->state_.translation());
 }
 
-bool Camera::setAttitude(const Eigen::Matrix3d& orientation) {
-
-
-  return true;
+void Camera::setAttitude(const Eigen::Matrix3d& orientation) {
+  this->state_ = Eigen::Quaterniond(orientation).inverse() * Eigen::Translation<double,3>(this->state_.translation());
 }
 
-bool Camera::setAttitude(const Eigen::Vector3d& orientation) {
+// void Camera::setAttitude(const Eigen::Vector3d& orientation) {
+//   // this->state_ = orientation.inverse() * this->state_.translation();
+// }
+
+// void Camera::setLocation(const Eigen::Vector3d& location) {
+//   this->state_ = this->getAttitude() * location;
+// }
+// void Camera::setPosition(const Eigen::Vector3d& location) {
+
+// }
 
 
-  return true;
+void Camera::setIntrinsicMatrix(const Eigen::Matrix3d& intrinsic) {
+
 }
 
+void Camera::setExtrinsicMatrix(const Eigen::Matrix3d& extrinsic) {
 
-bool Camera::setIntrinsicMatrix(const Eigen::Matrix3d& intrinsic) {
-
-
-  return true;
-}
-
-bool Camera::setExtrinsicMatrix(const Eigen::Matrix3d& extrinsic) {
-
-
-  return true;
 }
 
 void Camera::moveCamera(const Eigen::Transform<double, 3, Eigen::Isometry>& transform) {
   this->state_ = transform * this->state_;
 }
 
-// //Eigen::Transform<double, 3, Eigen::Isometry>
-// Eigen::Matrix3d Camera::getStatePosition() const {
-//   return this->state_.translation();
-// }
+void Camera::moveCamera(const Eigen::Quaterniond& rotation) {
+  Eigen::Transform<double, 3, Eigen::Isometry> transform = rotation * Eigen::Translation<double,3>(this->state_.translation());
+  this->state_ = transform * this->state_;
+}
+
+void Camera::moveCamera(const Eigen::Vector3d& translation) {
+  Eigen::Transform<double, 3, Eigen::Isometry> transform;
+  transform = this->getAttitude() * Eigen::Translation<double,3>(translation);
+  this->state_ = transform * this->state_;
+}
 
 
 
@@ -276,9 +281,9 @@ std::ostream& operator<<(std::ostream& os, const Camera& cam) {
   std::streamsize sw = std::cout.width();
   return os 
     << std::fixed << std::setw(8) << std::setprecision(1)
-    << "Camera -> (" << cam.getLocation().transpose() << ") "
-    << "\n\tAttitude: (" << cam.getAttitude() << ")"
-    << "\n\tFov: " << cam.getFovXDeg() << ", " << cam.getFovYDeg() << std::endl
+    <<   "Camera ->  XYZ = (" << cam.getLocation().transpose() << ") km"
+    << "\n           Att = (" << cam.getAttitude() << ")"
+    << "\n           Fov = ( " << cam.getFovXDeg() << ", " << cam.getFovYDeg() << " ) deg"
     << std::setprecision(ss) << std::setw(sw) << std::defaultfloat
     ;
 }

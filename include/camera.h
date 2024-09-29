@@ -69,14 +69,18 @@ class Camera {
     bool isInCameraFrame(const Eigen::Vector3d& pt, Eigen::Vector2d& pt_pxl) const;
     void projectXYZtoImage(const Eigen::Vector3d& pt, Eigen::Vector2d& pt_pxl) const ;
     Eigen::Vector2d projectXYZtoImage(const Eigen::Vector3d& pt) const ;
-    bool setAttitude(const Eigen::Quaterniond& orientation);
-    bool setAttitude(const Eigen::Matrix3d& orientation);
-    bool setAttitude(const Eigen::Vector3d& orientation);
-    bool setIntrinsicMatrix(const Eigen::Matrix3d& intrinsic);
-    bool setExtrinsicMatrix(const Eigen::Matrix3d& extrinsic);
-    // bool setProjectionMatrix(const Eigen::Matrix3d& projection_matrix);
+    void setAttitude(const Eigen::Quaterniond& orientation);
+    void setAttitude(const Eigen::Matrix3d& orientation);
+    void setAttitude(const Eigen::Vector3d& orientation);
+    void setLocation(const Eigen::Vector3d& location);
+    void setPosition(const Eigen::Vector3d& location);
+    void setIntrinsicMatrix(const Eigen::Matrix3d& intrinsic);
+    void setExtrinsicMatrix(const Eigen::Matrix3d& extrinsic);
+    // void setProjectionMatrix(const Eigen::Matrix3d& projection_matrix);
     // Camera(const Eigen::Matrix4d& projection_matrix);
     void moveCamera(const Eigen::Transform<double, 3, Eigen::Isometry>& transform);
+    void moveCamera(const Eigen::Quaterniond& rotation);
+    void moveCamera(const Eigen::Vector3d& translation);
     // Eigen::Transform<double, 3, Eigen::Isometry>
     Eigen::Matrix3d getStatePosition() const;
 
@@ -88,8 +92,8 @@ class Camera {
     double vp_;
     cv::Size2i image_size_;
     Eigen::Matrix3d intrinsic_matrix_;
-    Eigen::Vector3d position_;
-    Eigen::Quaterniond attitude_;
+    // Eigen::Vector3d position_;
+    // Eigen::Quaterniond attitude_;
     bool pointUVinImage(const Eigen::Vector2d& pt_uv) const;
     Eigen::Transform<double, 3, Eigen::Isometry>  state_;
 
