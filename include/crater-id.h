@@ -1,5 +1,4 @@
-#ifndef CRATER_ID_H
-#define CRATER_ID_H
+#pragma once
 
 // #include <iostream>
 // #include <math.h>
@@ -49,4 +48,3 @@
 //   }
 
 // };
-#endif

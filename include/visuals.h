@@ -1,5 +1,4 @@
-#ifndef VISUALS_H
-#define VISUALS_H
+#pragma once
 #include <opencv2/viz/types.hpp>
 
 #include "conics.h"
@@ -120,6 +119,3 @@ bool getEndpointsFromLine(const cv::Mat& image, const Eigen::Vector3d& my_line, 
 
 // void PlotFunction(vtkQuadric* quadric, double value);
 } // namespace
-
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef COMBINATORICS_H
-#define COMBINATORICS_H
+#pragma once
 
 #include <vector>
 #include <tuple>
@@ -96,5 +95,3 @@ std::vector<std::tuple<T, T>> specialCombination(const std::vector<T> choices,
 void print_triads(const std::vector<std::tuple<uint, uint, uint>> triads, 
                   const std::vector<lunar_crater> craters,
                   const uint max_iter=10);
-
-#endif

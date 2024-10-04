@@ -1,6 +1,5 @@
+#pragma once
 // TODO: rename this to a better name like `utils` or something
-#ifndef VECTOR_MATH
-#define VECTOR_MATH
 
 #include <vector>
 #include <array>
@@ -242,5 +241,3 @@ Eigen::Vector3d LLHtoECEF(const R crater, const T alt) {
   const T lon = crater.lon;
   return LLHtoECEF(lat, lon, alt);
 }
-
-#endif

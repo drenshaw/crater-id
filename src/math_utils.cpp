@@ -205,34 +205,53 @@ Eigen::Matrix3d getENUFrame(const Eigen::Vector3d& surface_point) {
   enu_frame << ei.normalized(), ni.normalized(), ui.normalized();
   return enu_frame;
 }
-
 Eigen::Matrix3d getENUFrame(const double lat, const double lon) {
-  Eigen::Vector3d u_north_pole(3), ui(3), ei(3), ni(3);
-  Eigen::Matrix3d enu_frame(3, 3);
-  u_north_pole = getNorthPoleUnitVector();
-  // TODO: should latitudes near the pole be errors?
   if(std::abs(lat-90) <EPS) {
-    // std::cerr << "Surface point is near the North Pole.\n";
-    ei << 1, 0, 0;
-    ni << 0, 1, 0;
-    ui = u_north_pole;
     throw std::runtime_error("Surface point is near the North Pole.");
   }
   else if(std::abs(lat+90) <EPS) {
-    // std::cerr << "Surface point is near the South Pole.\n";
-    ei << -1, 0, 0;
-    ni << 0, -1, 0;
-    ui = -u_north_pole;
     throw std::runtime_error("Surface point is near the South Pole.");
   }
-  else {
-    ui = latlon2bearing(lat, lon);
-    ei = u_north_pole.cross(ui);
-    ni = ui.cross(ei);
-  }
-  enu_frame << ei.normalized(), ni.normalized(), ui.normalized();
-  return enu_frame;
+  const double lambda = deg2rad(lon);
+  const double phi    = deg2rad(lat);
+  Eigen::Matrix3d mtx;
+  const double slambda = std::sin(lambda);
+  const double sphi    = std::sin(phi);
+  const double clambda = std::cos(lambda);
+  const double cphi    = std::cos(phi);
+  mtx << -slambda, -clambda*sphi, clambda*cphi,
+          clambda, -slambda*sphi, slambda*cphi,
+                0,          cphi,         sphi;
+  return mtx;                
 }
+
+// Eigen::Matrix3d getENUFrame(const double lat, const double lon) {
+//   Eigen::Vector3d u_north_pole(3), ui(3), ei(3), ni(3);
+//   Eigen::Matrix3d enu_frame(3, 3);
+//   u_north_pole = getNorthPoleUnitVector();
+//   // TODO: should latitudes near the pole be errors?
+//   if(std::abs(lat-90) <EPS) {
+//     // std::cerr << "Surface point is near the North Pole.\n";
+//     ei << 1, 0, 0;
+//     ni << 0, 1, 0;
+//     ui = u_north_pole;
+//     throw std::runtime_error("Surface point is near the North Pole.");
+//   }
+//   else if(std::abs(lat+90) <EPS) {
+//     // std::cerr << "Surface point is near the South Pole.\n";
+//     ei << -1, 0, 0;
+//     ni << 0, -1, 0;
+//     ui = -u_north_pole;
+//     throw std::runtime_error("Surface point is near the South Pole.");
+//   }
+//   else {
+//     ui = latlon2bearing(lat, lon);
+//     ei = u_north_pole.cross(ui);
+//     ni = ui.cross(ei);
+//   }
+//   enu_frame << ei.normalized(), ni.normalized(), ui.normalized();
+//   return enu_frame;
+// }
 
 Eigen::Quaterniond eulerToQuaternion(const double roll,
                                      const double pitch,

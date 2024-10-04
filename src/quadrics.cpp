@@ -211,7 +211,7 @@ Eigen::Matrix4d GenerateQuadricLocusFromRadiusNormal(const Eigen::Vector3d& posi
   Eigen::Matrix4d quadric_envelope = ConicEnvelopeToQuadricEnvelope(conic_envelope, h_k);
   Eigen::Matrix4d quadric_locus = getAdjugateMatrix(quadric_envelope);
   // bool success = normalizeDeterminant(quadric_locus);
-  return quadric_locus/quadric_locus(3,3);
+  return quadric_locus/quadric_locus(Eigen::last,Eigen::last);
 }
 
 Eigen::Matrix4d ConicEnvelopeToQuadricEnvelope(const Eigen::Matrix3d& conic_envelope, const Eigen::MatrixXd& h_k) {
@@ -228,6 +228,6 @@ Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d& posit
   h_m << T_e2m.col(0), T_e2m.col(1), position;
   // express matrix in homogeneous form (eq. 40)
   Eigen::MatrixXd h_k(4,3);
-  h_k << h_m.row(0), h_m.row(1), h_m.row(2), u_north_pole.transpose();
+  h_k << h_m, u_north_pole.transpose();
   return h_k;
 }

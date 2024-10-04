@@ -1,5 +1,4 @@
-#ifndef QUADRICS_H
-#define QUADRICS_H
+#pragma once
 
 #include <iostream>
 #include <eigen3/Eigen/Geometry>
@@ -57,7 +56,5 @@ Eigen::Hyperplane<double, 3> SurfacePointToPlane(const Eigen::Matrix3d& T_e2m,
 void GenerateQuadricFromRadiusNormal();
 Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d&, 
                                                     const Eigen::Matrix3d& T_e2m);
-Eigen::Matrix3d pointCameraInDirection(const Eigen::Vector3d& camera_position, 
+Eigen::Matrix3d getAttitudeTransformBetweenPoints(const Eigen::Vector3d& camera_position, 
                                        const Eigen::Vector3d& desired_location);
-
-#endif

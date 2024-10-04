@@ -3,7 +3,7 @@
 // #include <random>
 
 #include "quadrics.h"
-#include "io.h"
+// #include "io.h"
 #include "math_utils.h"
 
 // #include <iomanip>
@@ -24,6 +24,9 @@ protected:
     lat = 0, lon = 0, radius = 200;
     id = "defaultQuadric";
     quadric_default = new Quadric(lat, lon, radius, id);
+  }
+  ~QuadricTest() override {
+    delete quadric_default;
   }
 
 public:

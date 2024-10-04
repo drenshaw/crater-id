@@ -1,5 +1,4 @@
-#ifndef IO_H
-#define IO_H
+#pragma once
 
 #include <iostream>
 #include <fstream>
@@ -125,5 +124,3 @@ void stringifyVectorOfVectors(const std::vector<std::vector<T>> vec) {
 }
 
 } // namespace
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef CONICS_H
-#define CONICS_H
+#pragma once
 
 // #include <iostream>
 // // #include <stdexcept>
@@ -146,5 +145,3 @@ bool computeInvariant(const Eigen::Vector3d&,
 bool computeCraterTriadInvariants(const Conic&, const Conic&, const Conic&,
                                   std::array<double, NONCOPLANAR_INVARIANTS>&);
 } // namespace
-
-#endif
