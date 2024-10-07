@@ -210,6 +210,18 @@ TEST(MathTest, AdjugateMatrix) {
   ASSERT_TRUE(adj_3x3_symmetric.isApprox(adj_3x3_check.transpose()));
 }
 
+TEST(MathTest, AdjugateMatrixRandom) {
+  for(size_t i = 0; i < 100; i++) {
+    Eigen::Matrix3d rnd_mtx = Eigen::Matrix3d::Random();
+    EXPECT_NE(rnd_mtx(Eigen::last, Eigen::last), 0);
+    Eigen::Matrix3d rnd_mtx_adj = getAdjugateMatrix(rnd_mtx);
+    Eigen::Matrix3d rnd_mtx_back = getAdjugateMatrix(rnd_mtx_adj);
+    rnd_mtx /= rnd_mtx(Eigen::last, Eigen::last);
+    rnd_mtx_back /= rnd_mtx_back(Eigen::last, Eigen::last);
+    EXPECT_TRUE(rnd_mtx.isApprox(rnd_mtx_back, 1e-3));
+  }
+}
+
 TEST(MathTest, AngularDistance) {
   double lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 90;
   Eigen::Vector3d bearing1 = latlon2bearing(lat1, lon1);

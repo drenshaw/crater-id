@@ -67,7 +67,13 @@ Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix) {
 
 Eigen::MatrixXd getAdjugateMatrix(const Eigen::MatrixXd& matrix) {
   // TODO: ensure that row and column counts are equal
+  // std::cout << __func__ << " Matrix:\n" << matrix << std::endl;
   Eigen::MatrixXd mtx_adj = getCofactorMatrix(matrix);
+
+  // std::cout << __func__ << " Adjugate:\n" << mtx_adj << std::endl;
+  if(mtx_adj.hasNaN()) {
+    throw std::runtime_error("Matrix contains NaN values.");
+  }
   // Matrix adjugate is the transpose of the cofactor matrix
   return mtx_adj.transpose();
 }
