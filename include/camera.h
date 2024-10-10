@@ -49,6 +49,7 @@ class Camera {
                 // const cv::Size2i& image_size,
     //         const Eigen::Vector3d& position=Eigen::Vector3d::Zero(),
     //         const Eigen::Matrix3d& attitude=Eigen::Matrix3d::Identity());
+    Eigen::Isometry3d getTransformation() const;
     Eigen::Vector3d getPosition() const;
     Eigen::Vector3d getLocation() const;
     Eigen::Quaterniond getAttitude() const;
@@ -64,11 +65,13 @@ class Camera {
     Eigen::MatrixXd getExtrinsicMatrix() const;
     Eigen::Affine3d getHomogeneousProjectionMatrix() const ;
     Eigen::MatrixXd getProjectionMatrix() const;
+    cv::Mat getBlankCameraImage() const;
+    void resetImage(cv::Mat& image) const;
     std::array<double, CAMERA_INTRINSIC_PARAM> getIntrinsicParams() const ;
     void getIntrinsicParams(std::array<double, CAMERA_INTRINSIC_PARAM>& params) const;
-    Eigen::Vector3d world2Camera(const Eigen::Vector3d& pt) const;
     double getImageWidth() const;
     double getImageHeight() const;
+    cv::Size2i getImageSize() const;
     double getFovX() const;
     double getFovXDeg() const;
     double getFovY() const;
@@ -76,8 +79,13 @@ class Camera {
     bool isInFrontOfCamera(const Eigen::Vector3d& pt) const;
     bool isInCameraFrame(const Eigen::Vector3d& pt) const ;
     bool isInCameraFrame(const Eigen::Vector3d& pt, Eigen::Vector2d& pt_pxl) const;
+    bool isInCameraFrame(const Eigen::Vector2d& pt_pxl) const;
+    void world2Camera(const Eigen::Vector3d& pt, Eigen::Vector3d& pt_cam) const ;
     void world2Pixel(const Eigen::Vector3d& pt, Eigen::Vector2d& pt_pxl) const ;
-    Eigen::Vector2d projectXYZtoImage(const Eigen::Vector3d& pt) const ;
+
+    void world2Pixel(const Eigen::Vector3d& pt, cv::Point2d& pt_pxl) const;
+    Eigen::Vector3d world2Camera(const Eigen::Vector3d& pt) const;
+    Eigen::Vector2d world2Pixel(const Eigen::Vector3d& pt) const ;
     void setAttitude(const Eigen::Quaterniond& orientation);
     void setAttitude(const Eigen::Matrix3d& orientation);
     void setAttitude(const Eigen::Vector3d& orientation);
@@ -89,6 +97,8 @@ class Camera {
     // Camera(const Eigen::Matrix4d& projection_matrix);
     void moveCamera(const Eigen::Isometry3d& transform);
     void moveCamera(const Eigen::Quaterniond& rotation);
+    void moveCamera(const Eigen::Matrix3d& rotation);
+    void moveCamera(const Eigen::AngleAxisd& rotation);
     void moveCamera(const Eigen::Vector3d& translation);
     void moveCamera(const Eigen::Translation3d& translation);
     void moveCameraRelative(const Eigen::Vector3d& translation);
@@ -99,7 +109,8 @@ class Camera {
     void moveTo(const Eigen::Translation3d& translation);
     void resetCameraState();
     // Eigen::Transform<double, 3, Eigen::Isometry>
-    Eigen::Matrix3d getStatePosition() const;
+    Eigen::Matrix3d projectQuadric(const Eigen::Matrix4d& quadric) const;
+    Eigen::Matrix3d projectQuadricToLocus(const Eigen::Matrix4d& quadric_locus) const;
 
   private:
     double dx_;
@@ -138,3 +149,5 @@ Eigen::Matrix3d lookAt( const Eigen::Isometry3d& transform,
                         const Eigen::Vector3d& up_vector);                        
 
 bool isInImage(const Eigen::Vector2d& pt_uv, const cv::Size2i image_size);
+bool isInImage(const cv::Point& pt_uv, const cv::Size2i image_size);
+bool isInImage(const cv::Point& pt_uv, const cv::MatSize image_size);

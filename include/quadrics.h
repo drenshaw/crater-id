@@ -1,5 +1,6 @@
 #pragma once
 
+#include "conics.h"
 #include <iostream>
 #include <eigen3/Eigen/Geometry>
 
@@ -21,6 +22,7 @@ class Quadric {
     
     Eigen::Matrix3d getQuadricTransformationMatrix() const;
     Eigen::Matrix4d getLocus() const;
+    Eigen::Matrix4d getEnvelope() const;
     Eigen::Vector3d getLocation() const;
     void getLocation(Eigen::Vector3d& location) const;
     Eigen::Vector3d getNormal() const;
@@ -31,10 +33,11 @@ class Quadric {
     Eigen::Vector3d getAxisNormalToQuadrics(const Quadric& other_quadric) const;
     double getRadius() const;
     std::string getID() const;
+    Conic projectToConic(const Eigen::MatrixXd& proj_mtx) const;
 
   private:
-    Eigen::Matrix4d generateQuadricLocus() const ;    
-    void loadQuadric(const Eigen::Matrix3d& conic_locus);
+    Eigen::Matrix4d generateQuadricLocusFromPointRadius() const;
+    Eigen::Matrix4d generateQuadricEnvelopeFromPointRadius() const;
     // All positions or directions are given in the Moon-centered frame
     // aka, the 'selenographic' frame
     std::string id_;
@@ -48,13 +51,18 @@ class Quadric {
 bool isSamePlane(const Eigen::Hyperplane<double, 3>& p1, const Eigen::Hyperplane<double, 3>& p2, const double thresh=1e-3);
 bool isSamePlane(const Quadric& quad1, const Quadric& quad2, const double thresh=1e-3);
 double calculateCraterRimFromRadius(const double radius);
-Eigen::Matrix4d GenerateQuadricLocusFromRadiusNormal(const Eigen::Vector3d& position, const double radius);
+Eigen::Vector3d latlonrad2XYZ(const double lat, const double lon, const double radius);
+Eigen::Matrix4d GenerateQuadricLocus(const Eigen::Vector3d& position, const double radius);
+Eigen::Matrix4d GenerateQuadricEnvelope(const Eigen::Vector3d& position, const double radius);
 Eigen::Matrix4d ConicEnvelopeToQuadricEnvelope(const Eigen::Matrix3d& conic_envelope, 
                                                const Eigen::MatrixXd& h_k);
 Eigen::Hyperplane<double, 3> SurfacePointToPlane(const Eigen::Matrix3d& T_e2m, 
                                                       const Eigen::Vector3d& surface_point);
-void GenerateQuadricFromRadiusNormal();
 Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d&, 
                                                     const Eigen::Matrix3d& T_e2m);
 Eigen::Matrix3d getAttitudeTransformBetweenPoints(const Eigen::Vector3d& camera_position, 
                                        const Eigen::Vector3d& desired_location);
+
+
+Eigen::Matrix4d makeSphere(const double radius);
+Eigen::Matrix4d makeEllipsoid(const Eigen::Vector3d& radii);                                       

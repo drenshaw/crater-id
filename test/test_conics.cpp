@@ -212,4 +212,26 @@ TEST(VisualTest, SlopeInterceptInfSlope) {
   ASSERT_DOUBLE_EQ(intercept, -C);
 }
 
+TEST(VisualTest, EllipsePlottedCorrectly) {
+  // std::vector<Conic> conics;
+  // double a = 50, b = 30, r = 300;
+  // int im_row = 1080, im_col = 1920;
+  // for(int i = 0; i < 15; i++) {
+  //   double theta = deg2rad(i*24);
+  //   double xc = double(im_col)/2 + r*std::cos(theta);
+  //   double yc = double(im_row)/2 + r*std::sin(theta);
+  //   Conic conic(a, b, xc, yc, theta);
+  //   conics.push_back(conic);
+  // }
+
+  // cv::Mat image(im_row, im_col, CV_8UC3, 
+  //               cv::Scalar(50, 50, 50));
+  // viz::drawEllipses(image, conics, viz::CV_colors);
+  // // cv::Mat outImg;
+  // // double scaling = 0.4;
+  // // cv::resize(image, outImg, cv::Size(), scaling, scaling);
+  // cv::imshow("Conics arrayed around center of camera", image); 
+  // cv::waitKey(0); 
+}
+
 

@@ -156,9 +156,32 @@ TEST(MathTest, ArgMax) {
 
 TEST(MathTest, Cofactor) {
   // TODO: fill this in later
+  Eigen::Matrix2d mtx;
+  mtx << 1,2,3,4;
+  Eigen::Matrix2d mtx_adj = adjugate(mtx);
+  Eigen::Matrix2d mtx_check;
+  mtx_check << 4, -2, -3, 1;
+  ASSERT_TRUE(mtx_adj.isApprox(mtx_check));
+  Eigen::MatrixXd nonsquare(2,3);
+  nonsquare << 1,2,3,4,5,6;
+  ASSERT_THROW(adjugate(nonsquare), std::runtime_error);
+
 }
 
-TEST(MathTest, CofactorMatrix) {
+TEST(MathTest, CofactorMatrix3x3) {
+  Eigen::Matrix3d mtx_3x3, cof_3x3, cof_3x3_check;
+  mtx_3x3 <<  1,9,3,
+              2,5,4,
+              3,7,8;
+  cof_3x3_check <<  12, -4, -1,
+                    -51, -1, 20,
+                    21, 2, -13;
+  cof_3x3 = cofactor(mtx_3x3);
+  ASSERT_TRUE(cof_3x3.isApprox(cof_3x3_check));
+  ASSERT_TRUE(adjugate(mtx_3x3).isApprox(cof_3x3_check.transpose()));
+}
+
+TEST(MathTest, CofactorMatrix4x4) {
   Eigen::Matrix4d mtx_4x4, cof_4x4, cof_4x4_check;
   mtx_4x4 << 5,  -2,  2,  7,
           1,   0,  0,  3,
@@ -168,22 +191,31 @@ TEST(MathTest, CofactorMatrix) {
                     76, 208, 4, 4,
                     -60, -82, -2, 20,
                     -36, -58, -10, 12;
-  cof_4x4 = getCofactorMatrix(mtx_4x4);
+  cof_4x4 = cofactor(mtx_4x4);
   ASSERT_TRUE(cof_4x4.isApprox(cof_4x4_check));
-
-  Eigen::Matrix3d mtx_3x3, cof_3x3, cof_3x3_check;
-  mtx_3x3 <<  1,9,3,
-              2,5,4,
-              3,7,8;
-  cof_3x3_check <<  12, -4, -1,
-                    -51, -1, 20,
-                    21, 2, -13;
-  cof_3x3 = getCofactorMatrix(mtx_3x3);
-  ASSERT_TRUE(cof_3x3.isApprox(cof_3x3_check));
+  ASSERT_TRUE(adjugate(mtx_4x4).isApprox(cof_4x4_check.transpose()));
 }
 
-TEST(MathTest, AdjugateMatrix) {
-  Eigen::Matrix4d mtx_4x4, adj_4x4, adj_4x4_check;
+TEST(MathTest, SymmetricAdjugateMatrix3x3) {
+  Eigen::Matrix3d mtx_3x3, adj_3x3, adj_3x3_check, adj_3x3_symmetric, cof_3x3;
+  mtx_3x3 <<  7, 1, -3,
+              1, 4, 1,
+              -3, 1, 5;
+  adj_3x3_check <<  19, -8, 13,
+                    -8, 26, -10,
+                    13, -10, 27;
+  adj_3x3 = adjugate(mtx_3x3);
+  ASSERT_TRUE(adj_3x3.isApprox(adj_3x3_check));
+
+  // Check manual symmetric matrix, which has a specialized function
+  adj_3x3_symmetric = get3x3SymmetricAdjugateMatrix(mtx_3x3);
+  cof_3x3 = cofactor(mtx_3x3);
+  ASSERT_TRUE(adj_3x3_symmetric.isApprox(adj_3x3_check));
+  ASSERT_TRUE(cof_3x3.isApprox(adj_3x3_check.transpose()));
+}
+
+TEST(MathTest, SymmetricAdjugateMatrix4x4) {
+  Eigen::Matrix4d mtx_4x4, adj_4x4, adj_4x4_check, cof_4x4, adj_adj_4x4, adj_cof_4x4, adj_adj_4x4_check;
   mtx_4x4 <<  5, 1, -3, 3,
               1, 0, 1, -1,
               -3, 1, 5, -9,
@@ -192,30 +224,102 @@ TEST(MathTest, AdjugateMatrix) {
                     88, -224, 40, -32,
                     -5, 40, -15, -20,
                     4, -32, -20, -16;
-  adj_4x4 = getAdjugateMatrix(mtx_4x4);
-  ASSERT_TRUE(adj_4x4.isApprox(adj_4x4_check.transpose()));
+  adj_4x4 = adjugate(mtx_4x4);
+  cof_4x4 = cofactor(mtx_4x4);
+  ASSERT_TRUE(adj_4x4.isApprox(adj_4x4_check));
+  ASSERT_TRUE(cof_4x4.isApprox(adj_4x4_check.transpose()));
 
-  Eigen::Matrix3d mtx_3x3, adj_3x3, adj_3x3_check, adj_3x3_symmetric;
-  mtx_3x3 <<  7, 1, -3,
-              1, 4, 1,
-              -3, 1, 5;
-  adj_3x3_check <<  19, -8, 13,
-                    -8, 26, -10,
-                    13, -10, 27;
-  adj_3x3 = getAdjugateMatrix(mtx_3x3);
-  ASSERT_TRUE(adj_3x3.isApprox(adj_3x3_check.transpose()));
-
-  // Check manual symmetric matrix, which has a specialized function
-  adj_3x3_symmetric = get3x3SymmetricAdjugateMatrix(mtx_3x3);
-  ASSERT_TRUE(adj_3x3_symmetric.isApprox(adj_3x3_check.transpose()));
+  adj_adj_4x4_check <<  128000, 25600, -76800, 76800,
+                        25600, 0, 25600, -25600, 
+                        -76800, 25600, 128000, -230400, 
+                        76800, -25600, -230400, 102400;
+  adj_adj_4x4 = adjugate(adj_4x4);
+  adj_cof_4x4 = cofactor(adj_4x4);
+  ASSERT_TRUE(adj_adj_4x4.isApprox(adj_adj_4x4_check));
+  ASSERT_TRUE(adj_cof_4x4.isApprox(adj_adj_4x4_check.transpose()));
+  // Just as a fun fact, the adj(adj(mtx)) = det(mtx)^(n-2) where n is the number of dimensions 
+  double det = mtx_4x4.determinant();
+  int n_dim = mtx_4x4.rows();
+  ASSERT_TRUE((std::pow(det,n_dim-2) * mtx_4x4).isApprox(adj_adj_4x4));
 }
 
-TEST(MathTest, AdjugateMatrixRandom) {
+TEST(MathTest, AdjugateMatrix4x4) {
+  Eigen::Matrix4d mtx_4x4, adj_4x4, adj_4x4_check, cof_4x4;
+  mtx_4x4 <<  1, 5, 4, 12, 
+              3, 2, 9, 4, 
+              3, 8, 5, 3, 
+              0, 4, 8, 11;
+  adj_4x4_check <<  -446, -379, 71, 605, 
+                    108, 187, -223, -125, 
+                    210, -55, -15, -205, 
+                    -192, -28, 92, 70;
+  adj_4x4 = adjugate(mtx_4x4);
+  cof_4x4 = cofactor(mtx_4x4);
+  ASSERT_TRUE(adj_4x4.isApprox(adj_4x4_check));
+  ASSERT_TRUE(cof_4x4.isApprox(adj_4x4_check.transpose()));
+  double det = mtx_4x4.determinant();
+  int n_dim = mtx_4x4.rows();
+  ASSERT_TRUE((std::pow(det,n_dim-2) * mtx_4x4).isApprox(adjugate(adj_4x4)));
+}
+
+TEST(MathTest, AdjugateMatrix4x4ByHand) {
+  Eigen::Matrix4d mtx_4x4, adj_4x4, adj_4x4_check, cof_4x4;
+  mtx_4x4 <<  1.1, 2.1, 1.3, 0.8,
+              -0.7, -1.1, 0.8, 1.2,
+              -2.1, 1.8, 0.4, -0.1, 
+              0.9, -1.3, -2.0, 1.4;
+  adj_4x4_check <<  -6.004, 4.815, 9.958, 0.015, 
+                    -6.636, 7.173, -7.094, -2.863, 
+                    -3.476, -9.502, 5.868, 10.55, 
+                    -7.268, -10.009, -4.606, -9.649;
+  adj_4x4 = adjugate(mtx_4x4);
+  cof_4x4 = cofactor(mtx_4x4);
+  Eigen::Matrix4d adj_adj = adjugate(adjugate(mtx_4x4));
+  // std::cout << "The adjugate of my adjugate is a factor of the determinant to a power.\n" << adj_adj << std::endl;
+  EXPECT_TRUE(adj_4x4.isApprox(adj_4x4_check, 1e-3));
+  EXPECT_TRUE(cof_4x4.isApprox(adj_4x4_check.transpose(),1e-3));
+  double det = mtx_4x4.determinant();
+  int n_dim = mtx_4x4.rows();
+  ASSERT_TRUE((std::pow(det,n_dim-2) * mtx_4x4).isApprox(adj_adj));
+}
+
+TEST(MathTest, AdjugateMatrix4x4RankDeficient) {
+  Eigen::Matrix4d mtx_4x4, adj_4x4, adj_4x4_check, cof_4x4, adj_adj;
+  mtx_4x4 <<  0.0, 2.1, 1.3, 0.8,
+              -0.7, 0.0, 0.8, 1.2,
+              -2.1, 1.8, 0.0, -0.1, 
+              0.9, -1.3, -2.0, 0.0;
+  adj_4x4 = adjugate(mtx_4x4);
+  adj_adj = adjugate(adj_4x4);
+  std::cout << "adj(A) (rank deficient):\n" << adj_4x4 << std::endl;
+  std::cout << "AA* (rank deficient):\n" << mtx_4x4 * adj_4x4 << std::endl;
+
+  double det = mtx_4x4.determinant();
+  int n_dim = mtx_4x4.rows();
+  double scalar = std::pow(det,n_dim-2);
+  std::cout << "det^(n-2)*mtx (rank deficient): " << det << std::endl
+            << scalar * mtx_4x4 << std::endl;
+  ASSERT_TRUE((scalar * mtx_4x4).isApprox(adj_adj));
+}
+
+TEST(MathTest, AdjugateMatrixRandom3x3) {
   for(size_t i = 0; i < 100; i++) {
     Eigen::Matrix3d rnd_mtx = Eigen::Matrix3d::Random();
     EXPECT_NE(rnd_mtx(Eigen::last, Eigen::last), 0);
-    Eigen::Matrix3d rnd_mtx_adj = getAdjugateMatrix(rnd_mtx);
-    Eigen::Matrix3d rnd_mtx_back = getAdjugateMatrix(rnd_mtx_adj);
+    Eigen::Matrix3d rnd_mtx_adj = adjugate(rnd_mtx);
+    Eigen::Matrix3d rnd_mtx_back = adjugate(rnd_mtx_adj);
+    rnd_mtx /= rnd_mtx(Eigen::last, Eigen::last);
+    rnd_mtx_back /= rnd_mtx_back(Eigen::last, Eigen::last);
+    EXPECT_TRUE(rnd_mtx.isApprox(rnd_mtx_back, 1e-3));
+  }
+}
+
+TEST(MathTest, AdjugateMatrixRandom4x4) {
+  for(size_t i = 0; i < 100; i++) {
+    Eigen::Matrix4d rnd_mtx = Eigen::Matrix4d::Random();
+    EXPECT_NE(rnd_mtx(Eigen::last, Eigen::last), 0);
+    Eigen::Matrix4d rnd_mtx_adj = adjugate(rnd_mtx);
+    Eigen::Matrix4d rnd_mtx_back = adjugate(rnd_mtx_adj);
     rnd_mtx /= rnd_mtx(Eigen::last, Eigen::last);
     rnd_mtx_back /= rnd_mtx_back(Eigen::last, Eigen::last);
     EXPECT_TRUE(rnd_mtx.isApprox(rnd_mtx_back, 1e-3));

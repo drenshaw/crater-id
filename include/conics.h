@@ -61,6 +61,7 @@ class Conic {
     cv::Size getSize() const;
     void getSize(cv::Size& semiaxes) const;
     double getAngle() const;
+    double getAngleDeg() const;
     int getID() const;
     void normalizeImplicitParams();
     std::array<double, GEOMETRIC_PARAM> getGeom() const ;
@@ -111,7 +112,8 @@ Eigen::Matrix3d implicit2Locus(const std::array<double, IMPLICIT_PARAM>& impl_pa
  // General Conic Utils
 void normalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>& impl_params) ;
 void normalizeImplicitParameters(std::vector<double>& impl_params) ;
-
+bool isEllipse(const Eigen::Matrix3d& conic_locus);
+// void extractEllipseParameters(const Eigen::Matrix3d& A, double& semiMajor, double& semiMinor, Eigen::Vector2d& center, double& angle);
 
 /*********************************************************/
 /***********************INVARIANTS************************/
@@ -144,4 +146,7 @@ bool computeInvariant(const Eigen::Vector3d&,
                       double&);
 bool computeCraterTriadInvariants(const Conic&, const Conic&, const Conic&,
                                   std::array<double, NONCOPLANAR_INVARIANTS>&);
+Eigen::Matrix3d canonical(const Eigen::Matrix3d& image_conic);
+Conic canonical(const Conic& conic);
+
 } // namespace

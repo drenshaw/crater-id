@@ -17,7 +17,8 @@ Quadric::Quadric( const Eigen::Vector3d& position,
                     id_(id),
                     radius_(radius),
                     center_{position},
-                    plane_(surface_normal.normalized(), position.norm()) {
+                    plane_(surface_normal.normalized(), position.norm()
+                  ) {
   // TODO: Uses only Moon radius; change if using another body (e.g., Mars)
   if(radius > R_MOON) {
     throw std::runtime_error("The crater radius is larger than the Moon.");
@@ -73,9 +74,9 @@ Quadric::Quadric(const Eigen::Vector3d& position, const double radius, const std
 Quadric::Quadric(const std::string id, const Eigen::Vector3d& position, const double radius) :
   Quadric(position, radius, id) {}
 Quadric::Quadric(const double lat, const double lon, const double radius, const std::string id) :
-  Quadric(calculateCraterRimFromRadius(radius)*latlon2bearing(lat, lon), radius, id) {}
+  Quadric(latlonrad2XYZ(lat, lon, radius), radius, id) {}
 Quadric::Quadric(const std::string id, const double lat, const double lon, const double radius) :
-  Quadric(calculateCraterRimFromRadius(radius)*latlon2bearing(lat, lon), radius, id) {}
+  Quadric(latlonrad2XYZ(lat, lon, radius), radius, id) {}
 Quadric::Quadric(const std::string id, const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal) :
   Quadric(position, radius, surface_normal, id) {}
 
@@ -98,54 +99,48 @@ bool Quadric::operator!=(const Quadric* other_quadric) const {
   return  !operator==(other_quadric);
 }
 
-bool isSamePlane(const Eigen::Hyperplane<double, 3>& p1, const Eigen::Hyperplane<double, 3>& p2, const double thresh) {
-  if(p1.isApprox(p2))
-    return true;
-  if((p1.normal() - p2.normal()).norm() < 1e-3 && std::abs(p1.offset() - p2.offset()) < thresh)
-    return true;
-  if((p1.normal() + p2.normal()).norm() < 1e-3 && std::abs(p1.offset() + p2.offset()) < thresh)
-    return true;
-  return false;
+Eigen::Matrix4d Quadric::generateQuadricLocusFromPointRadius() const {
+  return GenerateQuadricLocus(this->center_, this->radius_);
 }
 
-bool isSamePlane(const Quadric& quad1, const Quadric& quad2, const double thresh) {
-  return isSamePlane(quad1.getPlane(), quad2.getPlane(), thresh);
-}
-
-Eigen::Matrix4d Quadric::generateQuadricLocus() const {
-  return GenerateQuadricLocusFromRadiusNormal(center_, radius_);
+Eigen::Matrix4d Quadric::generateQuadricEnvelopeFromPointRadius() const {
+  return GenerateQuadricEnvelope(this->center_, this->radius_);
 }
 
 Eigen::Matrix3d Quadric::getQuadricTransformationMatrix() const {
-  return getENUFrame(plane_.normal());
+  return getENUFrame(this->plane_.normal());
 }
 
 Eigen::Matrix4d Quadric::getLocus() const {
-  return generateQuadricLocus();
+  return this->generateQuadricLocusFromPointRadius();
+}
+
+Eigen::Matrix4d Quadric::getEnvelope() const {
+  return this->generateQuadricEnvelopeFromPointRadius();
 }
 
 Eigen::Vector3d Quadric::getLocation() const {
-  return center_;
+  return this->center_;
 }
 
 void Quadric::getLocation(Eigen::Vector3d& location) const {
-  location = center_;
+  location = this->center_;
 }
 
 Eigen::Vector3d Quadric::getNormal() const {
-  return plane_.normal();
+  return this->plane_.normal();
 }
 
 void Quadric::getNormal(Eigen::Vector3d& surface_normal) const {
-  surface_normal = plane_.normal();
+  surface_normal = this->plane_.normal();
 }
 
 Eigen::Hyperplane<double, 3> Quadric::getPlane() const {
-  return plane_;
+  return this->plane_;
 }
 
 void Quadric::getPlane(Eigen::Hyperplane<double, 3>& hyperplane) const {
-  hyperplane = plane_;
+  hyperplane = this->plane_;
 }
 
 double Quadric::getAngleBetweenQuadrics(const Quadric& other_quadric) const {
@@ -167,11 +162,17 @@ Eigen::Vector3d Quadric::getAxisNormalToQuadrics(const Quadric& other_quadric) c
 }
 
 double Quadric::getRadius() const {
-  return radius_;
+  return this->radius_;
 }
 
 std::string Quadric::getID() const {
-  return id_;
+  return this->id_;
+}
+
+Conic Quadric::projectToConic(const Eigen::MatrixXd& proj_mtx) const{
+  Eigen::Matrix3d conic_envelope = proj_mtx * this->getEnvelope() * proj_mtx.transpose();
+  Conic conic(adjugate(conic_envelope));
+  return conic;
 }
 
 
@@ -180,12 +181,34 @@ std::ostream& operator<<(std::ostream& os, const Quadric& quad) {
   std::streamsize sw = std::cout.width();
   return os 
     << "Quadric -> \tID: '" << quad.id_ << "'"
-    << std::fixed << std::setw(8) << std::setprecision(1)
+    << std::fixed << std::setw(8) << std::setprecision(2)
     << "\n\t\tLocation: (" << quad.center_.transpose() << ") km | "
     << "\tRadius: " << quad.radius_ << "km"
     << "\n\t\tPlane: [" << quad.plane_.coeffs().transpose() << " ] "
     << std::setprecision(ss) << std::setw(sw) << std::defaultfloat
     ;
+}
+
+
+/***************UTILS**************/
+
+bool isSamePlane(const Eigen::Hyperplane<double, 3>& p1, const Eigen::Hyperplane<double, 3>& p2, const double thresh) {
+  if(p1.isApprox(p2))
+    return true;
+  if((p1.normal() - p2.normal()).norm() < 1e-3 && std::abs(p1.offset() - p2.offset()) < thresh)
+    return true;
+  if((p1.normal() + p2.normal()).norm() < 1e-3 && std::abs(p1.offset() + p2.offset()) < thresh)
+    return true;
+  return false;
+}
+
+bool isSamePlane(const Quadric& quad1, const Quadric& quad2, const double thresh) {
+  return isSamePlane(quad1.getPlane(), quad2.getPlane(), thresh);
+}
+
+Eigen::Vector3d latlonrad2XYZ(const double lat, const double lon, const double radius) {
+  const double dist = calculateCraterRimFromRadius(radius);
+  return dist * latlon2bearing(lat, lon);
 }
 
 double calculateCraterRimFromRadius(const double radius) {
@@ -201,17 +224,24 @@ Eigen::Hyperplane<double, 3> SurfacePointToPlane(const Eigen::Matrix3d& T_e2m,
   return plane;
 }
 
-Eigen::Matrix4d GenerateQuadricLocusFromRadiusNormal(const Eigen::Vector3d& position, const double radius) {
+Eigen::Matrix4d GenerateQuadricLocus(const Eigen::Vector3d& position, const double radius) {
+  Eigen::Matrix4d quadric_envelope = GenerateQuadricEnvelope(position, radius);
+  Eigen::Matrix4d quadric_locus = adjugate(quadric_envelope);
+  // std::cout << __func__ << ": Locus:\n" << quadric_locus/quadric_locus(3,3) << std::endl;
+  // bool success = normalizeDeterminant(quadric_locus);
+  return quadric_locus;
+}
+
+Eigen::Matrix4d GenerateQuadricEnvelope(const Eigen::Vector3d& position, const double radius) {
   Conic conic(radius, radius, 0, 0, 0);
   Eigen::Matrix3d conic_envelope = conic.getEnvelope();
-
   Eigen::Matrix3d T_enu_to_ref = getENUFrame(position);
   Eigen::MatrixXd h_k = transformSelenographicToCraterFrame(position, T_enu_to_ref);
+  // std::cout << __func__ << ": h_k:\n" << h_k << std::endl;
   // eq 40 of Christian, Derksen, and Watkins [2020]
   Eigen::Matrix4d quadric_envelope = ConicEnvelopeToQuadricEnvelope(conic_envelope, h_k);
-  Eigen::Matrix4d quadric_locus = getAdjugateMatrix(quadric_envelope);
-  // bool success = normalizeDeterminant(quadric_locus);
-  return quadric_locus/quadric_locus(Eigen::last,Eigen::last);
+  // std::cout << __func__ << ": Envelope:\n" << quadric_envelope/quadric_envelope(3,3) << std::endl;
+  return quadric_envelope;
 }
 
 Eigen::Matrix4d ConicEnvelopeToQuadricEnvelope(const Eigen::Matrix3d& conic_envelope, const Eigen::MatrixXd& h_k) {
@@ -230,4 +260,20 @@ Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d& posit
   Eigen::MatrixXd h_k(4,3);
   h_k << h_m, u_north_pole.transpose();
   return h_k;
+}
+
+Eigen::Matrix4d makeSphere(const double radius) {
+  double recip_radius = 1/std::pow(radius,2.0);
+  Eigen::Matrix4d sphere = recip_radius * Eigen::Matrix4d::Identity();
+  sphere(3,3) = -1.0;
+  return sphere;
+}
+
+Eigen::Matrix4d makeEllipsoid(const Eigen::Vector3d& radii) {
+  Eigen::Vector3d recip_radii = radii.array().pow(-2);
+  Eigen::Vector4d diag;
+  diag << recip_radii, -1;
+  Eigen::Matrix4d sphere = Eigen::Matrix4d::Identity();
+  sphere.diagonal() << diag;
+  return sphere;
 }

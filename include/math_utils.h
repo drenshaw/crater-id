@@ -14,8 +14,8 @@
 const double EPS = (10 * std::numeric_limits<double>::epsilon());
 
 double getCofactor(const Eigen::MatrixXd& matrix, int p, int q);
-Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix);
-Eigen::MatrixXd getAdjugateMatrix(const Eigen::MatrixXd&);
+Eigen::MatrixXd cofactor(const Eigen::MatrixXd& matrix);
+Eigen::MatrixXd adjugate(const Eigen::MatrixXd&);
 Eigen::Matrix3d get3x3SymmetricAdjugateMatrix(const Eigen::Matrix3d&);
 
 // TODO: be careful using templates here: if an "int" is passed, we get an "int" back
@@ -44,6 +44,7 @@ double getAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::Vector
 Eigen::Vector3d getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen::Vector3d& vec2);
 
 bool normalizeDeterminant(Eigen::MatrixXd& mtx);
+// bool normalizeDeterminant(Eigen::Matrix3d& mtx);
 Eigen::Matrix3d crossMatrix(const Eigen::Vector3d&);
 template <typename T>
 T vectorNorm(const Eigen::Vector3d&);

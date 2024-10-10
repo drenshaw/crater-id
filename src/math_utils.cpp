@@ -51,7 +51,7 @@ double getCofactor(const Eigen::MatrixXd& matrix, size_t cf_row, size_t cf_col) 
   return cf_temp.determinant();
 }
 
-Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix) {
+Eigen::MatrixXd cofactor(const Eigen::MatrixXd& matrix) {
   size_t nrow = matrix.rows();
   size_t ncol = matrix.cols();
   Eigen::MatrixXd cofactor_matrix(nrow, ncol);
@@ -65,16 +65,28 @@ Eigen::MatrixXd getCofactorMatrix(const Eigen::MatrixXd& matrix) {
   return cofactor_matrix;
 }
 
-Eigen::MatrixXd getAdjugateMatrix(const Eigen::MatrixXd& matrix) {
+Eigen::MatrixXd adjugate(const Eigen::MatrixXd& matrix) {
   // TODO: ensure that row and column counts are equal
   // std::cout << __func__ << " Matrix:\n" << matrix << std::endl;
-  Eigen::MatrixXd mtx_adj = getCofactorMatrix(matrix);
+  if(matrix.rows() != matrix.cols()) {
+    throw std::runtime_error("Matrix is not square");
+  }
+  Eigen::MatrixXd mtx_adj = cofactor(matrix);
 
   // std::cout << __func__ << " Adjugate:\n" << mtx_adj << std::endl;
   if(mtx_adj.hasNaN()) {
     throw std::runtime_error("Matrix contains NaN values.");
   }
+  // Just remember: 
+  //  "The adjugate of my adjugate is a factor of the determinant to a power."
   // Matrix adjugate is the transpose of the cofactor matrix
+  // Just as a fun fact, the adj(adj(mtx)) = det(mtx)^(n-2) 
+  // where n is the number of dimensions (e.g., 4x4 => 4 dim)
+  // Unfortunately, some of the work with quadrics uses disk
+  // quadrics, which are rank deficient (i.e., det=0), 
+  // and this fun fact does not hold
+  // Another check for adjugates is ensure that the matrix times its
+  // adjugate is the identity matrix scaled by the det of the matrix
   return mtx_adj.transpose();
 }
 
@@ -133,7 +145,40 @@ Eigen::Vector3d getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen:
 
 // template <typename T>
 // bool normalizeDeterminant(Eigen::DenseBase<T>& mtx) {
-bool normalizeDeterminant(Eigen::Matrix4d& mtx) {
+bool normalizeDeterminant(Eigen::MatrixXd& mtx) {
+  // using approach from Matrix Cookbook
+  // https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
+  // get the determinant
+  uint ncol = mtx.cols();
+  assert(mtx.cols() == mtx.rows());
+  // uint nrow = mtx.rows();
+  // T mtx_normalized(nrow, ncol);
+  //get location of maximum
+  // Eigen::Index maxRow, maxCol;
+  double maxVal = 1/mtx.maxCoeff();
+  mtx *= maxVal;
+  double det_mtx = mtx.determinant();
+  if(std::abs(det_mtx)<1e-20) {
+    // BOOST_LOG_TRIVIAL(warning) << "Matrix is singular.";
+    std::cerr << "Matrix is singular/nearly singular." << std::endl;
+    mtx *= maxVal;
+    return false;
+  }
+  // we want the determinant of A to be 1
+  // 1 = det(c*A) = d^n*det(A), where n=3 for 3x3 matrix
+  // so solve the equation d^3 - 1/det(A) = 0
+  double d = pow(abs(1./det_mtx), 1./ncol);
+  // d*mtx should now have a determinant of +1
+  mtx *= d;
+  bool sign = signbit(mtx.determinant()); // true if negative
+  // assert(abs(det(A_norm)-1)<sqrt(eps))
+  mtx *= sign ? -1.0 : 1.0;
+  return true;
+}
+
+// template <typename T>
+// bool normalizeDeterminant(Eigen::DenseBase<T>& mtx) {
+bool normalizeDeterminant(Eigen::Matrix3d& mtx) {
   // using approach from Matrix Cookbook
   // https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
   // get the determinant
@@ -145,7 +190,7 @@ bool normalizeDeterminant(Eigen::Matrix4d& mtx) {
   double maxVal = 1/mtx.maxCoeff();
   mtx *= maxVal;
   double det_mtx = mtx.determinant();
-  if(abs(det_mtx)<1e-20) {
+  if(std::abs(det_mtx)<1e-20) {
     // BOOST_LOG_TRIVIAL(warning) << "Matrix is singular.";
     std::cerr << "Matrix is singular/nearly singular." << std::endl;
     mtx *= maxVal;

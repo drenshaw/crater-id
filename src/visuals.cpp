@@ -1,4 +1,5 @@
 #include "visuals.h"
+#include "camera.h"
 #include "opencv2/core/types.hpp"
 #include "opencv2/viz/types.hpp"
 #include <iostream>
@@ -18,29 +19,34 @@ void drawEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
               << "find the image\n"; 
     return; 
   }
-  cv::Point center;
-  conic.getCenter(center);
+  cv::Size2i img_size(image.rows, image.cols);
+  cv::Point ellipse_center;
+  conic.getCenter(ellipse_center);
+  if(!isInImage(ellipse_center, image.size)) {
+    std::cout << "Ellipse is not in the image: " << ellipse_center << std::endl;
+    return;
+  }
   // Drawing the ellipse 
-  cv::ellipse(image, center, 
-              conic.getSize(), conic.getAngle(), 
+  cv::ellipse(image, ellipse_center, 
+              conic.getSize(), 90+conic.getAngleDeg(), 
               0, 360, 
               color, -1, cv::LINE_AA); 
 
-  int font = cv::FONT_HERSHEY_SIMPLEX;
-  float font_scale = 1; // scale factor from base size
-  int thickness = 3; //in pixels
-  cv::Scalar rect_color = cv::viz::Color::orange();
-  cv::Scalar text_color = cv::viz::Color::azure();
-  cv::Point ll_offset(-10, -35);
-  cv::Point ur_offset( 50,  20);
-  cv::rectangle (image, center+ll_offset, center+ur_offset, rect_color, cv::FILLED, cv::LINE_8, 0);
-  cv::putText(image, std::to_string(conic.getID()), center, font, font_scale,
-              text_color, thickness, cv::LINE_AA, false);
+  // int font = cv::FONT_HERSHEY_SIMPLEX;
+  // float font_scale = 1; // scale factor from base size
+  // int thickness = 3; //in pixels
+  // cv::Scalar rect_color = cv::viz::Color::orange();
+  // cv::Scalar text_color = cv::viz::Color::azure();
+  // cv::Point ll_offset(-10, -35);
+  // cv::Point ur_offset( 50,  20);
+  // cv::rectangle (image, center+ll_offset, center+ur_offset, rect_color, cv::FILLED, cv::LINE_8, 0);
+  // cv::putText(image, std::to_string(conic.getID()), center, font, font_scale,
+  //             text_color, thickness, cv::LINE_AA, false);
 }
 
 void drawEllipse(const Conic& conic, const cv::Scalar& color) {
-  cv::Mat image(500, 500, CV_8UC3, 
-                cv::Scalar(255, 255, 255)); 
+  cv::Mat image(1024, 1296, CV_8UC3, 
+                cv::Scalar(50, 50, 50)); 
   drawEllipse(image, conic, color);
   // Showing image inside a window 
   cv::imshow("Ellipse", image); 
@@ -56,8 +62,8 @@ void drawEllipses(cv::Mat& image, const std::vector<Conic>& conics, const std::v
 }
 
 void drawEllipses(const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors) {
-  cv::Mat image(500, 500, CV_8UC3, 
-                cv::Scalar(255, 255, 255)); 
+  cv::Mat image(1024, 1296, CV_8UC3, 
+                cv::Scalar(50, 50, 50)); 
   drawEllipses(image, conics, colors);
   // Showing image inside a window 
   cv::imshow("Ellipses", image); 

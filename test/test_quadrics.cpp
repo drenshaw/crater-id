@@ -1,10 +1,16 @@
 #include "gtest/gtest.h"
 #include <eigen3/Eigen/Geometry>
+#include <opencv2/imgproc.hpp> 
+#include <opencv2/highgui/highgui.hpp> 
 // #include <random>
 
 #include "quadrics.h"
-// #include "io.h"
+#include "camera.h"
+#include "visuals.h"
 #include "math_utils.h"
+#include "conics.h"
+
+#define R_MOON 1737.4
 
 // #include <iomanip>
 
@@ -21,9 +27,19 @@ TEST_CASE( "Factorial of 0 is 1 (fail)", "[single-file]" ) {
 class QuadricTest : public testing::Test {
 protected:
   QuadricTest() {
-    lat = 0, lon = 0, radius = 200;
+    latitude = 0, longitude = 0, radius = 200;
     id = "defaultQuadric";
-    quadric_default = new Quadric(lat, lon, radius, id);
+    quadric_default = new Quadric(latitude, longitude, radius, id);
+    // This is a real crater with lat/lon and radius from a lunar crater
+    quadric_real    = new Quadric(61.6941, 172.365, 83.2894, "01-1-000026");
+    dx = 1000, dy = 1000, skew = 0, im_height = 2048, im_width = 2592;
+    up = (double(im_width)+1)/2;
+    vp = (double(im_height)+1)/2;
+    image_size = cv::Size(im_width, im_height);
+    origin = Eigen::Vector3d::Zero();
+    quat = Eigen::Quaterniond::Identity();
+    position << 1e2,2e2,-3e4;
+    cam = new Camera(dx, dy, up, vp, skew, image_size, quat, position);
   }
   ~QuadricTest() override {
     delete quadric_default;
@@ -31,10 +47,17 @@ protected:
 
 public:
   // ~QueueTest() override = default;
-  double lat, lon, radius;
+  double latitude, longitude, radius;
   std::string id;
   Quadric* quadric_default;
-  Eigen::Vector3d origin = Eigen::Vector3d::Zero();
+  Quadric* quadric_real;
+  Eigen::Vector3d origin;
+  double dx, dy, up, vp, skew;
+  int im_height, im_width;
+  cv::Size2i image_size;
+  Camera* cam;
+  Eigen::Quaterniond quat;
+  Eigen::Vector3d position;
 };
 
 TEST_F(QuadricTest, MakingQuadric) {
@@ -55,8 +78,8 @@ TEST_F(QuadricTest, InvalidCraterRadius) {
   double zero_radius = 0;
   std::string id_excess = "excessRadius";
   std::string id_zero = "zeroRadius";
-  EXPECT_THROW(Quadric quad(lat, lon, invalid_radius, id_excess), std::runtime_error);
-  EXPECT_THROW(Quadric quad(lat, lon, zero_radius, id_zero), std::runtime_error);
+  EXPECT_THROW(Quadric quad(latitude, longitude, invalid_radius, id_excess), std::runtime_error);
+  EXPECT_THROW(Quadric quad(latitude, longitude, zero_radius, id_zero), std::runtime_error);
 }
 
 TEST_F(QuadricTest, InvalidPositionWithDependentNormal) {
@@ -65,7 +88,7 @@ TEST_F(QuadricTest, InvalidPositionWithDependentNormal) {
 }
 
 TEST_F(QuadricTest, InvalidSurfaceNormal) {
-  Eigen::Vector3d position = 1e5*latlon2bearing(lat, lon);
+  Eigen::Vector3d position = 1e5*latlon2bearing(latitude, longitude);
   Eigen::Vector3d surface_normal(0, 0, 0);
   std::string id = "zeroNormal";
   EXPECT_THROW(Quadric quad(position, radius, surface_normal, id), std::runtime_error);
@@ -166,4 +189,306 @@ TEST_F(QuadricTest, InPlaneXZQuadric) {
   Quadric quad_inplane(p1, p2, p3, "inStrangePlane");
   Eigen::Hyperplane<double, 3> plane(Eigen::Vector3d(0,-1,0),0);
   EXPECT_TRUE(isSamePlane(plane, quad_inplane.getPlane()));
+}
+
+bool checkAdjugacy(const Eigen::Matrix4d& mtx) {
+  Eigen::Matrix4d adj_mtx = adjugate(mtx);
+  Eigen::Matrix4d adj_adj = adjugate(adj_mtx);
+
+  double det = mtx.determinant();
+  int n_dim = mtx.rows();
+  double scalar = std::pow(det,n_dim-2);
+  // std::cout << "\nMatrix:\n" << mtx << std::endl;
+  // std::cout << "\nMatrix adjugate:\n" << adj_mtx << std::endl;
+  // std::cout << "\nAA*:\n" << mtx * adj_mtx/det << std::endl;
+  // std::cout << "det^(n-2)*mtx (rank deficient)-> det: " << det << std::endl
+  //           << scalar * mtx << std::endl;
+  return (scalar * mtx).isApprox(adj_adj);
+}
+
+TEST_F(QuadricTest, RealCraterData) {
+
+  Eigen::Matrix4d envelope_check;
+  envelope_check << 659792,     -89375.2, -1.24902e+06,     -815.596,
+                  -89375.2,      5043.65,       167431,      109.331,
+              -1.24902e+06,       167431,  2.33291e+06,       1527.9,
+                  -815.596,      109.331,       1527.9,            1;
+  Eigen::Matrix4d envelope = quadric_real->getEnvelope();
+  envelope /= envelope(Eigen::last, Eigen::last);  
+  // normalizeDeterminant(envelope);                
+  EXPECT_TRUE(envelope.isApprox(envelope_check, 1e-3));
+  // std::cout << *quadric_real << std::endl;
+  // Since this is a rank-deficient matrix, expect this to fail check
+  EXPECT_FALSE(checkAdjugacy(envelope));
+}
+
+TEST_F(QuadricTest, SampleCrater) {
+  Quadric lat0lon0(0, 0, 100, "SittingPretty@0,0");
+  EXPECT_TRUE(lat0lon0.getNormal().isApprox(Eigen::Vector3d(1,0,0)));
+  Eigen::Matrix4d envelope = lat0lon0.getEnvelope();
+  envelope /= envelope(Eigen::last, Eigen::last);  
+  // normalizeDeterminant(envelope);                
+  // EXPECT_TRUE(envelope.isApprox(envelope_check, 1e-3));
+  // std::cout << lat0lon0 << std::endl;
+  // Since this is a rank-deficient matrix, expect this to fail check
+  EXPECT_FALSE(checkAdjugacy(envelope));
+}
+
+TEST_F(QuadricTest, EnvelopeToLocus) {
+  // TODO: Since the envelope will always be rank 3, we will never abide by
+  // the typical adjugate matrix rules; for now, we never use the quadric
+  // locus, so we will ignore this for now.
+}
+
+void extractEllipseParameters(const Eigen::Matrix3d& A, double& semiMajor, double& semiMinor, Eigen::Vector2d& center, double& angle) {
+    // Extract the top-left 2x2 submatrix
+    Eigen::Matrix2d subMatrix = A.topLeftCorner<2, 2>();
+    
+    // Eigenvalue decomposition
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigensolver(subMatrix);
+    if (eigensolver.info() != Eigen::Success) {
+        std::cerr << "Eigenvalue decomposition failed!" << std::endl;
+        return;
+    }
+    
+    // Eigenvalues and eigenvectors
+    Eigen::Vector2d eigenvalues = eigensolver.eigenvalues();
+    Eigen::Matrix2d eigenvectors = eigensolver.eigenvectors();
+    
+    // Semi-major and semi-minor axes
+    std::cout << "Eigenvalues: " << eigenvalues.transpose() << std::endl;
+    semiMajor = 1.0 / std::sqrt(eigenvalues.minCoeff());
+    semiMinor = 1.0 / std::sqrt(eigenvalues.maxCoeff());
+    
+    // Center of the ellipse
+    center = -subMatrix.inverse() * A.topRightCorner<2, 1>();
+    
+    // Angle with respect to the x-axis
+    angle = std::atan2(eigenvectors(1, 0), eigenvectors(0, 0));
+}
+
+void plotCraters(const Camera& camera, const std::vector<Quadric>& craters) {
+  std::vector<Conic> conics;
+  int count = 0;
+  for(const Quadric& crater : craters) {
+    Eigen::MatrixXd proj_mtx = camera.getProjectionMatrix();
+    Eigen::Matrix3d conic_envelope = proj_mtx * crater.getEnvelope() * proj_mtx.transpose();
+    Eigen::Matrix3d locus = adjugate(conic_envelope);
+    Conic conic(locus);
+    
+    Conic con = crater.projectToConic(camera.getProjectionMatrix());
+    if(camera.isInCameraFrame(crater.getLocation())) {
+      conics.push_back(con);
+    }
+    else {
+      std::cerr << "Crater is not in the image - ID: " << count << std::endl;
+    }
+    count++;
+  }
+
+  cv::Mat image = camera.getBlankCameraImage();
+  
+  // // Add the moon
+  // Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
+  // Eigen::Matrix3d moon_locus = camera.projectQuadricToLocus(sphere);
+  // Conic moon(moon_locus);
+  // std::cout << moon << std::endl;
+  // if(camera.isInCameraFrame(moon.getCenter())) {
+  //   viz::drawEllipse(image, moon, cv::viz::Color::gray());
+  // }
+  // else {
+  //   std::cout << "The Moon center is not in the image: " << moon.getCenter().transpose() << std::endl;
+  // }
+  // Eigen::Vector2d pixel;
+  // camera.world2Pixel(Eigen::Vector3d::Zero(), pixel);
+  // std::cout << "Center = ( " << pixel.transpose() << std::endl;
+
+  // Add the craters
+  viz::drawEllipses(image, conics, viz::CV_colors);
+  Eigen::Vector2d org = camera.world2Pixel(Eigen::Vector3d::Zero());
+  cv::drawMarker(image, cv::Point(org[0], org[1]), cv::viz::Color::celestial_blue());
+
+  // Showing image inside a window 
+  cv::Mat outImg;
+  double scaling = 0.4;
+  cv::resize(image, outImg, cv::Size(), scaling, scaling);
+  cv::imshow("Projecting Quadrics to Conics", outImg); 
+  cv::waitKey(0); 
+}
+
+TEST_F(QuadricTest, ProjectQuadric) {
+  double radius = 50;
+  double lat = -89;
+  std::vector<Quadric> quadrics;
+  for(int i = 0; i < 24; i++) {
+    Quadric quad(lat+i*1.5, i*13, radius, "");
+    quadrics.push_back(quad);
+  }
+
+  Eigen::Vector3d pos(0, 0,-2.5e3);
+  cam->moveTo(pos);
+  cam->pointTo(origin, -Eigen::Vector3d::UnitY());
+  Eigen::MatrixXd proj_mtx = cam->getProjectionMatrix();
+  plotCraters(*cam, quadrics);
+}
+
+TEST_F(QuadricTest, MakeSphere) {
+  Eigen::Vector3d pos(2.2e3, 0 ,0);
+  cam->setPosition(pos);
+  Eigen::Vector3d point_to(double(R_MOON)*Eigen::Vector3d::UnitZ());
+  cam->pointTo(point_to, Eigen::Vector3d::UnitZ());
+
+  double radius = 50;
+  double dist = 0.3;
+  std::vector<Quadric> craters;
+  std::vector<Conic> conics;
+  for(int i = 0; i < 24; i++) {
+    double theta = deg2rad(i*13);
+    double lat = dist*rad2deg(std::cos(theta));
+    double lon = dist*rad2deg(std::sin(theta));
+    Quadric quad(lat , lon, radius, "");
+    craters.push_back(quad);
+  }
+  plotCraters(*cam, craters);
+}
+
+TEST_F(QuadricTest, ProjectMoonCenter) {
+
+  // Eigen::Vector3d pos(2.5e3, 0, 0);
+  // // cam->moveCamera(pos);
+  // cam->moveTo(pos);
+  // cam->pointTo(origin, Eigen::Vector3d::UnitZ());
+  // std::cout << "Origin: " << origin.transpose() << std::endl;
+  
+  // // Add the moon
+  // Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
+  // Eigen::Vector2d pixel;
+  // cv::Mat image = cam->getBlankCameraImage();
+  // cv::Mat outImg;
+  // double scaling = 0.4;
+  // double semiMajor, semiMinor, angle;
+  // Eigen::Vector2d center;
+  // Eigen::AngleAxisd rot = Eigen::AngleAxisd(-M_PI / 24, Eigen::Vector3d::UnitX());
+  // for(int i = 0; i < 10; i++) {
+  //   cam->resetImage(image);
+  //   Eigen::Matrix3d moon_locus = cam->projectQuadricToLocus(sphere);
+  //   extractEllipseParameters(moon_locus, semiMajor, semiMinor, center, angle);
+  //   Conic moon(moon_locus);
+  //   std::cout << moon << std::endl;
+  //   std::cout << "New params: " << semiMajor << ", " << semiMinor << ", " << center.transpose() << ", " << angle << std::endl;
+  //   cam->world2Pixel(Eigen::Vector3d::Zero(), pixel);
+  //   std::cout << "Moon center: " << pixel.transpose() << std::endl;
+
+  //   // viz::drawEllipse(image, moon, cv::viz::Color::gray());
+  //   // // Showing image inside a window 
+  //   // cv::resize(image, outImg, cv::Size(), scaling, scaling);
+  //   // cv::imshow("Projecting Moon to Camera", outImg); 
+  //   // cv::waitKey(0); 
+
+  //   cam->moveCamera(rot);
+  // }
+}
+
+void getQuadricNsewPts(const Quadric& quad, Eigen::Vector3d& n, Eigen::Vector3d& s, Eigen::Vector3d& e, Eigen::Vector3d& w) {
+// void getQuadricNsewPts(const Quadric& quad) {
+  Eigen::Vector3d center = quad.getLocation();
+  double radius = quad.getRadius();
+  Eigen::Matrix3d T_e2m = getENUFrame(center);
+  Eigen::Vector3d n_off, s_off, e_off, w_off;
+  n_off =  radius*T_e2m.col(1);
+  s_off = -n_off;
+  e_off =  radius*T_e2m.col(0);
+  w_off = -e_off;
+  // // std::cout << "Transform:\n" << T_e2m << std::endl;
+  // std::cout << "North offset: " << n_off.transpose() << std::endl;
+  // std::cout << "East  offset: " << e_off.transpose() << std::endl;
+  n = center + n_off;
+  s = center + s_off;
+  e = center + e_off;
+  w = center + w_off;
+}
+
+TEST_F(QuadricTest, ProjectCrater) {
+
+  Eigen::Vector3d pos(2.4e3, 0, 0);
+  // cam->moveCamera(pos);
+  cam->moveTo(pos);
+  cam->pointTo(origin, Eigen::Vector3d::UnitZ());
+  
+  // Add the moon
+  Quadric zero(0,0,300,"@zero");
+  Eigen::Vector3d n, s, e, w;
+  getQuadricNsewPts(zero, n, s, e, w);
+  std::cout << zero << std::endl;
+  Eigen::Vector2d pixel;
+  cv::Mat image = cam->getBlankCameraImage();
+  cv::Mat outImg;
+  double scaling = 0.5;
+  Eigen::AngleAxisd rot = Eigen::AngleAxisd(-M_PI / 36, Eigen::Vector3d::UnitX());
+  for(int i = 0; i < 10; i++) {
+    cam->resetImage(image);
+    Eigen::MatrixXd proj = cam->getProjectionMatrix();
+    Eigen::Matrix3d locus = adjugate(proj * adjugate(zero.getLocus()) * proj.transpose());
+    // Eigen::Matrix3d locus = cam->projectQuadricToLocus(zero.getLocus());
+    // std::cout << "Count:\n" << zero.getLocus() << std::endl;
+    std::cout << "Locus:\n" << locus << std::endl;
+    Conic crater(locus);
+    Eigen::Vector2d pixel_n, pixel_s, pixel_e, pixel_w;
+    cam->world2Pixel(n, pixel_n);
+    cam->world2Pixel(s, pixel_s);
+    cam->world2Pixel(e, pixel_e);
+    cam->world2Pixel(w, pixel_w);
+
+    viz::drawEllipse(image, crater, cv::viz::Color::gray());
+
+    cv::drawMarker(image, cv::Point(pixel_n[0], pixel_n[1]), cv::viz::Color::red());
+    cv::drawMarker(image, cv::Point(pixel_s[0], pixel_s[1]), cv::viz::Color::cyan());
+    cv::drawMarker(image, cv::Point(pixel_e[0], pixel_e[1]), cv::viz::Color::orange());
+    cv::drawMarker(image, cv::Point(pixel_w[0], pixel_w[1]), cv::viz::Color::blue());
+    // Showing image inside a window 
+    cv::resize(image, outImg, cv::Size(), scaling, scaling);
+    cv::imshow("Projecting Moon to Camera", outImg); 
+    cv::waitKey(0); 
+
+    cam->moveCamera(rot);
+  }
+}
+
+TEST_F(QuadricTest, Reprojection) {
+  double radius = 50;
+  Quadric zero(0,0,radius,"zero");
+  Quadric ten(30,0,radius,"ten");
+  Quadric twenty(45,0,radius,"twenty");
+  Quadric thirty(60,0,radius,"thirty");
+  Eigen::Vector3d n, s, e, w;
+  getQuadricNsewPts(zero, n, s, e, w);
+  getQuadricNsewPts(ten, n, s, e, w);
+  getQuadricNsewPts(twenty, n, s, e, w);
+  getQuadricNsewPts(thirty, n, s, e, w);
+}
+
+TEST_F(QuadricTest, ParameterExtraction) {
+  // // Example 3x3 matrix representation of an ellipse
+  //   Eigen::Matrix3d A;
+  //   A << 5, 1, -2,
+  //        1, 4, -3,
+  //        -2, -3, 1;
+  //   Eigen::Matrix3d A_adj = A.adjoint();
+  //   std::cout << "Adj(A):\n" << A_adj << std::endl;
+  //   if (!isEllipse(A)) {
+  //       std::cerr << "The matrix does not represent an ellipse." << std::endl;
+  //       ASSERT_TRUE(false);
+  //   }
+    
+  //   double semiMajor, semiMinor, angle;
+  //   Eigen::Vector2d center;
+    
+  //   extractEllipseParameters(A, semiMajor, semiMinor, center, angle);
+    
+  //   std::cout << "Semi-major axis: " << semiMajor << std::endl;
+  //   std::cout << "Semi-minor axis: " << semiMinor << std::endl;
+  //   std::cout << "Center: (" << center.x() << ", " << center.y() << ")" << std::endl;
+  //   std::cout << "Angle with respect to x-axis: " << angle << " radians" << std::endl;
+    
+  //   ASSERT_TRUE(true);
 }

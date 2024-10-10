@@ -96,8 +96,12 @@ Camera::Camera( const Eigen::Matrix3d& intrinsic,
                         translation) {
 }
 
+Eigen::Isometry3d Camera::getTransformation() const {
+  return this->state_;
+}
+
 Eigen::Vector3d Camera::getPosition() const {
-  return this->state_.translation();
+  return this->getTransformation().translation();
 }
 
 Eigen::Vector3d Camera::getLocation() const {
@@ -145,12 +149,13 @@ Eigen::Matrix3d Camera::getInverseIntrinsicMatrix() const {
 }
 
 Eigen::Isometry3d Camera::getHomogeneousExtrinsicMatrix() const {
-  Eigen::Isometry3d extrinsic_matrix;
-  extrinsic_matrix.linear() = this->getAttitudeMatrix();
-  // TODO: should this be negative?
-  extrinsic_matrix.translation() = this->getPosition();
+  // Eigen::Isometry3d extrinsic_matrix;
+  // extrinsic_matrix.linear() = this->getAttitudeMatrix();
+  // // TODO: should this be negative?
+  // extrinsic_matrix.translation() = this->getPosition();
+  // extrinsic_matrix = this->state_.inverse();
   // extrinsic_matrix.translation() = -this->getPosition();
-  return extrinsic_matrix;
+  return this->state_.inverse();
 }
 
 Eigen::MatrixXd Camera::getExtrinsicMatrix() const {
@@ -180,12 +185,27 @@ void Camera::getIntrinsicParams(std::array<double, CAMERA_INTRINSIC_PARAM>& para
   params = {dx_, dy_, up_, vp_, skew_};
 }
 
+cv::Mat Camera::getBlankCameraImage() const {
+  cv::Mat image(this->getImageHeight(), this->getImageWidth(), 
+            CV_8UC3, 
+              cv::Scalar(50, 50, 50));
+  return image;
+}
+
+void Camera::resetImage(cv::Mat& image) const {
+  image = cv::Scalar(50, 50, 50);
+}
+
 double Camera::getImageWidth() const {
   return this->image_size_.width;
 }
 
 double Camera::getImageHeight() const {
   return this->image_size_.height;
+}
+
+cv::Size2i Camera::getImageSize() const {
+  return this->image_size_;
 }
 
 double Camera::getFovX() const {
@@ -204,21 +224,32 @@ double Camera::getFovYDeg() const {
   return getCameraFovYDeg(this->getIntrinsicMatrix(), this->image_size_);
 }
 
-Eigen::Vector3d Camera::world2Camera(const Eigen::Vector3d& pt) const {
-  Eigen::Vector3d pt_cam = this->state_.inverse() * pt;
+void Camera::world2Camera(const Eigen::Vector3d& pt, Eigen::Vector3d& pt_cam) const {
+  pt_cam = this->getHomogeneousExtrinsicMatrix() * pt;
   // std::cout << "WORLD2CAMERA val: " << pt_cam.transpose() << std::endl;
-  if(abs(pt_cam.z())<EPS) {
+  if(std::abs(pt_cam.z())<1e-9) {
     throw std::runtime_error("Point lies in the z=0 camera plane; projection not possible.");
   }
-  return pt_cam;
 }
 
 void Camera::world2Pixel(const Eigen::Vector3d& pt, Eigen::Vector2d& pt_pxl) const {
   // Eigen::Vector4d point = pt.homogeneous();
   Eigen::Matrix3d intrinsic = this->getIntrinsicMatrix();
-  Eigen::Vector3d pt_homogeneous = (intrinsic * this->world2Camera(pt));
+  Eigen::Vector3d pt_homogeneous = intrinsic * this->world2Camera(pt);
   // std::cout << "WORLD2PIXEL Pt (homogeneous): " << pt_homogeneous.transpose() << std::endl;
   pt_pxl = pt_homogeneous.hnormalized();
+}
+
+Eigen::Vector3d Camera::world2Camera(const Eigen::Vector3d& pt) const {
+  Eigen::Vector3d pt_cam;
+  this->world2Camera(pt, pt_cam);
+  return pt_cam;
+}
+
+Eigen::Vector2d Camera::world2Pixel(const Eigen::Vector3d& pt) const {
+  Eigen::Vector2d pt_pxl;
+  this->world2Pixel(pt, pt_pxl);
+  return pt_pxl;
 }
 
 bool Camera::isInFrontOfCamera(const Eigen::Vector3d& pt) const {
@@ -234,6 +265,10 @@ bool Camera::isInCameraFrame(const Eigen::Vector3d& pt_xyz, Eigen::Vector2d& pt_
   return this->isInPixelArray(pt_pxl);
 }
     
+bool Camera::isInCameraFrame(const Eigen::Vector2d& pt_pxl) const  {
+  return this->isInPixelArray(pt_pxl);
+}
+    
 bool Camera::isInCameraFrame(const Eigen::Vector3d& pt) const {
   Eigen::Vector2d pt_pxl;
   return isInCameraFrame(pt, pt_pxl);
@@ -241,12 +276,6 @@ bool Camera::isInCameraFrame(const Eigen::Vector3d& pt) const {
 
 bool Camera::isInPixelArray(const Eigen::Vector2d& pt_uv) const {
   return isInImage(pt_uv, this->image_size_);
-}
-
-Eigen::Vector2d Camera::projectXYZtoImage(const Eigen::Vector3d& pt) const {
-  Eigen::Vector2d pt_pxl;
-  this->world2Pixel(pt, pt_pxl);
-  return pt_pxl;
 }
 
 void Camera::setIntrinsicMatrix(const Eigen::Matrix3d& intrinsic) {
@@ -261,12 +290,12 @@ void Camera::setAttitude(const Eigen::Quaterniond& orientation) {
   // Eigen::Isometry3d transform;
   // transform = orientation.inverse() * Eigen::Translation<double,3>(this->state_.translation());
   this->state_.linear() = orientation.normalized().inverse().toRotationMatrix();
-  // std::cout << "SETATTITUDEQUAT: " << orientation << std::endl;
+  // std::cout << __func__ << ": " << orientation << std::endl;
 }
 
 void Camera::setAttitude(const Eigen::Matrix3d& orientation) {
   this->setAttitude(Eigen::Quaterniond(orientation));
-  // std::cout << "SETATTITUDEMTX:\n" << orientation << std::endl;
+  // std::cout << __func__ << ":\n" << orientation << std::endl;
 }
 
 void Camera::setAttitude(const Eigen::Vector3d& orientation) {
@@ -276,7 +305,7 @@ void Camera::setAttitude(const Eigen::Vector3d& orientation) {
 
 void Camera::setLocation(const Eigen::Vector3d& location) {
   this->state_.translation() = location;
-  // std::cout << "SETLOCATION: " << location.transpose() << std::endl;
+  // std::cout << __func__ << ": " << location.transpose() << std::endl;
 }
 
 void Camera::setPosition(const Eigen::Vector3d& location) {
@@ -289,6 +318,14 @@ void Camera::moveCamera(const Eigen::Isometry3d& transform) {
 
 void Camera::moveCamera(const Eigen::Quaterniond& rotation) {
   this->state_.rotate(rotation);
+}
+
+void Camera::moveCamera(const Eigen::Matrix3d& rotation) {
+  this->state_.rotate(rotation);
+}
+
+void Camera::moveCamera(const Eigen::AngleAxisd& rotation) {
+  this->moveCamera(rotation.toRotationMatrix());
 }
 
 // TODO: need to determine/express if the translation is in the inertial or body frame
@@ -312,6 +349,10 @@ void Camera::moveCameraRelative(const Eigen::Translation3d& translation) {
 }
 
 void Camera::pointTo(const Eigen::Vector3d& point, const Eigen::Vector3d& up_axis) {
+  if((point - this->getPosition()).norm() < 1e-3) {
+    // std::cerr << "Cannot point the camera in the direction specified; too close.\n";
+    throw std::runtime_error("Cannot point the camera in the direction specified; too close.");
+  }
   Eigen::Matrix3d xform = lookAt(this->getPosition(), point, up_axis);
   this->state_.linear() = xform.transpose();
 }
@@ -329,6 +370,20 @@ void Camera::resetCameraState() {
     Eigen::Vector3d::Zero(), 
     Eigen::Quaterniond::Identity(), 
     Eigen::Vector3d::Ones());
+}
+
+Eigen::Matrix3d Camera::projectQuadric(const Eigen::Matrix4d& quadric_envelope) const {
+  // TODO: account for whether the crater rim is occluded by the lunar surface
+  // Returns the envelope of the projected conic
+  Eigen::MatrixXd proj = this->getProjectionMatrix();
+  return proj * quadric_envelope * proj.transpose();
+}
+
+Eigen::Matrix3d Camera::projectQuadricToLocus(const Eigen::Matrix4d& quadric_locus) const {
+  // TODO: account for whether the crater rim is occluded by the lunar surface
+  // Returns the envelope of the projected conic
+  Eigen::MatrixXd proj = this->getProjectionMatrix();
+  return adjugate(proj * adjugate(quadric_locus) * proj.transpose());
 }
 
 
@@ -454,4 +509,14 @@ Eigen::Matrix3d lookAt( const Eigen::Isometry3d& transform,
 bool isInImage(const Eigen::Vector2d& pt_uv, const cv::Size2i image_size) {
   return  pt_uv(0) >= 0 && pt_uv(0) <= image_size.width &&
           pt_uv(1) >= 0 && pt_uv(1) <= image_size.height;
+}
+
+bool isInImage(const cv::Point& pt_uv, const cv::Size2i image_size) {
+  Eigen::Vector2d uv(pt_uv.x, pt_uv.y);
+  return isInImage(uv, image_size);
+}
+
+bool isInImage(const cv::Point& pt_uv, const cv::MatSize image_size) {
+  cv::Size2i img_size(image_size[0], image_size[1]);
+  return isInImage(pt_uv, img_size);
 }

@@ -39,7 +39,7 @@ const std::vector<cv::Scalar> CV_colors = {
   cv::viz::Color::cherry(),
   cv::viz::Color::cyan(),
   cv::viz::Color::gold(),
-  cv::viz::Color::gray(),
+  // cv::viz::Color::gray(), // used for the Moon color
   cv::viz::Color::green(),
   cv::viz::Color::indigo(),
   cv::viz::Color::lime(),

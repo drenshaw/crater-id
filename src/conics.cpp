@@ -2,7 +2,7 @@
 // #include <stdexcept>
 #include <tuple>
 #include <array>
-#include <math.h>
+#include <cmath>
 #include <eigen3/Eigen/Dense>
 
 #include "conics.h"
@@ -16,39 +16,39 @@ Conic::Conic(const double semimajor_axis,
              const double x_center, 
              const double y_center, 
              const double angle) : 
-  semimajor_axis_{semimajor_axis},
-  semiminor_axis_{semiminor_axis},
-  x_center_      {x_center},
-  y_center_      {y_center},
-  angle_         {angle} {
+    semimajor_axis_{semimajor_axis},
+    semiminor_axis_{semiminor_axis},
+    x_center_      {x_center},
+    y_center_      {y_center},
+    angle_         {angle} {
   setID();
 }
 Conic::Conic(const std::array<double, GEOMETRIC_PARAM>& geom_arr) : 
-  semimajor_axis_{geom_arr.at(0)},
-  semiminor_axis_{geom_arr.at(1)},
-  x_center_      {geom_arr.at(2)},
-  y_center_      {geom_arr.at(3)},
-  angle_         {geom_arr.at(4)} {
-    setID();
+    semimajor_axis_{geom_arr.at(0)},
+    semiminor_axis_{geom_arr.at(1)},
+    x_center_      {geom_arr.at(2)},
+    y_center_      {geom_arr.at(3)},
+    angle_         {geom_arr.at(4)} {
+  setID();
 }
 Conic::Conic(const std::vector<double>& vec) : 
-  semimajor_axis_{vec.at(0)},
-  semiminor_axis_{vec.at(1)},
-  x_center_      {vec.at(2)},
-  y_center_      {vec.at(3)},
-  angle_         {vec.at(4)} {
-    setID();
+    semimajor_axis_{vec.at(0)},
+    semiminor_axis_{vec.at(1)},
+    x_center_      {vec.at(2)},
+    y_center_      {vec.at(3)},
+    angle_         {vec.at(4)} {
+  this->setID();
 }
 Conic::Conic(const Eigen::Matrix3d& locus) {
   this->setLocus(locus);
 }
 
 void Conic::setID() {
-  id_ = next_id++;
+  this->id_ = next_id++;
 }
 
 int Conic::getID() const {
-  return id_;
+  return this->id_;
 }
 
 bool Conic::operator==(const Conic& other_conic) const {
@@ -136,7 +136,14 @@ void Conic::setImplicitParameters(const std::array<double, IMPLICIT_PARAM>& impl
 }
 
 void Conic::setLocus(const Eigen::Matrix3d& locus) {
-  std::array<double, GEOMETRIC_PARAM> geom_params = fromLocus(locus);
+  std::array<double, GEOMETRIC_PARAM> geom_params;
+  try {
+    geom_params = fromLocus(locus);
+  }
+  catch (const std::runtime_error& e) {
+    std::cout << __func__ << " " << e.what() << std::endl;
+    throw std::runtime_error("Locus is singular when attempting to make a conic.");
+  }
   setGeometricParameters(geom_params);
 }
 
@@ -153,7 +160,7 @@ Eigen::Matrix3d Conic::getLocus() const {
 }
 
 Eigen::Matrix3d Conic::getEnvelope() const {
-  return getAdjugateMatrix(toLocus());
+  return adjugate(toLocus());
 }
 
 Eigen::Matrix3d Conic::toLocus() const {
@@ -161,7 +168,13 @@ Eigen::Matrix3d Conic::toLocus() const {
  }
 
  std::array<double, GEOMETRIC_PARAM> Conic::fromLocus(const Eigen::Matrix3d& locus) const {
-  return implicit2Geom(locus2Implicit(locus));
+  try {
+    return locus2Geom(locus);
+  }
+  catch (const std::runtime_error& e) {
+    std::cout << __func__ << " " << e.what() << std::endl;
+    throw std::runtime_error("Locus is singular.");
+  }
 }
 
 
@@ -174,14 +187,14 @@ std::array<double, IMPLICIT_PARAM> Conic::toImplicit() const {
 }
 
 bool Conic::intersectsConic(const Eigen::Matrix3d& Aj, 
-                                   std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) const {
-  Eigen::Matrix3d Ai = getLocus();
+                            std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) const {
+  Eigen::Matrix3d Ai = this->getLocus();
   return invariants::intersectionLines(Ai, Aj, gh);
 }
 
 bool Conic::intersectsConicLines(const Conic& conicB, 
                                    std::tuple<Eigen::Vector3d, Eigen::Vector3d>& gh) const {
-  Eigen::Matrix3d Ai = getLocus();
+  Eigen::Matrix3d Ai = this->getLocus();
   Eigen::Matrix3d Aj = conicB.getLocus();
   return invariants::intersectionLines(Ai, Aj, gh);
 }
@@ -249,6 +262,10 @@ double Conic::getAngle() const {
   return angle_;
 }
 
+double Conic::getAngleDeg() const {
+  return rad2deg(angle_);
+}
+
 void Conic::normalizeImplicitParams() {
   // normalizeImplicitParameters(this->impl)
 }
@@ -273,20 +290,79 @@ bool Conic::chooseIntersection(const Conic& other, Eigen::Vector3d& l) const {
 /*********************************************************/
 
 std::array<double, IMPLICIT_PARAM> locus2Implicit(const Eigen::Matrix3d& locus) {
-  return {
-    locus.coeff(0,0),
-    2*locus.coeff(0,1),
-    locus.coeff(1,1),
-    2*locus.coeff(0,2),
-    2*locus.coeff(1,2),
-    locus.coeff(2,2),
-  };
+  Eigen::Matrix3d loc = locus;
+  normalizeDeterminant(loc);
+  // loc = locus(2,2) == 0 ? locus : locus/locus(2,2);
+  
+  if(loc.determinant() == 0) {
+    std::cerr << __func__ << " Locus is singular:\n" << loc << std::endl;
+    throw std::runtime_error("Matrix for locus is singular.");
+  }
+  /*
+      |  a   b/2  d/2 |
+  C = | b/2   c   e/2 |
+      | d/2  e/2   f  |
+  */
+  if(loc.hasNaN()) {
+    std::cerr << __func__ << " Locus has NaN:\n" << loc << std::endl;
+    throw std::runtime_error("The above locus has NaN value");
+  }
+  if(!isEllipse(loc)) {
+    std::cerr << loc << std::endl;
+    throw std::runtime_error("The above input matrix does not represent an ellipse.");
+  }
+  double A, B, C, D, E, F;
+  A =  loc.coeff(0,0);
+  B =  2*loc.coeff(0,1);
+  C =  loc.coeff(1,1);
+  D =  2*loc.coeff(0,2);
+  E =  2*loc.coeff(1,2);
+  F =  loc.coeff(2,2); 
+  return {A, B, C, D, E, F};
 }
 
 std::array<double, GEOMETRIC_PARAM> locus2Geom(const Eigen::Matrix3d& locus) {
-  const std::array<double, IMPLICIT_PARAM> impl_params = locus2Implicit(locus);
-  return implicit2Geom(impl_params);
+  try {
+    const std::array<double, IMPLICIT_PARAM> impl_params = locus2Implicit(locus);
+    return implicit2Geom(impl_params);
+  }
+  catch (const std::runtime_error& e) {
+    std::cerr << __func__ << " " << e.what() << std::endl << locus << std::endl;
+    throw std::runtime_error("Matrix is singular.");
+  }
 }
+
+bool isEllipse(const Eigen::Matrix3d& conic_locus) {
+    // Check if the determinant of the top-left 2x2 submatrix is positive
+    Eigen::Matrix2d subMatrix = conic_locus.topLeftCorner<2, 2>();
+    return subMatrix.determinant() > 0;
+}
+
+// void extractEllipseParameters(const Eigen::Matrix3d& A, double& semiMajor, double& semiMinor, Eigen::Vector2d& center, double& angle) {
+//     // Extract the top-left 2x2 submatrix
+//     Eigen::Matrix2d subMatrix = A.topLeftCorner<2, 2>();
+    
+//     // Eigenvalue decomposition
+//     Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigensolver(subMatrix);
+//     if (eigensolver.info() != Eigen::Success) {
+//         std::cerr << "Eigenvalue decomposition failed!" << std::endl;
+//         return;
+//     }
+    
+//     // Eigenvalues and eigenvectors
+//     Eigen::Vector2d eigenvalues = eigensolver.eigenvalues();
+//     Eigen::Matrix2d eigenvectors = eigensolver.eigenvectors();
+    
+//     // Semi-major and semi-minor axes
+//     semiMajor = 1.0 / std::sqrt(eigenvalues.minCoeff());
+//     semiMinor = 1.0 / std::sqrt(eigenvalues.maxCoeff());
+    
+//     // Center of the ellipse
+//     center = -subMatrix.inverse() * A.topRightCorner<2, 1>();
+    
+//     // Angle with respect to the x-axis
+//     angle = std::atan2(eigenvectors(1, 0), eigenvectors(0, 0));
+// }
 
 std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLICIT_PARAM>& impl_params) {
   double numerator, denominator_a, denominator_b;
@@ -299,30 +375,52 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
   double E = impl_params.at(4);
   double F = impl_params.at(5);
   // Compute discriminant for quadratic equation
-  B2_minus_4AC = pow(B, 2) - 4*A*C;
+  B2_minus_4AC = std::pow(B, 2) - 4*A*C;
   // Compute ellipse center (See Eq 4.16 in [Christian, 2010])
-  xc = (2 * C * D - B * E) / B2_minus_4AC;
-  yc = (2 * A * E - B * D) / B2_minus_4AC;
+  xc = (2*C*D - B*E) / B2_minus_4AC;
+  yc = (2*A*E - B*D) / B2_minus_4AC;
   // Compute ellipse semimajor axis (a) and seminor axis (b)
   // (See Eqs 4.17 and 4.18 in [Christian, 2010])
   numerator = 2*(A*E*E + C*D*D - B*D*E + F*B2_minus_4AC);
-  amc2 = pow(A - C, 2);
-  b2 = pow(B, 2);
-  denominator_a = B2_minus_4AC*( sqrt(amc2 + b2) - A - C);
-  denominator_b = B2_minus_4AC*(-sqrt(amc2 + b2) - A - C);
-  semimajor_axis = sqrt(numerator / denominator_a);
-  semiminor_axis = sqrt(numerator / denominator_b);
+  amc2 = std::pow(A - C, 2);
+  b2 = std::pow(B, 2);
+  denominator_a = B2_minus_4AC*(-std::sqrt(amc2 + b2) - (A + C));
+  denominator_b = B2_minus_4AC*( std::sqrt(amc2 + b2) - (A + C));
+  assert(denominator_a != 0 && !std::isnan(denominator_a));
+  assert(denominator_b != 0 && !std::isnan(denominator_b));
+  // TODO: is this valid?
+  semimajor_axis = std::sqrt(std::abs(numerator / denominator_a));
+  semiminor_axis = std::sqrt(std::abs(numerator / denominator_b));
   // Compute angle from the x axis to semimajor axis direction
   // (See Eq 4.19 in [Christian, 2010])
-  if(B == 0) {
-    phi = 0.0;
+  // NOTE: do NOT use `atan2` for phi calculation
+  if(B == 0) { // aligned with x- or y-axis
+    if(A < C)  // aligned with x-axis
+      phi = 0.0;
+    else
+      phi = M_PI_2;
   } else {
-    phi = 0.5 * atan2(B, A - C);
+    if(A < C)
+      phi = 0.5*std::atan(B / (A - C));
+    else
+      phi = M_PI_2 + 0.5*std::atan(B / (A - C));
   }
-  if(A>C) {
-    phi += M_PI / 2;
+  if(semimajor_axis < semiminor_axis) {
+    std::swap(semimajor_axis, semiminor_axis);
+    phi += M_PI_2;
   }
-  return {semimajor_axis, semiminor_axis, xc, yc, phi};
+  std::array<double, GEOMETRIC_PARAM> geom;
+  geom = {semimajor_axis, semiminor_axis, xc, yc, phi};
+  if(vectorContainsNaN(geom)) {
+    std::cerr 
+      << "Semimajor axis : " << semimajor_axis << std::endl
+      << "Semiminor axis : " << semiminor_axis << std::endl
+      << "Center (x)     : " << xc << std::endl
+      << "Center (y)     : " << yc << std::endl
+      << "Angle (phi)    : " << phi << std::endl;
+    throw std::runtime_error("Above geometric parameters contain NaN value(s).");
+  }
+  return geom;
 }
 
 std::array<double, IMPLICIT_PARAM> geom2Implicit( const double semimajor_axis, 
@@ -431,7 +529,7 @@ bool IntersectConics(const Eigen::Matrix3d& Ai,
   Eigen::Matrix3d Bij(3, 3), Bij_star(3, 3);
   Eigen::Vector3d bkk_eig(3);
   Bij = eig*Ai + Aj;
-  Bij_star = getAdjugateMatrix(Bij);
+  Bij_star = adjugate(Bij);
 
   bkk_eig = Bij_star.diagonal();
   auto valid = bkk_eig.array() < eps;
@@ -474,6 +572,10 @@ bool intersectionLines( const Eigen::Matrix3d& Ai,
   // TODO: try suggested x = A.ldlt().solve(b) from section 2.12 of
   // https://geophydog.cool/post/eigen3_operations/ 
   Eigen::EigenSolver<Eigen::Matrix3d> eigensolver(combined);
+  if (eigensolver.info() != Eigen::Success) {
+    std::cerr << "Eigenvalue decomposition failed!" << std::endl;
+    return false;
+  }
   Eigen::Vector3cd eigenvalues = eigensolver.eigenvalues();
   // Here, using std::vector is appropriate since we don't know the length
   Eigen::Vector3d g, h;
@@ -528,7 +630,7 @@ bool computeInvariant(const Eigen::Vector3d& line1,
   //     std::cerr << "One of the lines contains a NaN." << std::endl;
   //     return false;
   // }
-  Eigen::Matrix3d envelope = getAdjugateMatrix(locus);
+  Eigen::Matrix3d envelope = adjugate(locus);
   // the numerator can be negative
   Eigen::RowVector3d line1T = line1.transpose();
   Eigen::RowVector3d line2T = line2.transpose();
@@ -545,7 +647,6 @@ bool computeInvariant(const Eigen::Vector3d& line1,
   return true;
 }
 
-// TODO: Can't use "const" on the conics here; figure out how to do that
 bool computeCraterTriadInvariants(const Conic& A, const Conic& B, const Conic& C,
                                   std::array<double, NONCOPLANAR_INVARIANTS>& invariants) {
   std::tuple<Eigen::Vector3d, Eigen::Vector3d> gh_ij, gh_jk, gh_ki;
@@ -591,4 +692,153 @@ bool computeCraterTriadInvariants(const Conic& A, const Conic& B, const Conic& C
   // invariants.push_back(invC);
   return true;
 }
+
+Eigen::Matrix3d canonical(const Eigen::Matrix3d& image_conic) {
+  double focal_length = 1;
+  // Applying the concept of the canonical frame from Kanatani:
+  // "3D interpretation of conics and orthogonality"
+  double A = image_conic(0, 0);
+  double B = image_conic(0, 1);
+  double C = image_conic(1, 1);
+  // D = image_conic[0, 2]/focal_length
+  // E = image_conic[1, 2]/focal_length
+  // F = image_conic[2, 2]/focal_length**2
+  // if AC-B^2 > 0:
+  //   - if A+C > 0, ellipse
+  //   - if A+C < 0, imaginary conic
+  // if AC-B^2  < 0, hyperbola
+  // if AC-B^2 == 0, parabola
+  double ACmB2 = A*C - std::pow(B,2);
+  // this value must not be zero for an ellipse
+  assert(std::abs(ACmB2)>1e-40);
+  double ApC = A+C;
+  assert( ApC > 0);
+  double lambda1 = (ApC - std::sqrt(std::pow(ApC,2) - 4*ACmB2))/2;
+  double lambda2 = (ApC + std::sqrt(std::pow(ApC,2) - 4*ACmB2))/2;
+  double mu = std::pow(focal_length,2)/ACmB2;
+  // to be an ellipse, mu*lambda_i must be > 0
+  assert(mu*lambda1 > 0 and mu*lambda2 > 0);
+
+  double a = std::sqrt(mu/lambda1);
+  double b = std::sqrt(mu/lambda2);
+  // double a2 = std::pow(a,2);
+  // double b2 = std::pow(b,2);
+  // double A_prime = b2;
+  // double C_prime = a2;
+  // double F_prime = -a2*b2;
+  Eigen::Matrix3d canonical = Eigen::Matrix3d::Identity();
+  canonical.diagonal() = Eigen::Vector3d(a, b, -1);
+  return canonical;
+}
+
+Conic canonical(const Conic& conic) {
+  Eigen::Matrix3d mtx = canonical(conic.getLocus());
+  Conic canonical_conic(mtx);
+  return canonical_conic;
+}
+
+// def calc_t1(lambda_i, conic_locus):
+//     b = conic_locus[1, 1]
+//     g = conic_locus[0, 2]
+//     f = conic_locus[1, 2]
+//     h = conic_locus[0, 1]
+//     return (b-lambda_i)*g - f*h
+
+
+// def calc_t2(lambda_i, conic_locus):
+//     a = conic_locus[0, 0]
+//     g = conic_locus[0, 2]
+//     f = conic_locus[1, 2]
+//     h = conic_locus[0, 1]
+//     return (a-lambda_i)*f - g*h
+
+
+// def calc_t3(lambda_i, conic_locus, t1, t2):
+//     a = conic_locus[0, 0]
+//     g = conic_locus[0, 2]
+//     h = conic_locus[0, 1]
+//     return -(a-lambda_i)*(t1/t2)/g - h/g
+
+
+// def calc_t_values(lambda_i, conic_locus):
+//         t1 = calc_t1(lambda_i, conic_locus)
+//         t2 = calc_t2(lambda_i, conic_locus)
+//         t3 = calc_t3(lambda_i, conic_locus, t1, t2)
+//         return t1, t2, t3
+
+
+// def calc_camera_xform(conic_locus, lambda_arr, n, m, l):
+//     l_arr = np.empty((3,))
+//     m_arr = np.empty((3,))
+//     n_arr = np.empty((3,))
+//     for index, lambda_i in enumerate(lambda_arr):
+//         // TODO: combine calculating t_i
+//         t1, t2, t3 = calc_t_values(lambda_i, conic_locus)
+//         m_arr[index] = 1/np.sqrt(1+(t1/t2)**2+t3**2)
+//         l_arr[index] = t1/t2*m_arr[index]
+//         n_arr[index] = t3*m_arr[index]
+//         pass
+//     xform = np.row_stack((l_arr, m_arr, n_arr))
+//     return xform
+
+// Eigen::Matrix3d get_canonical_transform(const Eigen::Matrix3d& image_conic_locus, const double radius) {
+//   // Three-dimensional ... machine vision
+//   // eqns 30, 31, 33
+//   Conic conic(image_conic_locus);
+
+//   double Rmax = conic.getSemiMajorAxis();
+//   double Rmin = conic.getSemiMinorAxis();
+//   double e=1;
+//   double e2 = std::pow(e, 2);
+//   double Rmax2 = std::pow(Rmax, 2);
+//   double Rmin2 = std::pow(Rmin, 2);
+
+//   double alpha_angle = std::asin(std::sqrt((e2/Rmin2 - e2/Rmax2)/(e2/Rmin2 + 1)));
+//   std::cout << "Angle: " << rad2deg(alpha_angle) << std::endl;
+//   double dist = radius*(e/Rmin*std::cos(alpha_angle));
+//   std::cout << "Distance: " << dist << std::endl;
+  
+//   Eigen::Vector2d n;
+//   Eigen::Vector2d m;
+//   Eigen::Vector2d l;
+//   Eigen::Vector3d eigval = conic.getLocus().eigenvalues();
+//   // eigenvals = np.diag(eigval)
+//   // print(image_conic)
+//   // print(eigenvals)
+//   double lambda1 = eigval(0);
+//   double lambda2 = eigval(1);
+//   double lambda3 = eigval(2);
+//   if(lambda1 < lambda2) {
+//     n(0) = std::sqrt((lambda1-lambda3)/(lambda2-lambda3));
+//     n(1) = n(0);
+//     m(0) = std::sqrt((lambda2-lambda1)/(lambda2-lambda3));
+//     m(1) = -m(0);
+//     l(0) = 0;
+//     l(1) = l(0);
+//   }
+//   else if(lambda1 > lambda2) {
+//     n[0] = std::sqrt((lambda2-lambda3)/(lambda1-lambda3));
+//     n[1] = n[0];
+//     m[0] = 0;
+//     m[1] = m[0];
+//     l[0] = std::sqrt((lambda1-lambda2)/(lambda1-lambda3));
+//     l[1] = -l[0];
+//   }
+//   else if(lambda1 == lambda2) { // right circular cone
+//     n(0) = 1;
+//     n(1) = n(0);
+//     m(0) = 0;
+//     m(1) = m(0);
+//     l(0) = 0;
+//     l(1) = l(0);
+//   }
+//   Eigen::Vector3d lambda_arr(lambda1, lambda2, lambda3);
+//   xform = calc_camera_xform(image_conic, lambda_arr, n, m, l)
+//   // print(xform)
+//   // resulting_conic = xform.T@image_conic@xform
+//   print(xform.T@image_conic@xform)
+//   print(xform@image_conic@xform.T)
+//   return xform
+// }
+
 } // namespace
