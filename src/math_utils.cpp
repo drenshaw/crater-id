@@ -1,7 +1,6 @@
 
 #include "math_utils.h"
 #include <iostream>
-#include <math.h>
 #include <vector>
 
 // template <typename T>
@@ -141,71 +140,6 @@ Eigen::Vector3d getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen:
     throw std::runtime_error("Vectors are nearly parallel; invalid axis");
   }
   return vec1.cross(vec2).normalized();
-}
-
-// template <typename T>
-// bool normalizeDeterminant(Eigen::DenseBase<T>& mtx) {
-bool normalizeDeterminant(Eigen::MatrixXd& mtx) {
-  // using approach from Matrix Cookbook
-  // https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
-  // get the determinant
-  uint ncol = mtx.cols();
-  assert(mtx.cols() == mtx.rows());
-  // uint nrow = mtx.rows();
-  // T mtx_normalized(nrow, ncol);
-  //get location of maximum
-  // Eigen::Index maxRow, maxCol;
-  double maxVal = 1/mtx.maxCoeff();
-  mtx *= maxVal;
-  double det_mtx = mtx.determinant();
-  if(std::abs(det_mtx)<1e-20) {
-    // BOOST_LOG_TRIVIAL(warning) << "Matrix is singular.";
-    std::cerr << "Matrix is singular/nearly singular." << std::endl;
-    mtx *= maxVal;
-    return false;
-  }
-  // we want the determinant of A to be 1
-  // 1 = det(c*A) = d^n*det(A), where n=3 for 3x3 matrix
-  // so solve the equation d^3 - 1/det(A) = 0
-  double d = pow(abs(1./det_mtx), 1./ncol);
-  // d*mtx should now have a determinant of +1
-  mtx *= d;
-  bool sign = signbit(mtx.determinant()); // true if negative
-  // assert(abs(det(A_norm)-1)<sqrt(eps))
-  mtx *= sign ? -1.0 : 1.0;
-  return true;
-}
-
-// template <typename T>
-// bool normalizeDeterminant(Eigen::DenseBase<T>& mtx) {
-bool normalizeDeterminant(Eigen::Matrix3d& mtx) {
-  // using approach from Matrix Cookbook
-  // https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
-  // get the determinant
-  uint ncol = mtx.cols();
-  // uint nrow = mtx.rows();
-  // T mtx_normalized(nrow, ncol);
-  //get location of maximum
-  // Eigen::Index maxRow, maxCol;
-  double maxVal = 1/mtx.maxCoeff();
-  mtx *= maxVal;
-  double det_mtx = mtx.determinant();
-  if(std::abs(det_mtx)<1e-20) {
-    // BOOST_LOG_TRIVIAL(warning) << "Matrix is singular.";
-    std::cerr << "Matrix is singular/nearly singular." << std::endl;
-    mtx *= maxVal;
-    return false;
-  }
-  // we want the determinant of A to be 1
-  // 1 = det(c*A) = d^n*det(A), where n=3 for 3x3 matrix
-  // so solve the equation d^3 - 1/det(A) = 0
-  double d = pow(abs(1./det_mtx), 1./ncol);
-  // d*mtx should now have a determinant of +1
-  mtx *= d;
-  bool sign = signbit(mtx.determinant()); // true if negative
-  // assert(abs(det(A_norm)-1)<sqrt(eps))
-  mtx *= sign ? -1.0 : 1.0;
-  return true;
 }
 
 Eigen::Matrix3d crossMatrix(const Eigen::Vector3d& v) {

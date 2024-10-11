@@ -1,6 +1,8 @@
 #pragma once
 // TODO: rename this to a better name like `utils` or something
 
+#include <iostream>
+#include <cmath>
 #include <vector>
 #include <array>
 #include <algorithm>
@@ -43,8 +45,6 @@ double getPseudoAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::
 double getAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
 Eigen::Vector3d getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen::Vector3d& vec2);
 
-bool normalizeDeterminant(Eigen::MatrixXd& mtx);
-// bool normalizeDeterminant(Eigen::Matrix3d& mtx);
 Eigen::Matrix3d crossMatrix(const Eigen::Vector3d&);
 template <typename T>
 T vectorNorm(const Eigen::Vector3d&);
@@ -63,6 +63,47 @@ void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>&
 
 
 /**** Template definitions ****/
+
+template <typename Derived>
+bool normalizeDeterminant(Eigen::MatrixBase<Derived>& mtx) {
+  // using approach from Matrix Cookbook
+  // https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
+  // get the determinant
+  if(mtx.isApprox(Eigen::MatrixBase<Derived>::Zero())) {
+    std::cerr << __func__ << ": Matrix is zero.\n";
+    throw std::runtime_error("Matrix is zero");
+  }
+  uint ncol = mtx.cols();
+  assert(mtx.cols() == mtx.rows());
+  // uint nrow = mtx.rows();
+  // T mtx_normalized(nrow, ncol);
+  //get location of maximum
+  // Eigen::Index maxRow, maxCol;
+  double maxVal = 1/mtx.maxCoeff();
+  if(std::isnan(maxVal)) {
+    // BOOST_LOG_TRIVIAL(warning) << "Matrix is singular.";
+    std::cerr << __func__ << "Max coefficient is 0.\n";
+    return false;
+  }
+  mtx *= maxVal;
+  double det_mtx = mtx.determinant();
+  if(det_mtx == 0) {
+    // BOOST_LOG_TRIVIAL(warning) << "Matrix is singular.";
+    std::cerr << "Matrix is singular/nearly singular." << std::endl;
+    mtx *= maxVal;
+    return false;
+  }
+  // we want the determinant of A to be 1
+  // 1 = det(c*A) = d^n*det(A), where n=3 for 3x3 matrix
+  // so solve the equation d^3 - 1/det(A) = 0
+  double d = pow(abs(1./det_mtx), 1./ncol);
+  // d*mtx should now have a determinant of +1
+  mtx *= d;
+  bool sign = std::signbit(mtx.determinant()); // true if negative
+  // assert(abs(det(A_norm)-1)<sqrt(eps))
+  mtx *= sign ? -1.0 : 1.0;
+  return true;
+}
 
 template <typename T, size_t SIZE>
 void convertEigenVectorToArray(const Eigen::Vector3d& eig, std::array<T, SIZE>& arr){
