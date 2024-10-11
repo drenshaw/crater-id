@@ -1,6 +1,6 @@
 #include <iostream>
 #include <tuple>
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 #include <spatialindex/capi/sidx_api.h>
 #include <boost/geometry.hpp>
 #include <boost/geometry/index/rtree.hpp>
@@ -8,12 +8,12 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <boost/log/core.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/trivial.hpp>
-#include <Eigen/src/LU/InverseImpl.h>
+// #include <boost/log/core.hpp>
+// #include <boost/log/expressions.hpp>
+// #include <boost/log/trivial.hpp>
+// #include <Eigen/src/LU/InverseImpl.h>
 
-#define BOOST_LOG_DYN_LINK 1
+// #define BOOST_LOG_DYN_LINK 1
 // #include <boost/log/utility/setup/console.hpp>
 
 #include "structs.h"
@@ -34,49 +34,29 @@
 #define RUN_CONICS 0
 #define RUN_INVARIANTS 0
 
-void plot_ellipse(cv::Mat& image, Conic& ellipse, const cv::Scalar color=cv::Scalar(0, 255, 0)) {
-  cv::Point center;
-  Eigen::Vector2d semiaxes;
-  ellipse.GetCenter(center);
-  ellipse.GetSemiAxes(semiaxes);
-  cv::Size axes(semiaxes[0], semiaxes[1]);
-  double angle = ellipse.GetAngle();
-  cv::ellipse(image, center, axes, angle, 0, 360, color, -1, cv::LINE_AA);
-  int font = cv::FONT_HERSHEY_SIMPLEX;
-  float font_scale = 1; // scale factor from base size
-  int thickness = 1; //in pixels
-  cv::Scalar text_color(color[1], color[2], color[1]);
-  cv::putText(image, std::to_string(ellipse.GetID()), center, font, font_scale,
-              text_color, thickness, true);
-}
-
-void print_triads(const std::vector<std::tuple<uint, uint, uint>> triads, 
-                  const std::vector<lunar_crater> craters,
-                  const uint max_iter=10) {
-
-  uint t_count = 0;
-  for(const auto& [i, j, k] : triads) {
-    std::cout << "-" << t_count++ << "-\t"
-              << " "  << i
-              << ", " << j
-              << ", " << k
-              << "\n\t" << craters[i]
-              << "\n\t" << craters[j]
-              << "\n\t" << craters[k]
-              << std::endl;
-    if(t_count >= max_iter) {
-      break;
-    }
-  }
-}
+// void plot_ellipse(cv::Mat& image, Conic& ellipse, const cv::Scalar color=cv::Scalar(0, 255, 0)) {
+//   cv::Point center;
+//   Eigen::Vector2d semiaxes;
+//   ellipse.GetCenter(center);
+//   ellipse.GetSemiAxes(semiaxes);
+//   cv::Size axes(semiaxes[0], semiaxes[1]);
+//   double angle = ellipse.GetAngle();
+//   cv::ellipse(image, center, axes, angle, 0, 360, color, -1, cv::LINE_AA);
+//   int font = cv::FONT_HERSHEY_SIMPLEX;
+//   float font_scale = 1; // scale factor from base size
+//   int thickness = 1; //in pixels
+//   cv::Scalar text_color(color[1], color[2], color[1]);
+//   cv::putText(image, std::to_string(ellipse.GetID()), center, font, font_scale,
+//               text_color, thickness, true);
+// }
 
 #if RUN_LOGGING
-namespace logging = boost::log;
-namespace keywords = boost::log::keywords;
-void init_logging() {     
-  // logging::add_console_log(std::clog, keywords::format = "%TimeStamp%: %Message%");
-  // logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::warning);
-}
+// namespace logging = boost::log;
+// namespace keywords = boost::log::keywords;
+// void init_logging() {     
+//   // logging::add_console_log(std::clog, keywords::format = "%TimeStamp%: %Message%");
+//   // logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::warning);
+// }
 #endif
 
 #if RUN_ADJUGATE
@@ -128,7 +108,7 @@ int main(int argc, char** argv) {
 #if RUN_ADJUGATE
     Eigen::MatrixXd m1 = Eigen::MatrixXd::Random(4,4);
     Eigen::MatrixXd m2 = Eigen::MatrixXd::Random(5,5);
-    Eigen::MatrixXd madj = getMatrixAdjugate(m1);
+    Eigen::MatrixXd madj = getAdjugateMatrix(m1);
     Eigen::MatrixXd madj2 = getCofactorMatrixTemplate(m2).transpose();
     double det = m1.determinant();
     Eigen::MatrixXd invv = m1.inverse();
@@ -229,7 +209,7 @@ int main(int argc, char** argv) {
   fname = "/home/dqr0509/data/craters/lunar_craters.csv";
 
   std::vector<lunar_crater> craters;
-  runCraterReader(fname, craters);
+  runCraterReader(craters, fname);
   // uint c_idx = 0;
   // for(auto& crater : craters) {
   //   std::cout << "Crater " << c_idx++ << " " << crater << std::endl;
@@ -272,7 +252,7 @@ int main(int argc, char** argv) {
   // std::cout << "Location: (" << r_radius_rim*latlon2bearing(lat, lon).transpose() << ")" << std::endl;
   std::cout << quad << std::endl;
 
-  Eigen::Matrix4d locus = quad.GetLocus();
+  Eigen::Matrix4d locus = quad.getLocus();
   // locus(3,3) = 0;
   double maxVal = locus.cwiseAbs().maxCoeff();
   // maxVal = locus(0, 0);
@@ -306,13 +286,14 @@ int main(int argc, char** argv) {
 
   // Showing image inside a window
   cv::imshow("Output", image);
+  // TODO: getting "(in)direct leak" warnings from AddressSanitizer about imshow here
   cv::waitKey(0);
   assert(conicA == conicA);
   assert(!(conicA == conicB));
   assert(conicA != conicB);
   std::cout << "Does this match? It should: " << (conicA == conicA) << std::endl;
   std::cout << "Does this match? It shouldn't: " << (conicA == conicB) << std::endl;
-  std::cout << "IDs? " << conicA.get_id() << " | " << conicB.get_id() << std::endl;
+  std::cout << "IDs? " << conicA.GetID() << " | " << conicB.GetID() << std::endl;
 #endif
 
 
@@ -321,14 +302,14 @@ int main(int argc, char** argv) {
   std::cout << L.size() << std::endl;
   // std::cout << L.row(0).col(0).row(0) << std::endl;
   // // Eigen::MatrixXd locus = conicA.GetLocus();
-  // // Eigen::MatrixXd envelope = getMatrixAdjugate(locus);
+  // // Eigen::MatrixXd envelope = getAdjugateMatrix(locus);
   // Eigen::Matrix4d test;
   // test << 5,  -2,  2,  7,
   //         1,   0,  0,  3,
   //         -3,  1,  5,  0,
   //         3,  -1, -9,  4;
   // // test << 1,2,3, 4,5,6, 7,8,9;
-  // Eigen::MatrixXd adjugate = getMatrixAdjugate(test);
+  // Eigen::MatrixXd adjugate = getAdjugateMatrix(test);
   // // std::cout << "Adjugate:\n" << adjugate << std::endl;
 
 #if RUN_INVARIANTS

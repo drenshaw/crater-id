@@ -31,10 +31,15 @@
 *.out
 *.app
 .vscode/c_cpp_properties.json
+compile_commands.json
 
 # VS Code settings
 *.code-workspace
 .vscode/
 
+*.swp
+
 builddir/
+build/
 subprojects/*
+.cache

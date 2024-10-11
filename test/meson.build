@@ -28,12 +28,21 @@ endif
 #   catch_dep = catch_lib.get_variable('catch2_dep')
 # endif
 
-# app_files = files('conics.cpp', 'vector_math.cpp')
-test_files = files('cidtest.cpp')
+# app_files = files('conics.cpp', 'math_utils.cpp')
+main_file = files('test_main.cpp')
+test_files = files([
+  # 'test_math.cpp',
+  # 'test_io.cpp',
+  # 'test_conics.cpp', 
+  'test_quadrics.cpp',
+  'test_camera.cpp',
+  # 'test_combinatorics.cpp',
+  # 'test_invariants.cpp',
+])
 
 testexe = executable(
   'test_cid', 
-  test_files,
+  [main_file, test_files],
   include_directories : incdir,
   dependencies: [
     # catch_dep, 
@@ -49,3 +58,6 @@ test(
   testexe,
   is_parallel:true
 )
+
+test('math', testexe, suite: 'MathTest')
+test('conic', testexe, suite: 'ConicTest')

@@ -1,3 +1,7 @@
+
+// #include <algorithm>
+// #include <iterator>
+#include "io.h"
 #include "combinatorics.h"
 
 template <typename T>
@@ -60,5 +64,25 @@ void formTriads(const std::vector<std::tuple<uint, uint>> pairs,
       iti++;
     } while(iti != pairs.end() && std::get<0>(*iti) == i);
     idx++;
+  }
+}
+
+void print_triads(const std::vector<std::tuple<uint, uint, uint>> triads, 
+                  const std::vector<lunar_crater> craters,
+                  const uint max_iter) {
+
+  uint t_count = 0;
+  for(const auto& [i, j, k] : triads) {
+    std::cout << "-" << t_count++ << "-\t"
+              << " "  << i
+              << ", " << j
+              << ", " << k
+              << "\n\t" << craters[i]
+              << "\n\t" << craters[j]
+              << "\n\t" << craters[k]
+              << std::endl;
+    if(t_count >= max_iter) {
+      break;
+    }
   }
 }
