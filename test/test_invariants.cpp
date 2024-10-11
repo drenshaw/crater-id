@@ -1,4 +1,3 @@
-#include "io.h"
 #include "conics.h"
 #include "visuals.h"
 
@@ -21,13 +20,13 @@ class InvariantTest : public testing::Test {
       // c_arr.setGeometricParameters(arr);
     }
   public:
-      // // ~QueueTest() override = default;
+      // // ~QueueTEST_F() override = default;
   // Queue<int> q0_;
   // Queue<int> q1_;
   // Queue<int> q2_;
 };
 
-// TEST(InvariantTest, IntersectionLines) {
+// TEST_F(InvariantTest, IntersectionLines) {
 //   Conic conicA(10, 7, 300, 50, 0);
 //   Conic conicB(15, 12, 100, 200, 0);
 //   Conic conicC(12, 8, 50, 200, 0);
@@ -59,7 +58,7 @@ class InvariantTest : public testing::Test {
 //   cv::waitKey(0); 
 // }
 
-TEST(InvariantTest, InvariantTriad) {
+TEST_F(InvariantTest, InvariantTriad) {
   Conic conicA(245.848, 245.874, 1283.4, 1037.6, rad2deg(2.356));
   Conic conicB( 94.435, 261.000, 1808.5, 2081.3, rad2deg(1.120));
   Conic conicC(132.956, 210.487,  849.7, 1901.0, rad2deg(2.042));
@@ -177,7 +176,7 @@ TEST(InvariantTest, InvariantTriad) {
   EXPECT_NEAR(invC, invariantsABC.at(2), 1e-8);
 }
 
-TEST(ConicTest, ConicIntersection) {
+TEST_F(InvariantTest, ConicIntersection) {
   double smajor = 70., sminor = 50., xcen = 200., ycen = 200., angle = -15.;
   Conic conicA(smajor, sminor, xcen, ycen, angle+50);
   Conic conicB(smajor*1.5, sminor, xcen+215, ycen, angle);
@@ -203,7 +202,7 @@ TEST(ConicTest, ConicIntersection) {
   ASSERT_TRUE(success);
 }
 
-TEST(ConicTest, CheckMatlab) {
+TEST_F(InvariantTest, CheckMatlab) {
 
   Conic conicA(245.848, 245.874, 1283.4, 1037.6, rad2deg(2.356));
   Conic conicB( 94.435, 261.000, 1808.5, 2081.3, rad2deg(1.120));
@@ -225,7 +224,7 @@ TEST(ConicTest, CheckMatlab) {
   ASSERT_TRUE(success);
 }
 
-TEST(ConicTest, ChooseCorrectIntersection) {
+TEST_F(InvariantTest, ChooseCorrectIntersection) {
   Conic conicA(245.848, 245.874, 283.4, 0037.6, rad2deg(2.356));
   Conic conicB( 94.435, 261.000, 510.5, 0581.3, rad2deg(1.120));
   Conic conicC(132.956, 210.487, 849.7, 1901.0, rad2deg(2.042));
@@ -288,7 +287,7 @@ TEST(ConicTest, ChooseCorrectIntersection) {
   // cv::waitKey(0); 
 }
 
-TEST(InvariantTest, CrossRatio) {
+TEST_F(InvariantTest, CrossRatio) {
   Eigen::Vector3d ref_circle1, ref_circle2, ref_circle3, A, B, C, D;
   double sqrt_2_2 = std::sqrt(2.)/2.;
   double sqrt_3_2 = std::sqrt(3.)/2.;
