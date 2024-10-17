@@ -31,13 +31,16 @@ Conic::Conic(const std::array<double, GEOMETRIC_PARAM>& geom_arr) :
     angle_         {geom_arr.at(4)} {
   setID();
 }
-Conic::Conic(const std::vector<double>& vec) : 
-    semimajor_axis_{vec.at(0)},
-    semiminor_axis_{vec.at(1)},
-    x_center_      {vec.at(2)},
-    y_center_      {vec.at(3)},
-    angle_         {vec.at(4)} {
+Conic::Conic(const std::vector<double>& geom_vec) : 
+    semimajor_axis_{geom_vec.at(0)},
+    semiminor_axis_{geom_vec.at(1)},
+    x_center_      {geom_vec.at(2)},
+    y_center_      {geom_vec.at(3)},
+    angle_         {geom_vec.at(4)} {
   this->setID();
+}
+Conic::Conic(const std::array<double, IMPLICIT_PARAM>& impl) {
+  setImplicitParameters(impl);
 }
 Conic::Conic(const Eigen::Matrix3d& locus) {
   this->setLocus(locus);
@@ -365,9 +368,14 @@ bool isEllipse(const Eigen::Matrix3d& conic_locus) {
 // }
 
 std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLICIT_PARAM>& impl_params) {
-  double numerator, denominator_a, denominator_b;
+  // double numerator, denominator_a, denominator_b;
   double B2_minus_4AC, xc, yc, phi;
-  double semimajor_axis, semiminor_axis, amc2, b2;
+  double semimajor_axis, semiminor_axis;//, amc2, b2;
+  /*
+      |  A   B/2  D/2 |
+  C = | B/2   C   E/2 |
+      | D/2  E/2   F  |
+  */
   double A = impl_params.at(0);
   double B = impl_params.at(1);
   double C = impl_params.at(2);
@@ -376,41 +384,37 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
   double F = impl_params.at(5);
   // Compute discriminant for quadratic equation
   B2_minus_4AC = std::pow(B, 2) - 4*A*C;
+  assert(B2_minus_4AC < 0);
   // Compute ellipse center (See Eq 4.16 in [Christian, 2010])
   xc = (2*C*D - B*E) / B2_minus_4AC;
   yc = (2*A*E - B*D) / B2_minus_4AC;
   // Compute ellipse semimajor axis (a) and seminor axis (b)
   // (See Eqs 4.17 and 4.18 in [Christian, 2010])
-  numerator = 2*(A*E*E + C*D*D - B*D*E + F*B2_minus_4AC);
-  amc2 = std::pow(A - C, 2);
-  b2 = std::pow(B, 2);
-  denominator_a = B2_minus_4AC*(-std::sqrt(amc2 + b2) - (A + C));
-  denominator_b = B2_minus_4AC*( std::sqrt(amc2 + b2) - (A + C));
-  assert(denominator_a != 0 && !std::isnan(denominator_a));
-  assert(denominator_b != 0 && !std::isnan(denominator_b));
-  // TODO: is this valid?
-  semimajor_axis = std::sqrt(std::abs(numerator / denominator_a));
-  semiminor_axis = std::sqrt(std::abs(numerator / denominator_b));
+  double num;
+  num = 2*((A*E*E + C*D*D - B*D*E)/(4*A*C - B*B) - F);
+  double den = std::sqrt(std::pow(A-C,2) + std::pow(B,2));
+  assert(den != 0 && !std::isnan(den));
+  semimajor_axis = std::sqrt(num/(A+C-den));
+  semiminor_axis = std::sqrt(num/(A+C+den));
+
   // Compute angle from the x axis to semimajor axis direction
   // (See Eq 4.19 in [Christian, 2010])
   // NOTE: do NOT use `atan2` for phi calculation
-  if(B == 0) { // aligned with x- or y-axis
-    if(A < C)  // aligned with x-axis
-      phi = 0.0;
-    else
-      phi = M_PI_2;
-  } else {
-    if(A < C)
-      phi = 0.5*std::atan(B / (A - C));
-    else
-      phi = M_PI_2 + 0.5*std::atan(B / (A - C));
-  }
+  phi = (B == 0) ? 0.0 : 0.5*std::atan(B / (A - C));
+  if(A > C)
+    phi += M_PI_2;
   if(semimajor_axis < semiminor_axis) {
     std::swap(semimajor_axis, semiminor_axis);
     phi += M_PI_2;
   }
   std::array<double, GEOMETRIC_PARAM> geom;
-  geom = {semimajor_axis, semiminor_axis, xc, yc, phi};
+  auto roundd = [](double val) {return std::round(val*1e3)/1e3;};
+  geom = {
+    roundd(semimajor_axis), 
+    roundd(semiminor_axis), 
+    roundd(xc), 
+    roundd(yc), 
+    roundd(phi)};
   if(vectorContainsNaN(geom)) {
     std::cerr 
       << "Semimajor axis : " << semimajor_axis << std::endl
@@ -721,13 +725,13 @@ Eigen::Matrix3d canonical(const Eigen::Matrix3d& image_conic) {
 
   double a = std::sqrt(mu/lambda1);
   double b = std::sqrt(mu/lambda2);
-  // double a2 = std::pow(a,2);
-  // double b2 = std::pow(b,2);
-  // double A_prime = b2;
-  // double C_prime = a2;
-  // double F_prime = -a2*b2;
+  double a2 = std::pow(a,2);
+  double b2 = std::pow(b,2);
+  double A_prime = b2;
+  double C_prime = a2;
+  double F_prime = -a2*b2;
   Eigen::Matrix3d canonical = Eigen::Matrix3d::Identity();
-  canonical.diagonal() = Eigen::Vector3d(a, b, -1);
+  canonical.diagonal() = Eigen::Vector3d(A_prime, C_prime, F_prime);
   return canonical;
 }
 

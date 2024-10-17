@@ -12,18 +12,6 @@
 
 #define R_MOON 1737.4
 
-// #include <iomanip>
-
-/* // CATCH2 Testing Framework
-#include <catch2/catch_test_macros.hpp>
-#include <stdexcept>
-
-TEST_CASE( "Factorial of 0 is 1 (fail)", "[single-file]" ) {
-    REQUIRE( 1 == 1 );
-    std::cout << "Test1\n";
-}
-*/
-
 class QuadricTest : public testing::Test {
 protected:
   QuadricTest() {

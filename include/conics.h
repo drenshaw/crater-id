@@ -28,6 +28,7 @@ class Conic {
           const double x_center=0, const double y_center=0, const double angle=0);
     Conic(const std::array<double, GEOMETRIC_PARAM>&);
     Conic(const std::vector<double>&);
+    Conic(const std::array<double, IMPLICIT_PARAM>& impl);
     Conic(const Eigen::Matrix3d& locus);
     bool operator==(const Conic& other_conic) const;
     bool operator!=(const Conic& other_conic) const;

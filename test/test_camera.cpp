@@ -66,6 +66,13 @@ TEST_F(CameraTest, CameraFOVY) {
   EXPECT_DOUBLE_EQ(rad2deg(fovd), fovy);
 }
 
+TEST_F(CameraTest, InverseIntrinsicMatrix) {
+  Eigen::Matrix3d K = cam->getIntrinsicMatrix();
+  Eigen::Matrix3d Kinv = cam->getInverseIntrinsicMatrix();
+
+  ASSERT_TRUE(K.inverse().isApprox(Kinv));
+}
+
 TEST_F(CameraTest, PointMovingInRightDirection) {
   Eigen::Isometry3d transformation = Eigen::Isometry3d::Identity();
   Eigen::AngleAxisd rot = Eigen::AngleAxisd(M_PI / 4, Eigen::Vector3d::UnitY());
@@ -175,6 +182,11 @@ TEST_F(CameraTest, TransformState) {
   Eigen::Vector3d vec(0.1, 0.2, 100);
   transform.translation() = vec;
   ASSERT_TRUE(transform.translation().isApprox(vec));
+
+  Eigen::Quaterniond qrand = Eigen::Quaterniond::UnitRandom();
+  Eigen::Matrix3d mrand = qrand.toRotationMatrix();
+  Eigen::Vector3d v_rand = Eigen::Vector3d::Random();
+  ASSERT_TRUE((qrand*v_rand).isApprox(mrand*v_rand));
 }
 
 TEST_F(CameraTest, EnsurePassiveXform) {

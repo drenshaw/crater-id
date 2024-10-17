@@ -208,7 +208,7 @@ TEST(MathTest, SymmetricAdjugateMatrix3x3) {
   ASSERT_TRUE(adj_3x3.isApprox(adj_3x3_check));
 
   // Check manual symmetric matrix, which has a specialized function
-  adj_3x3_symmetric = get3x3SymmetricAdjugateMatrix(mtx_3x3);
+  adj_3x3_symmetric = symmetricAdjugate(mtx_3x3);
   cof_3x3 = cofactor(mtx_3x3);
   ASSERT_TRUE(adj_3x3_symmetric.isApprox(adj_3x3_check));
   ASSERT_TRUE(cof_3x3.isApprox(adj_3x3_check.transpose()));
@@ -324,6 +324,21 @@ TEST(MathTest, AdjugateMatrixRandom4x4) {
     rnd_mtx_back /= rnd_mtx_back(Eigen::last, Eigen::last);
     EXPECT_TRUE(rnd_mtx.isApprox(rnd_mtx_back, 1e-3));
   }
+}
+
+TEST(MathTest, SymmetricAdjugateMatrix34) {
+  Eigen::Matrix4d mtx_4x4, adj_4x4, adj_4x4_check;
+  mtx_4x4 <<  5, 1, -3, 3,
+              1, 0, 1, -1,
+              -3, 1, 5, -9,
+              3, -1, -9, 4;
+  adj_4x4_check <<  9, 88, -5, 4,
+                    88, -224, 40, -32,
+                    -5, 40, -15, -20,
+                    4, -32, -20, -16;
+  adj_4x4 = adjugate(mtx_4x4);
+  ASSERT_TRUE((adj_4x4).isApprox(adj_4x4_check));
+
 }
 
 TEST(MathTest, AngularDistance) {

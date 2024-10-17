@@ -18,7 +18,7 @@ const double EPS = (10 * std::numeric_limits<double>::epsilon());
 double getCofactor(const Eigen::MatrixXd& matrix, int p, int q);
 Eigen::MatrixXd cofactor(const Eigen::MatrixXd& matrix);
 Eigen::MatrixXd adjugate(const Eigen::MatrixXd&);
-Eigen::Matrix3d get3x3SymmetricAdjugateMatrix(const Eigen::Matrix3d&);
+Eigen::Matrix3d symmetricAdjugate(const Eigen::Matrix3d&);
 
 // TODO: be careful using templates here: if an "int" is passed, we get an "int" back
 template <typename T>

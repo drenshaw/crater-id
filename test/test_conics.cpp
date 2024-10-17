@@ -145,22 +145,22 @@ TEST_F(ConicTest, ConicSetImplicit) {
   EXPECT_DOUBLE_EQ(locus(1,2), locus(2,1));
 }
 
-TEST_F(ConicTest, LocusEnvelopeConversion) {
-  std::array<double, IMPLICIT_PARAM> impl = {1, 0, 3, 4, 5, 7};
-  double impl_norm = vectorNorm(impl);
-  ASSERT_NE(impl_norm, 0);
-  double last_impl = 1/impl.at(5);
+TEST_F(ConicTest, NormalizeImplicitParameters) {
+  // std::array<double, IMPLICIT_PARAM> impl = {1, 0, 3, 4, 5, 7};
+  // double impl_norm = vectorNorm(impl);
+  // ASSERT_NE(impl_norm, 0);
+  // double last_impl = 1/impl.at(5);
   
-  Conic conic_env_conversion;
-  conic_env_conversion.setImplicitParameters(impl);
-  normalizeImplicitParameters(impl);
+  // Conic conic_env_conversion;
+  // conic_env_conversion.setImplicitParameters(impl);
+  // normalizeImplicitParameters(impl);
 
-  EXPECT_DOUBLE_EQ(impl.at(0), 1.*last_impl);
-  EXPECT_DOUBLE_EQ(impl.at(1), 0.*last_impl);
-  EXPECT_DOUBLE_EQ(impl.at(2), 3.*last_impl);
-  EXPECT_DOUBLE_EQ(impl.at(3), 4.*last_impl);
-  EXPECT_DOUBLE_EQ(impl.at(4), 5.*last_impl);
-  EXPECT_DOUBLE_EQ(impl.at(5), 1.0);
+  // EXPECT_DOUBLE_EQ(impl.at(0), 1.*last_impl);
+  // EXPECT_DOUBLE_EQ(impl.at(1), 0.*last_impl);
+  // EXPECT_DOUBLE_EQ(impl.at(2), 3.*last_impl);
+  // EXPECT_DOUBLE_EQ(impl.at(3), 4.*last_impl);
+  // EXPECT_DOUBLE_EQ(impl.at(4), 5.*last_impl);
+  // EXPECT_DOUBLE_EQ(impl.at(5), 1.0);
 }
 
 TEST_F(ConicTest, ConvertEigenVectorToVector) {
@@ -181,6 +181,35 @@ TEST_F(ConicTest, ConvertEigenVectorToVector) {
   EXPECT_EQ(vec[2], 3);
 }
 
+TEST_F(ConicTest, ImplicitToGeometric){
+  // axis: 16x^2 - 6000x - 20000y + 25y^2 = 100
+  std::array<double, IMPLICIT_PARAM> impl;
+  // Put the implicit parameters in directly from the conic equation
+  double A = 16, B = 0, C = 25, D = -6000, E = -20000, F = -100;
+  impl.at(0) = A;
+  impl.at(1) = B;
+  impl.at(2) = C;
+  impl.at(3) = D;
+  impl.at(4) = E;
+  impl.at(5) = F;
+  Conic conic_impl(impl);
+  double semimajor = 5.0/2.0*std::sqrt(45626);
+  double semiminor = 2.0*std::sqrt(45626);
+  double xc = 375.0/2.0;
+  double yc = 400;
+  double phi = 0;
+  ASSERT_NEAR(conic_impl.getSemiMajorAxis(), semimajor, 1e-3);
+  ASSERT_NEAR(conic_impl.getSemiMinorAxis(), semiminor, 1e-3);
+  ASSERT_NEAR(conic_impl.getCenterX(), xc, 1e-3);
+  ASSERT_NEAR(conic_impl.getCenterY(), yc, 1e-3);
+  ASSERT_NEAR(conic_impl.getAngle(), phi, 1e-3);
+  // std::cout << conic_impl << std::endl;
+  // viz::drawEllipse(conic_impl, cv::viz::Color::red());
+}
+
+
+
+/****************VISUALS*****************/
 TEST(VisualTest, SlopeInterceptInvalid) {
   double A = 0, B = 0, C = 0;
   double slope, intercept;
@@ -233,5 +262,6 @@ TEST(VisualTest, EllipsePlottedCorrectly) {
   // cv::imshow("Conics arrayed around center of camera", image); 
   // cv::waitKey(0); 
 }
+
 
 

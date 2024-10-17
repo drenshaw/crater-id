@@ -144,17 +144,11 @@ Eigen::Matrix3d Camera::getInverseIntrinsicMatrix() const {
   Eigen::Matrix3d inv_intrinsic;
   inv_intrinsic <<  1/dx_, -skew_/(dx_*dy_), (skew_*vp_ - dy_*up_)/(dx_*dy_),
                     0,                1/dy_,                        -vp_/dy_,
-                    0,                    0,                                1;
+                    0,                    0,                               1;
   return inv_intrinsic;
 }
 
 Eigen::Isometry3d Camera::getHomogeneousExtrinsicMatrix() const {
-  // Eigen::Isometry3d extrinsic_matrix;
-  // extrinsic_matrix.linear() = this->getAttitudeMatrix();
-  // // TODO: should this be negative?
-  // extrinsic_matrix.translation() = this->getPosition();
-  // extrinsic_matrix = this->state_.inverse();
-  // extrinsic_matrix.translation() = -this->getPosition();
   return this->state_.inverse();
 }
 
