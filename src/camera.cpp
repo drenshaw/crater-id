@@ -198,6 +198,16 @@ double Camera::getImageHeight() const {
   return this->image_size_.height;
 }
 
+void Camera::getImageMidpoint(Eigen::Vector2d& img_midpoint) const {
+  img_midpoint = {this->up_, this->vp_};
+}
+
+Eigen::Vector2d Camera::getImageMidpoint() const {
+  Eigen::Vector2d img_midpoint;
+  this->getImageMidpoint(img_midpoint);
+  return img_midpoint;
+}
+
 cv::Size2i Camera::getImageSize() const {
   return this->image_size_;
 }
@@ -292,8 +302,9 @@ void Camera::setAttitude(const Eigen::Matrix3d& orientation) {
   // std::cout << __func__ << ":\n" << orientation << std::endl;
 }
 
-void Camera::setAttitude(const Eigen::Vector3d& orientation) {
-  throw std::runtime_error("This method is not yet implemented.\n");
+void Camera::setAttitude(const Eigen::AngleAxisd& orientation) {
+  this->setAttitude(Eigen::Quaterniond(orientation));
+  // throw std::runtime_error("This method is not yet implemented.\n");
   // this->state_.rotation() = orientation;
 }
 

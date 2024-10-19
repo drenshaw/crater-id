@@ -144,7 +144,7 @@ void Conic::setLocus(const Eigen::Matrix3d& locus) {
     geom_params = fromLocus(locus);
   }
   catch (const std::runtime_error& e) {
-    std::cout << __func__ << " " << e.what() << std::endl;
+    std::cout << __func__ << "--> " << e.what() << std::endl;
     throw std::runtime_error("Locus is singular when attempting to make a conic.");
   }
   setGeometricParameters(geom_params);
@@ -175,7 +175,7 @@ Eigen::Matrix3d Conic::toLocus() const {
     return locus2Geom(locus);
   }
   catch (const std::runtime_error& e) {
-    std::cout << __func__ << " " << e.what() << std::endl;
+    std::cout << __func__ << "--> " << e.what() << std::endl;
     throw std::runtime_error("Locus is singular.");
   }
 }
@@ -298,7 +298,7 @@ std::array<double, IMPLICIT_PARAM> locus2Implicit(const Eigen::Matrix3d& locus) 
   // loc = locus(2,2) == 0 ? locus : locus/locus(2,2);
   
   if(loc.determinant() == 0) {
-    std::cerr << __func__ << " Locus is singular:\n" << loc << std::endl;
+    std::cerr << __func__ << "--> Locus is singular:\n" << loc << std::endl;
     throw std::runtime_error("Matrix for locus is singular.");
   }
   /*
@@ -307,20 +307,20 @@ std::array<double, IMPLICIT_PARAM> locus2Implicit(const Eigen::Matrix3d& locus) 
       | d/2  e/2   f  |
   */
   if(loc.hasNaN()) {
-    std::cerr << __func__ << " Locus has NaN:\n" << loc << std::endl;
+    std::cerr << __func__ << "--> Locus has NaN:\n" << loc << std::endl;
     throw std::runtime_error("The above locus has NaN value");
   }
   if(!isEllipse(loc)) {
-    std::cerr << loc << std::endl;
+    std::cerr << __func__ << "--> \n" << loc << std::endl;
     throw std::runtime_error("The above input matrix does not represent an ellipse.");
   }
   double A, B, C, D, E, F;
-  A =  loc.coeff(0,0);
+  A =    loc.coeff(0,0);
   B =  2*loc.coeff(0,1);
-  C =  loc.coeff(1,1);
+  C =    loc.coeff(1,1);
   D =  2*loc.coeff(0,2);
   E =  2*loc.coeff(1,2);
-  F =  loc.coeff(2,2); 
+  F =    loc.coeff(2,2); 
   return {A, B, C, D, E, F};
 }
 
@@ -330,7 +330,7 @@ std::array<double, GEOMETRIC_PARAM> locus2Geom(const Eigen::Matrix3d& locus) {
     return implicit2Geom(impl_params);
   }
   catch (const std::runtime_error& e) {
-    std::cerr << __func__ << " " << e.what() << std::endl << locus << std::endl;
+    std::cerr << __func__ << "--> " << e.what() << std::endl << locus << std::endl;
     throw std::runtime_error("Matrix is singular.");
   }
 }
@@ -408,7 +408,8 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
     phi += M_PI_2;
   }
   std::array<double, GEOMETRIC_PARAM> geom;
-  auto roundd = [](double val) {return std::round(val*1e3)/1e3;};
+  // auto roundd = [](double val) {return std::round(val*1e3)/1e3;};
+  auto roundd = [](double val) {return val;};
   geom = {
     roundd(semimajor_axis), 
     roundd(semiminor_axis), 
@@ -417,6 +418,7 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
     roundd(phi)};
   if(vectorContainsNaN(geom)) {
     std::cerr 
+      << __func__ << "-->\n"
       << "Semimajor axis : " << semimajor_axis << std::endl
       << "Semiminor axis : " << semiminor_axis << std::endl
       << "Center (x)     : " << xc << std::endl
@@ -451,6 +453,8 @@ std::array<double, IMPLICIT_PARAM> geom2Implicit( const double semimajor_axis,
 
   std::array<double, IMPLICIT_PARAM> coeff;
 
+  // Using conversion found in Christion 2020
+  // "Lunar crater identification in digital images"
   coeff.at(0) =  a2*sin_phi_2 + b2*cos_phi_2;
   coeff.at(1) =  2*(b2-a2)*sin_phi*cos_phi;
   coeff.at(2) =  a2*cos_phi_2 + b2*sin_phi_2;

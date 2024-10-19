@@ -71,6 +71,8 @@ class Camera {
     void getIntrinsicParams(std::array<double, CAMERA_INTRINSIC_PARAM>& params) const;
     double getImageWidth() const;
     double getImageHeight() const;
+    Eigen::Vector2d getImageMidpoint() const;
+    void getImageMidpoint(Eigen::Vector2d& img_midpoint) const;
     cv::Size2i getImageSize() const;
     double getFovX() const;
     double getFovXDeg() const;
@@ -88,7 +90,7 @@ class Camera {
     Eigen::Vector2d world2Pixel(const Eigen::Vector3d& pt) const ;
     void setAttitude(const Eigen::Quaterniond& orientation);
     void setAttitude(const Eigen::Matrix3d& orientation);
-    void setAttitude(const Eigen::Vector3d& orientation);
+    void setAttitude(const Eigen::AngleAxisd& orientation);
     void setLocation(const Eigen::Vector3d& location);
     void setPosition(const Eigen::Vector3d& location);
     void setIntrinsicMatrix(const Eigen::Matrix3d& intrinsic);

@@ -66,6 +66,13 @@ TEST_F(CameraTest, CameraFOVY) {
   EXPECT_DOUBLE_EQ(rad2deg(fovd), fovy);
 }
 
+TEST_F(CameraTest, GetImageMidpoint) {
+  Eigen::Matrix3d intrinsic = cam->getIntrinsicMatrix();
+  Eigen::Vector2d img_midpoint1(intrinsic(0,2), intrinsic(1,2));
+  Eigen::Vector2d img_midpoint = cam->getImageMidpoint();
+  ASSERT_TRUE(img_midpoint1.isApprox(img_midpoint));
+}
+
 TEST_F(CameraTest, InverseIntrinsicMatrix) {
   Eigen::Matrix3d K = cam->getIntrinsicMatrix();
   Eigen::Matrix3d Kinv = cam->getInverseIntrinsicMatrix();
@@ -311,41 +318,35 @@ TEST_F(CameraTest, Rotations) {
 }
 
 TEST_F(CameraTest, IsInFrame) {
-  Eigen::Matrix3d intrinsic;
   // TODO: am I mixing things up by having pretranslate in the camera class? things might be wrong there
-  intrinsic = cam->getIntrinsicMatrix();
-  // intrinsic << 800, 0, 320.5,
-  //               0, 800, 240.5,
-  //               0, 0, 1;
-  Eigen::Vector2d img_midpoint(intrinsic(0,2), intrinsic(1,2));
+  Eigen::Vector2d img_midpoint = cam->getImageMidpoint();
 
   // Example transformation matrix (arbitrary rotation and translation)
   Eigen::AngleAxisd rot = Eigen::AngleAxisd(M_PI / 4, Eigen::Vector3d::UnitY());
   // Eigen::AngleAxisd rot1 = Eigen::AngleAxisd(M_PI / 4, Eigen::Vector3d::UnitY());
   Eigen::Vector3d offset(1, 0, 0);
-  cam->moveCamera(rot.toRotationMatrix());
+  cam->moveCamera(rot);
   cam->setPosition(offset);
 
   // Example 3D point
   Eigen::Vector3d point(1, 0, 5);
 
   // Variable to hold the resulting pixel coordinate
-  Eigen::Vector2d pixel;
+  Eigen::Vector2d pixel, other_pxl(296.5, 1024.5);
 
   // Project the point to pixel coordinates
   bool success;
 
   success = cam->isInCameraFrame(point, pixel);
-  // std::cout << "Pixel coordinates: " << pixel.transpose() << " are " 
-  //           << (success ? " ":"NOT ") << "in the image" << std::endl;
   ASSERT_TRUE(success);
-  ASSERT_FALSE(img_midpoint.isApprox(pixel));
+  ASSERT_TRUE(other_pxl.isApprox(pixel));
+  other_pxl(296.5,1024.5);
 
   Eigen::Vector3d translation1(0, 0, -5);
   cam->moveCamera(translation1);
   // Project the point to pixel coordinates
   ASSERT_TRUE(cam->isInCameraFrame(point, pixel));
-  ASSERT_FALSE(img_midpoint.isApprox(pixel));
+  ASSERT_TRUE(other_pxl.isApprox(pixel));
   // std::cout << "Pixel coordinates: " << pixel.transpose() << " are " 
   //           << (success ? "":"NOT ") << "in the image" << std::endl;
   
@@ -359,16 +360,12 @@ TEST_F(CameraTest, IsInFrame) {
   cam->pointTo(point, Eigen::Vector3d::UnitZ());
   EXPECT_TRUE(cam->isInCameraFrame(point, pixel));
   EXPECT_TRUE(img_midpoint.isApprox(pixel));
-  // std::cout << "Pixel coordinates: " << pixel.transpose() << " are " 
-  //           << (success ? "":"NOT ") << "in the image" << std::endl;
 
   Eigen::AngleAxisd rot1 = Eigen::AngleAxisd(M_PI / 12, Eigen::Vector3d::UnitY());
   cam->moveCamera(rot1);
   Eigen::Vector2d rot1_exp_pixel(1028.55, 1024.5);
   EXPECT_TRUE(cam->isInCameraFrame(point, pixel));
   EXPECT_TRUE(rot1_exp_pixel.isApprox(pixel, 1e-5));
-  // std::cout << "Pixel coordinates: " << pixel.transpose() << " are " 
-  //           << (success ? "":"NOT ") << "in the image" << std::endl;
 
   cam->resetCameraState();
   cam->pointTo(point, Eigen::Vector3d::UnitZ());
@@ -386,4 +383,91 @@ TEST_F(CameraTest, ProjectQuadric) {
   // Eigen::MatrixXd proj_mtx = cam->getProjectionMatrix();
 
   // Eigen::Matrix3d c_envelope = cam->projectQuadric(quad1.getEnvelope());
+}
+
+TEST_F(CameraTest, MoveCamera) {
+  cam->resetCameraState();
+  Eigen::AngleAxisd rot1 = Eigen::AngleAxisd(M_PI / 12, Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd rot2 = Eigen::AngleAxisd(M_PI / 5, Eigen::Vector3d::UnitZ());
+  Eigen::AngleAxisd rot3 = Eigen::AngleAxisd(15*M_PI / 7, Eigen::Vector3d::UnitX());
+  Eigen::Vector3d move1(10,20,30);
+  Eigen::Vector3d move2(37,50,300);
+  Eigen::Vector3d move3(-110,-20,0);
+  Eigen::Vector3d move4(-80,-30,-230);
+  cam->moveCamera(move1);
+  ASSERT_TRUE(cam->getPosition().isApprox(move1));
+  cam->moveCamera(rot1);
+
+  cam->moveCamera(move2);
+  ASSERT_TRUE(cam->getPosition().isApprox(move1+move2));
+  cam->moveCamera(rot2);
+
+  cam->moveCamera(move3);
+  ASSERT_TRUE(cam->getPosition().isApprox(move1+move2+move3));
+  cam->moveCamera(rot3);
+
+  cam->moveCamera(move4);
+  ASSERT_TRUE(cam->getPosition().isApprox(move1+move2+move3+move4));
+  
+}
+
+TEST_F(CameraTest, RotateCamera) {
+  cam->resetCameraState();
+  Eigen::AngleAxisd rot1 = Eigen::AngleAxisd( M_PI / 12, Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd att1 = Eigen::AngleAxisd(-M_PI / 12, Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd rot2 = Eigen::AngleAxisd( M_PI / 5, Eigen::Vector3d::UnitZ());
+  Eigen::AngleAxisd att2 = Eigen::AngleAxisd(-M_PI / 5, Eigen::Vector3d::UnitZ());
+  Eigen::AngleAxisd rot3 = Eigen::AngleAxisd( 15*M_PI / 7, Eigen::Vector3d::UnitX());
+  Eigen::AngleAxisd att3 = Eigen::AngleAxisd(-15*M_PI / 7, Eigen::Vector3d::UnitX());
+
+  // One rotation
+  cam->moveCamera(rot1);
+  Eigen::Quaterniond q_att = cam->getAttitude();
+  ASSERT_TRUE(q_att.isApprox(Eigen::Quaterniond(att1)));
+
+  // Two rotations
+  cam->resetCameraState();
+  cam->moveCamera(rot1);
+  cam->moveCamera(rot2);
+  
+  Eigen::Quaterniond att12 = Eigen::Quaterniond(att2*att1);
+  Eigen::Quaterniond q_att2 = cam->getAttitude();
+  cam->resetCameraState();
+  cam->moveCamera(rot1*rot2);
+  Eigen::Quaterniond q_att2_mult = cam->getAttitude();
+  ASSERT_TRUE(att12.isApprox(q_att2));
+  // TODO: Figure out why this is incorrect in the first vector element
+  ASSERT_TRUE(q_att2_mult.isApprox(q_att2) || q_att2_mult.coeffs().isApprox(-q_att2.coeffs()));
+
+  // Three rotations
+  cam->resetCameraState();
+  cam->moveCamera(rot1);
+  cam->moveCamera(rot2);
+  cam->moveCamera(rot3);
+  
+  Eigen::Quaterniond att123 = Eigen::Quaterniond(att3*att2*att1);
+  Eigen::Quaterniond q_att3 = cam->getAttitude();
+  cam->resetCameraState();
+  cam->moveCamera(rot1*rot2*rot3);
+  Eigen::Quaterniond q_att3_mult = cam->getAttitude();
+  // Eigen does not handle equality of negative quaternions
+  ASSERT_TRUE(att123.isApprox(q_att3) || att123.coeffs().isApprox(-q_att3.coeffs()));
+  // TODO: Figure out why this is incorrect in the first vector element
+  ASSERT_TRUE(q_att3_mult.isApprox(q_att3));
+}
+
+TEST_F(CameraTest, SetAttitude) {
+  cam->resetCameraState();
+  Eigen::AngleAxisd rot1 = Eigen::AngleAxisd( M_PI / 12, Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd att1 = Eigen::AngleAxisd(-M_PI / 12, Eigen::Vector3d::UnitY());
+
+  cam->moveCamera(rot1);
+  Eigen::Quaterniond res_rot = cam->getAttitude();
+
+  cam->resetCameraState();
+  cam->setAttitude(att1);
+  Eigen::Quaterniond res_att = cam->getAttitude();
+
+  ASSERT_TRUE(res_att.isApprox(res_rot));
+
 }
