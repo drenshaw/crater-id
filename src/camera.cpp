@@ -304,8 +304,6 @@ void Camera::setAttitude(const Eigen::Matrix3d& orientation) {
 
 void Camera::setAttitude(const Eigen::AngleAxisd& orientation) {
   this->setAttitude(Eigen::Quaterniond(orientation));
-  // throw std::runtime_error("This method is not yet implemented.\n");
-  // this->state_.rotation() = orientation;
 }
 
 void Camera::setLocation(const Eigen::Vector3d& location) {

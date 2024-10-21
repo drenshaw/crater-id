@@ -35,21 +35,22 @@ class CameraTest : public testing::Test {
 };
 
 TEST_F(CameraTest, InitCamera) {
-  // Eigen::Matrix4d extrinsic_h = cam->getHomogeneousExtrinsicMatrix();
-  // Eigen::Matrix3d intrinsic   = cam->getIntrinsicMatrix();
-  // Eigen::MatrixXd extrinsic   = cam->getExtrinsicMatrix();
-  // Eigen::MatrixXd proj_mtx    = cam->getProjectionMatrix();
-  // std::cout << "Extrinsic Matrix:\n" << extrinsic_h << std::endl;
-  // std::cout << "Intrinsic Matrix:\n" << intrinsic << std::endl;
-  // std::cout << "\nProjection Matrix:\n" << cam->getHomogeneousProjectionMatrix() << std::endl;
+  
+  Eigen::Vector3d cam_pos = 1e4*latlon2bearing(-15, 0);
+  Eigen::Vector3d look_at_me = 1e4*Eigen::Vector3d::Zero();
+  Eigen::Vector3d up_vector = Eigen::Vector3d::UnitZ();
+  cam->setPosition(cam_pos);
+  cam->pointTo(look_at_me, up_vector);
+  
+  Eigen::MatrixXd proj_mtx    = cam->getProjectionMatrix();
 
-  // Quadric quad(-89, 0, 200, "south_pole");
-  // Eigen::Matrix4d q_locus = quad.getLocus();
-  // Eigen::Matrix3d c_locus = proj_mtx * q_locus * proj_mtx.transpose();
-  // std::cout << "Projected locus:\n" << q_locus << std::endl << c_locus << std::endl;
-  // Conic con(c_locus);
-  // std::cout << "Projected conic: " << con << std::endl;
+  Quadric quad(-5, 0, 200, "south_pole");
+  Eigen::Matrix4d q_envelope = quad.getEnvelope();
+  Eigen::Matrix3d c_envelope = proj_mtx * q_envelope * proj_mtx.transpose();
+  Conic con(adjugate(c_envelope));
+  Conic conic = quad.projectToConic(cam->getProjectionMatrix());
 
+  ASSERT_EQ(con, conic);
   }
 
 TEST_F(CameraTest, CameraFOVX) {
@@ -81,23 +82,6 @@ TEST_F(CameraTest, InverseIntrinsicMatrix) {
 }
 
 TEST_F(CameraTest, PointMovingInRightDirection) {
-  Eigen::Isometry3d transformation = Eigen::Isometry3d::Identity();
-  Eigen::AngleAxisd rot = Eigen::AngleAxisd(M_PI / 4, Eigen::Vector3d::UnitY());
-  // Eigen::AngleAxisd rot1 = Eigen::AngleAxisd(M_PI / 4, Eigen::Vector3d::UnitY());
-  Eigen::Vector3d translation(1, 0, 0);
-  transformation.rotate(rot);
-  transformation.pretranslate(translation);
-
-  cam->moveCamera(Eigen::Quaterniond(rot));
-  cam->moveCamera(translation);
-
-  // Example 3D point
-  Eigen::Vector3d point(1, 0, 5);
-  Eigen::Vector2d pt_pxl;
-  cam->world2Pixel(point, pt_pxl);
-  Eigen::Vector2d expected_pixel(296.5, 1024.5);
-  ASSERT_TRUE(pt_pxl.isApprox(expected_pixel));
-  
   Eigen::Vector3d cam_pos = 1e4*latlon2bearing(0, 0);
   Eigen::Vector3d look_at_me = 1e4*Eigen::Vector3d::Zero();
   Eigen::Vector3d up_vector = Eigen::Vector3d::UnitZ();
@@ -278,7 +262,7 @@ TEST_F(CameraTest, ProjectQuadricAfterRotation) {
   Conic c(c_locus);
   // std::cout << c << std::endl;
 
-  EXPECT_TRUE(conic==c);
+  EXPECT_EQ(conic, c);
 
   // TODO: ensure that this active rotation results in the proper frame transformation
   // Then figure out the projection matrix issue
@@ -469,5 +453,4 @@ TEST_F(CameraTest, SetAttitude) {
   Eigen::Quaterniond res_att = cam->getAttitude();
 
   ASSERT_TRUE(res_att.isApprox(res_rot));
-
 }

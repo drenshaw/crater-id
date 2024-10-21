@@ -33,6 +33,8 @@ class Quadric {
     Eigen::Vector3d getAxisNormalToQuadrics(const Quadric& other_quadric) const;
     double getRadius() const;
     std::string getID() const;
+    Eigen::Matrix3d projectToConicEnvelope(const Eigen::MatrixXd& proj_mtx) const;
+    Eigen::Matrix3d projectToConicLocus(const Eigen::MatrixXd& proj_mtx) const;
     Conic projectToConic(const Eigen::MatrixXd& proj_mtx) const;
 
   private:

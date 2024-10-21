@@ -169,9 +169,19 @@ std::string Quadric::getID() const {
   return this->id_;
 }
 
-Conic Quadric::projectToConic(const Eigen::MatrixXd& proj_mtx) const{
+Eigen::Matrix3d Quadric::projectToConicEnvelope(const Eigen::MatrixXd& proj_mtx) const{
   Eigen::Matrix3d conic_envelope = proj_mtx * this->getEnvelope() * proj_mtx.transpose();
-  Conic conic(adjugate(conic_envelope));
+  return conic_envelope;
+}
+
+Eigen::Matrix3d Quadric::projectToConicLocus(const Eigen::MatrixXd& proj_mtx) const{
+  Eigen::Matrix3d conic_envelope = this->projectToConicEnvelope(proj_mtx);
+  return adjugate(conic_envelope);
+}
+
+Conic Quadric::projectToConic(const Eigen::MatrixXd& proj_mtx) const{
+  Eigen::Matrix3d locus = this->projectToConicLocus(proj_mtx);
+  Conic conic(locus);
   return conic;
 }
 
