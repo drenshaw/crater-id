@@ -416,10 +416,10 @@ TEST_F(QuadricTest, ProjectCrater) {
   for(int i = 0; i < 10; i++) {
     cam->resetImage(image);
     Eigen::MatrixXd proj = cam->getProjectionMatrix();
-    Eigen::Matrix3d locus = adjugate(proj * adjugate(zero.getLocus()) * proj.transpose());
+    Eigen::Matrix3d locus = zero.projectToConicLocus(proj);
     // Eigen::Matrix3d locus = cam->projectQuadricToLocus(zero.getLocus());
     // std::cout << "Count:\n" << zero.getLocus() << std::endl;
-    std::cout << "Locus:\n" << locus << std::endl;
+    // std::cout << "Locus:\n" << locus << std::endl;
     Conic crater(locus);
     Eigen::Vector2d pixel_n, pixel_s, pixel_e, pixel_w;
     cam->world2Pixel(n, pixel_n);
