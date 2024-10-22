@@ -143,6 +143,19 @@ double getAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::Vector
 }
 
 
+Eigen::Vector3d latlonrad2CraterRim(const double lat, const double lon, const double radius) {
+  const double dist = calculateCraterRimFromRadius(radius);
+  return dist * latlon2bearing(lat, lon);
+}
+
+Eigen::Vector3d latlonalt(const double lat, const double lon, const double altitude) {
+  return (R_MOON + altitude) * latlon2bearing(lat, lon);
+}
+
+double calculateCraterRimFromRadius(const double radius) {
+  return std::sqrt(std::pow(R_MOON, 2) - std::pow(radius, 2));
+}
+
 Eigen::Vector3d getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen::Vector3d& vec2) {
   if(vec1.isApprox(vec2)) {
     throw std::runtime_error("Vectors are nearly parallel; invalid axis");

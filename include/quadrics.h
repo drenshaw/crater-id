@@ -52,8 +52,6 @@ class Quadric {
 
 bool isSamePlane(const Eigen::Hyperplane<double, 3>& p1, const Eigen::Hyperplane<double, 3>& p2, const double thresh=1e-3);
 bool isSamePlane(const Quadric& quad1, const Quadric& quad2, const double thresh=1e-3);
-double calculateCraterRimFromRadius(const double radius);
-Eigen::Vector3d latlonrad2XYZ(const double lat, const double lon, const double radius);
 Eigen::Matrix4d GenerateQuadricLocus(const Eigen::Vector3d& position, const double radius);
 Eigen::Matrix4d GenerateQuadricEnvelope(const Eigen::Vector3d& position, const double radius);
 Eigen::Matrix4d ConicEnvelopeToQuadricEnvelope(const Eigen::Matrix3d& conic_envelope, 

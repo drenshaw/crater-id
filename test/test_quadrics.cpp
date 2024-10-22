@@ -438,7 +438,7 @@ TEST_F(QuadricTest, ProjectCrater) {
     cv::imshow("Projecting Moon to Camera", outImg); 
     cv::waitKey(0); 
 
-    cam->moveCamera(rot);
+    cam->rotate(rot);
   }
 }
 

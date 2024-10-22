@@ -319,35 +319,51 @@ void Camera::moveCamera(const Eigen::Isometry3d& transform) {
   this->state_.rotate(transform.rotation()).pretranslate(transform.translation());
 }
 
-void Camera::moveCamera(const Eigen::Quaterniond& rotation) {
+void Camera::moveX(const double x_offset) {
+  Eigen::Vector3d movement = {x_offset, 0, 0};
+  this->move(movement);
+}
+
+void Camera::moveY(const double y_offset) {
+  Eigen::Vector3d movement = {0, y_offset, 0};
+  this->move(movement);
+}
+
+void Camera::moveZ(const double z_offset) {
+  Eigen::Vector3d movement = {0, 0, z_offset};
+  this->move(movement);
+}
+
+
+void Camera::rotate(const Eigen::Quaterniond& rotation) {
   this->state_.rotate(rotation);
 }
 
-void Camera::moveCamera(const Eigen::Matrix3d& rotation) {
+void Camera::rotate(const Eigen::Matrix3d& rotation) {
   this->state_.rotate(rotation);
 }
 
-void Camera::moveCamera(const Eigen::AngleAxisd& rotation) {
-  this->moveCamera(rotation.toRotationMatrix());
+void Camera::rotate(const Eigen::AngleAxisd& rotation) {
+  this->rotate(rotation.toRotationMatrix());
 }
 
 // TODO: need to determine/express if the translation is in the inertial or body frame
-void Camera::moveCamera(const Eigen::Vector3d& translation) {
+void Camera::move(const Eigen::Vector3d& translation) {
   this->state_.pretranslate(translation);
 }
-void Camera::moveCamera(const Eigen::Translation3d& translation) {
+void Camera::move(const Eigen::Translation3d& translation) {
   this->state_.pretranslate(translation.translation());
 }
 
-void Camera::moveCameraRelative(const Eigen::Quaterniond& rotation) {
+void Camera::rotateRelative(const Eigen::Quaterniond& rotation) {
   this->state_.prerotate(rotation);
 }
 
 // this is intended to make it possible to move the camera in the local frame (e.g., forward)
-void Camera::moveCameraRelative(const Eigen::Vector3d& translation) {
+void Camera::moveRelative(const Eigen::Vector3d& translation) {
   this->state_.translate(translation);
 }
-void Camera::moveCameraRelative(const Eigen::Translation3d& translation) {
+void Camera::moveRelative(const Eigen::Translation3d& translation) {
   this->state_.translate(translation.translation());
 }
 
@@ -358,6 +374,11 @@ void Camera::pointTo(const Eigen::Vector3d& point, const Eigen::Vector3d& up_axi
   }
   Eigen::Matrix3d xform = lookAt(this->getPosition(), point, up_axis);
   this->state_.linear() = xform.transpose();
+}
+
+void Camera::pointTo(const double lat, const double lon, const Eigen::Vector3d& up_axis) {
+  Eigen::Vector3d point = latlonalt(lat, lon, 0);
+  this->pointTo(point, up_axis);
 }
 
 void Camera::moveTo(const Eigen::Vector3d& point) {
@@ -389,6 +410,11 @@ Eigen::Matrix3d Camera::projectQuadricToLocus(const Eigen::Matrix4d& quadric_loc
   return adjugate(proj * adjugate(quadric_locus) * proj.transpose());
 }
 
+Eigen::Matrix3d Camera::getImagePlaneLocus(const Eigen::Matrix3d& image_locus) const {
+  Eigen::Matrix3d Kinv = this->getInverseIntrinsicMatrix();
+  Eigen::Matrix3d envelope = adjugate(image_locus);
+  return adjugate(Kinv * envelope * Kinv.transpose());
+}
 
 
 std::ostream& operator<<(std::ostream& os, const Camera& cam) {

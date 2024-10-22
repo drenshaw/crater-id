@@ -74,9 +74,9 @@ Quadric::Quadric(const Eigen::Vector3d& position, const double radius, const std
 Quadric::Quadric(const std::string id, const Eigen::Vector3d& position, const double radius) :
   Quadric(position, radius, id) {}
 Quadric::Quadric(const double lat, const double lon, const double radius, const std::string id) :
-  Quadric(latlonrad2XYZ(lat, lon, radius), radius, id) {}
+  Quadric(latlonrad2CraterRim(lat, lon, radius), radius, id) {}
 Quadric::Quadric(const std::string id, const double lat, const double lon, const double radius) :
-  Quadric(latlonrad2XYZ(lat, lon, radius), radius, id) {}
+  Quadric(latlonrad2CraterRim(lat, lon, radius), radius, id) {}
 Quadric::Quadric(const std::string id, const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal) :
   Quadric(position, radius, surface_normal, id) {}
 
@@ -214,15 +214,6 @@ bool isSamePlane(const Eigen::Hyperplane<double, 3>& p1, const Eigen::Hyperplane
 
 bool isSamePlane(const Quadric& quad1, const Quadric& quad2, const double thresh) {
   return isSamePlane(quad1.getPlane(), quad2.getPlane(), thresh);
-}
-
-Eigen::Vector3d latlonrad2XYZ(const double lat, const double lon, const double radius) {
-  const double dist = calculateCraterRimFromRadius(radius);
-  return dist * latlon2bearing(lat, lon);
-}
-
-double calculateCraterRimFromRadius(const double radius) {
-  return std::sqrt(std::pow(R_MOON, 2) - std::pow(radius, 2));
 }
 
 Eigen::Hyperplane<double, 3> SurfacePointToPlane(const Eigen::Matrix3d& T_e2m, 

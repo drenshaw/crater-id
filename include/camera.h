@@ -98,21 +98,26 @@ class Camera {
     // void setProjectionMatrix(const Eigen::Matrix3d& projection_matrix);
     // Camera(const Eigen::Matrix4d& projection_matrix);
     void moveCamera(const Eigen::Isometry3d& transform);
-    void moveCamera(const Eigen::Quaterniond& rotation);
-    void moveCamera(const Eigen::Matrix3d& rotation);
-    void moveCamera(const Eigen::AngleAxisd& rotation);
-    void moveCamera(const Eigen::Vector3d& translation);
-    void moveCamera(const Eigen::Translation3d& translation);
-    void moveCameraRelative(const Eigen::Vector3d& translation);
-    void moveCameraRelative(const Eigen::Translation3d& translation);
-    void moveCameraRelative(const Eigen::Quaterniond& rotation);
+    void rotate(const Eigen::Quaterniond& rotation);
+    void rotate(const Eigen::Matrix3d& rotation);
+    void rotate(const Eigen::AngleAxisd& rotation);
+    void move(const Eigen::Vector3d& translation);
+    void move(const Eigen::Translation3d& translation);
+    void moveX(const double x_offset);
+    void moveY(const double y_offset);
+    void moveZ(const double z_offset);
+    void moveRelative(const Eigen::Vector3d& translation);
+    void moveRelative(const Eigen::Translation3d& translation);
+    void rotateRelative(const Eigen::Quaterniond& rotation);
     void pointTo(const Eigen::Vector3d& point, const Eigen::Vector3d& up_axis);
+    void pointTo(const double lat, const double lon, const Eigen::Vector3d& up_axis);
     void moveTo(const Eigen::Vector3d& point);
     void moveTo(const Eigen::Translation3d& translation);
     void resetCameraState();
     // Eigen::Transform<double, 3, Eigen::Isometry>
     Eigen::Matrix3d projectQuadric(const Eigen::Matrix4d& quadric) const;
     Eigen::Matrix3d projectQuadricToLocus(const Eigen::Matrix4d& quadric_locus) const;
+    Eigen::Matrix3d getImagePlaneLocus(const Eigen::Matrix3d& image_locus) const;
 
   private:
     double dx_;

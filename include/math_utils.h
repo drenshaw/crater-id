@@ -13,6 +13,7 @@
 // #include <boost/log/trivial.hpp>
 // #include "crater-id.h"
 
+#define R_MOON 1737.4
 const double EPS = (10 * std::numeric_limits<double>::epsilon());
 
 double getCofactor(const Eigen::MatrixXd& matrix, int p, int q);
@@ -210,6 +211,10 @@ double getAngleBetweenLatLon(const T lat1, const T lon1, const T lat2, const T l
   // normalizeVector(point2);
   return getAngleBetweenVectors(point1, point2);
 }
+
+double calculateCraterRimFromRadius(const double radius);
+Eigen::Vector3d latlonrad2CraterRim(const double lat, const double lon, const double radius);
+Eigen::Vector3d latlonalt(const double lat, const double lon, const double altitude);
 
 template <typename T>
 void makeUnique(T& vec) {
