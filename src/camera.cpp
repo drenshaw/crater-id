@@ -291,8 +291,6 @@ void Camera::setExtrinsicMatrix(const Eigen::Matrix3d& extrinsic) {
 }
 
 void Camera::setAttitude(const Eigen::Quaterniond& orientation) {
-  // Eigen::Isometry3d transform;
-  // transform = orientation.inverse() * Eigen::Translation<double,3>(this->state_.translation());
   this->state_.linear() = orientation.normalized().inverse().toRotationMatrix();
   // std::cout << __func__ << ": " << orientation << std::endl;
 }
@@ -320,7 +318,8 @@ void Camera::moveCamera(const Eigen::Isometry3d& transform) {
 }
 
 void Camera::moveX(const double x_offset) {
-  Eigen::Vector3d movement = {x_offset, 0, 0};
+  Eigen::Vector3d movement;
+  movement << x_offset, 0, 0;
   this->move(movement);
 }
 

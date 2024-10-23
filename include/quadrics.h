@@ -33,9 +33,12 @@ class Quadric {
     Eigen::Vector3d getAxisNormalToQuadrics(const Quadric& other_quadric) const;
     double getRadius() const;
     std::string getID() const;
-    Eigen::Matrix3d projectToConicEnvelope(const Eigen::MatrixXd& proj_mtx) const;
-    Eigen::Matrix3d projectToConicLocus(const Eigen::MatrixXd& proj_mtx) const;
-    Conic projectToConic(const Eigen::MatrixXd& proj_mtx) const;
+    Eigen::Matrix3d projectToImageEnvelope(const Eigen::MatrixXd& proj_mtx) const;
+    Eigen::Matrix3d projectToImageLocus(const Eigen::MatrixXd& proj_mtx) const;
+    Conic projectToImage(const Eigen::MatrixXd& proj_mtx) const;
+    Eigen::Matrix3d projectToPlaneEnvelope(const Eigen::MatrixXd& extrinsic_mtx) const;
+    Eigen::Matrix3d projectToPlaneLocus(const Eigen::MatrixXd& extrinsic_mtx) const;
+    Conic projectToImagePlane(const Eigen::MatrixXd& extrinsic_mtx) const;
 
   private:
     Eigen::Matrix4d generateQuadricLocusFromPointRadius() const;

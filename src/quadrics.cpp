@@ -169,18 +169,34 @@ std::string Quadric::getID() const {
   return this->id_;
 }
 
-Eigen::Matrix3d Quadric::projectToConicEnvelope(const Eigen::MatrixXd& proj_mtx) const{
+Eigen::Matrix3d Quadric::projectToImageEnvelope(const Eigen::MatrixXd& proj_mtx) const{
   Eigen::Matrix3d conic_envelope = proj_mtx * this->getEnvelope() * proj_mtx.transpose();
   return conic_envelope;
 }
 
-Eigen::Matrix3d Quadric::projectToConicLocus(const Eigen::MatrixXd& proj_mtx) const{
-  Eigen::Matrix3d conic_envelope = this->projectToConicEnvelope(proj_mtx);
+Eigen::Matrix3d Quadric::projectToImageLocus(const Eigen::MatrixXd& proj_mtx) const{
+  Eigen::Matrix3d conic_envelope = this->projectToImageEnvelope(proj_mtx);
   return adjugate(conic_envelope);
 }
 
-Conic Quadric::projectToConic(const Eigen::MatrixXd& proj_mtx) const{
-  Eigen::Matrix3d locus = this->projectToConicLocus(proj_mtx);
+Conic Quadric::projectToImage(const Eigen::MatrixXd& proj_mtx) const{
+  Eigen::Matrix3d locus = this->projectToImageLocus(proj_mtx);
+  Conic conic(locus);
+  return conic;
+}
+
+Eigen::Matrix3d Quadric::projectToPlaneEnvelope(const Eigen::MatrixXd& extrinsic_mtx) const {
+  Eigen::Matrix3d conic_envelope = extrinsic_mtx * this->getEnvelope() * extrinsic_mtx.transpose();
+  return conic_envelope;
+}
+
+Eigen::Matrix3d Quadric::projectToPlaneLocus(const Eigen::MatrixXd& extrinsic_mtx) const {
+  Eigen::Matrix3d conic_envelope = this->projectToImageEnvelope(extrinsic_mtx);
+  return adjugate(conic_envelope);
+}
+
+Conic Quadric::projectToImagePlane(const Eigen::MatrixXd& extrinsic_mtx) const {
+  Eigen::Matrix3d locus = this->projectToPlaneLocus(extrinsic_mtx);
   Conic conic(locus);
   return conic;
 }

@@ -48,7 +48,7 @@ TEST_F(CameraTest, InitCamera) {
   Eigen::Matrix4d q_envelope = quad.getEnvelope();
   Eigen::Matrix3d c_envelope = proj_mtx * q_envelope * proj_mtx.transpose();
   Conic con(adjugate(c_envelope));
-  Conic conic = quad.projectToConic(cam->getProjectionMatrix());
+  Conic conic = quad.projectToImage(cam->getProjectionMatrix());
 
   ASSERT_EQ(con, conic);
   }

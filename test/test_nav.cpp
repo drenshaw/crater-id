@@ -238,18 +238,22 @@ TEST_F(NavigationTest, ConicBackprojection) {
   Eigen::Vector3d location = Eigen::Vector3d::Zero();
   Eigen::Vector3d up_vector = Eigen::Vector3d::UnitZ();
   cam->resetCameraState();
-  cam->moveX(1e4);
+  cam->moveX(1e0);
   cam->pointTo(location, up_vector);
+  cam->moveRelative(Eigen::Vector3d(1e4, 0, 0));
   
   Eigen::Vector3d normal;
   double dist;
   std::cout << quad << std::endl;
   std::cout << cam << std::endl;
+  std::cout << cam->getAttitude().inverse() << std::endl;
+  std::cout << "Extrinsic matrix:\n" << cam->getExtrinsicMatrix() << std::endl;
+  std::cout << "Projection matrix:\n" << cam->getProjectionMatrix() << std::endl;
   double dist1 = (quad.getLocation() - cam->getPosition()).norm();
   std::cout << "Distance should be roughly " << dist1 << "km\n";
   std::cout << "Value of lambda1 should be " << std::pow(dist1/quad.getRadius(), 2.0/3.0) << std::endl;
   // Eigen::Matrix3d conic_envelope = quad.projectToConicEnvelope(cam->getProjectionMatrix());
-  Eigen::Matrix3d conic_locus = quad.projectToConicLocus(cam->getProjectionMatrix());
+  Eigen::Matrix3d conic_locus = quad.projectToPlaneLocus(cam->getProjectionMatrix());
   // Eigen::Matrix3d plane_locus = cam->getImagePlaneLocus(conic_locus);
   conicBackprojectionShiu(conic_locus, quad.getRadius(), normal, dist);
   // conicBackprojection(conic_locus, quad.getRadius(), normal, dist);

@@ -264,7 +264,7 @@ void plotCraters(const Camera& camera, const std::vector<Quadric>& craters) {
     Eigen::Matrix3d locus = adjugate(conic_envelope);
     Conic conic(locus);
     
-    Conic con = crater.projectToConic(camera.getProjectionMatrix());
+    Conic con = crater.projectToImage(camera.getProjectionMatrix());
     if(camera.isInCameraFrame(crater.getLocation())) {
       conics.push_back(con);
     }
@@ -416,7 +416,7 @@ TEST_F(QuadricTest, ProjectCrater) {
   for(int i = 0; i < 10; i++) {
     cam->resetImage(image);
     Eigen::MatrixXd proj = cam->getProjectionMatrix();
-    Eigen::Matrix3d locus = zero.projectToConicLocus(proj);
+    Eigen::Matrix3d locus = zero.projectToImageLocus(proj);
     // Eigen::Matrix3d locus = cam->projectQuadricToLocus(zero.getLocus());
     // std::cout << "Count:\n" << zero.getLocus() << std::endl;
     // std::cout << "Locus:\n" << locus << std::endl;
