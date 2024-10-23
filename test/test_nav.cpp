@@ -133,10 +133,10 @@ void conicBackprojection(const Eigen::Matrix3d& conic_locus, const double radius
   swapped << u1, u2, u3;
   std::cout << "\nLambdas: " << lambda1 << ", " << lambda2 << ", " << lambda3 << std::endl;
   std::cout << "Associated u_i:\n" << swapped << std::endl;
-  assert(lambda3 < 0);
-  assert(lambda1 > 0);
-  assert(lambda3 < lambda2);
-  assert(lambda1 < lambda2);
+  // assert(lambda3 < 0);
+  // assert(lambda1 > 0);
+  // assert(lambda3 < lambda2);
+  // assert(lambda1 < lambda2);
   double scalar1 = std::sqrt((lambda2 - lambda1)/(lambda2 - lambda3));
   double scalar2 = std::sqrt((lambda1 - lambda3)/(lambda2 - lambda3));
   assert(!std::isnan(scalar1));
@@ -146,7 +146,7 @@ void conicBackprojection(const Eigen::Matrix3d& conic_locus, const double radius
   dist = std::pow(std::abs(lambda1), 1.5) * radius;
 }
 
-int findOppositeSignedValue(const std::vector<double>& vec) {
+int findOppositeSignedValueIndex(const std::vector<double>& vec) {
   double sign_val = std::accumulate(
     begin(vec), end(vec), 1.0, std::multiplies<double>());
   auto it = std::find_if(vec.begin(), vec.end(), [sign_val](double num) {
@@ -155,59 +155,53 @@ int findOppositeSignedValue(const std::vector<double>& vec) {
   return it != vec.end() ? it - vec.begin() : -1;
 }
 
-void conicBackprojectionShiu(const Eigen::Matrix3d& conic, const double radius, Eigen::Vector3d& normal, double& dist) {
-  // Applying the concept of the canonical frame from Shiu:
-  // "3D loc. of circular and spherical features by monocular ... vision"
-  // Eigenvalue decomposition
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver(conic);
-  if (eigensolver.info() != Eigen::Success) {
-    std::cerr << "Eigenvalue decomposition failed!" << std::endl;
-    return;
-  }
-  // std::cout << __func__ << "--> " << Conic(conic) << std::endl;
-  
-  // Eigenvalues and eigenvectors
-  Eigen::Vector3d eigenvalues  = eigensolver.eigenvalues();
-  Eigen::Matrix3d eigenvectors = eigensolver.eigenvectors();
-  std::vector<int> indices {0, 1, 2};
-  std::cout << "Eigenvalues: " << eigenvalues.transpose() << std::endl;
+double getBackprojectionDistanceShiu(const double lambda1, const double lambda2, const double lambda3, const double radius) {
+  double abs_l1 = std::abs(lambda1);
+  double abs_l2 = std::abs(lambda2);
+  double abs_l3 = std::abs(lambda3);
+  double scalar = 1/std::abs(lambda2);
+  double r = scalar * std::sqrt((abs_l1*abs_l3*(abs_l2 + abs_l3))/(abs_l1 + abs_l3));
+  double dist = radius/r;
+  return dist;
+}
 
+void getBackprojectionLambda1Shiu(const std::vector<double>& eigenvalues,
+                                  const Eigen::Matrix3d& eigenvectors,
+                                  int& mu_d_idx,
+                                  Eigen::Vector3d& e3) {
   // Find the eigenvalue with the different sign
   // Eqns 3.1.2.5 - 3.1.2.7
   Eigen::Vector3d f_d;
-  double mu_d;
-  int mu_d_idx;
-  std::vector<double> eigen_vec(eigenvalues.data(), eigenvalues.data() + eigenvalues.size());
-  std::vector<double> eigen_cpy = eigen_vec;
-  mu_d_idx = findOppositeSignedValue(eigen_vec);
-  // eigen_cpy.erase(mu_d_idx);
+  mu_d_idx = findOppositeSignedValueIndex(eigenvalues);
   if(mu_d_idx == -1) {
-    std::cerr << "Eigenvalue of opposite sign not found: " << eigenvalues.transpose() << std::endl;
+    // std::cerr << "Eigenvalue of opposite sign not found: " << eigenvalues.transpose() << std::endl;
     return;
   }
-  mu_d = eigenvalues(mu_d_idx);
-  Eigen::MatrixXd eigenvectors_same = eigenvectors;
-  eigen_cpy.erase(std::remove(eigen_cpy.begin(), eigen_cpy.end(), mu_d), eigen_cpy.end());
-  indices.erase(std::remove(indices.begin(), indices.end(), mu_d_idx), indices.end());
+  // mu_d = eigenvalues.at(mu_d_idx);
   f_d = eigenvectors.col(mu_d_idx);
 
-  // double lambda1 = eigenvalues(i1);
-  // double lambda2 = eigenvalues(i2);
-  double lambda3 = mu_d;
+  // lambda3 = mu_d;
   double dotted = f_d.dot(Eigen::Vector3d::UnitZ());
   assert(dotted != 0);
-  Eigen::Vector3d e3 = dotted > 0 ? f_d : -f_d;
-  std::cout << "Unique value: " << lambda3 << " at index " << mu_d_idx << std::endl;
-  std::cout << "Remaining eigenvalues: " << eigen_cpy.at(0) << ", " << eigen_cpy.at(1) << std::endl;
+  e3 = dotted > 0 ? f_d : -f_d;
+  // std::cout << "Unique value: " << lambda3 << " at index " << mu_d_idx << std::endl;
+  // std::cout << "Remaining eigenvalues: " << eigen_cpy.at(0) << ", " << eigen_cpy.at(1) << std::endl;
+}
 
+void getBackprojectionRemainingLambdasShiu( const std::vector<double>& eigenvalues,
+                                            const Eigen::Matrix3d& eigenvectors,
+                                            const Eigen::Vector3d e3,
+                                            double& lambda1, double& lambda2,
+                                            Eigen::Vector3d& e1, Eigen::Vector3d& e2) {
+
+  double omega1, omega2;
+  Eigen::Vector3d g1, g2;
   // Get remaining lambdas
   // Eqns 3.1.2.8 - 3.1.2.11
-  double omega1, omega2, lambda2, lambda1;
-  Eigen::Vector3d g1, g2, e2, e1;
-  int indexMax = indices.at(1);
-  int indexMin = indices.at(0);
-  omega1 = eigen_cpy.at(indexMax);
-  omega2 = eigen_cpy.at(indexMin);
+  int indexMin = 0;
+  int indexMax = 1;
+  omega1 = eigenvalues.at(indexMax);
+  omega2 = eigenvalues.at(indexMin);
   g1 = eigenvectors.col(indexMax);
   g2 = eigenvectors.col(indexMin);
   if(omega1 == omega2) {
@@ -224,38 +218,90 @@ void conicBackprojectionShiu(const Eigen::Matrix3d& conic, const double radius, 
     e2 = g2;
   }
   e1 = e2.cross(e3);
-  double abs_l1 = std::abs(lambda1);
-  double abs_l2 = std::abs(lambda2);
-  double abs_l3 = std::abs(lambda3);
-  double scalar = 1/std::abs(lambda2);
-  double r = scalar * std::sqrt((abs_l1*abs_l3*(abs_l2 + abs_l3))/(abs_l1 + abs_l3));
-  std::cout << "r: " << r << " | R/r: " << radius/r << std::endl;
+}
+
+std::tuple<Eigen::Vector3d, Eigen::Vector3d> getBackprojectionNormalsShiu() {
+
+}
+
+void conicBackprojectionShiu(const Eigen::Matrix3d& conic, const double radius, Eigen::Vector3d& normal, double& dist) {
+  // Applying the concept of the canonical frame from Shiu:
+  // "3D loc. of circular and spherical features by monocular ... vision"
+  // Eigenvalue decomposition
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver(conic);
+  if (eigensolver.info() != Eigen::Success) {
+    std::cerr << "Eigenvalue decomposition failed!" << std::endl;
+    return;
+  }
+  
+  // Eigenvalues and eigenvectors
+  Eigen::Vector3d eigenval = eigensolver.eigenvalues();
+  Eigen::Matrix3d eigenvec = eigensolver.eigenvectors();
+  // Store eigenvalues in a vector for easy manipulation
+  std::vector<double> eigenvalues(eigenval.data(), eigenval.data() + eigenval.size());
+
+  double lambda3, lambda2, lambda1;
+  Eigen::Vector3d g1, g2, e3, e2, e1;
+  int mu_d_idx;  
+
+  // Find the eigenvalue with the different sign
+  // Eqns 3.1.2.5 - 3.1.2.7
+  getBackprojectionLambda1Shiu(eigenvalues, eigenvec, mu_d_idx, e3);
+  lambda3 = eigenval(mu_d_idx);
+  eigenvalues.erase(eigenvalues.begin() + mu_d_idx);
+
+  // std::cout << "Unique value: " << lambda3 << " at index " << mu_d_idx << std::endl;
+  assert(eigenvalues.size() == 2);
+  // std::cout << "Remaining eigenvalues: " << eigenvalues.at(0) << ", " << eigenvalues.at(1) << std::endl;
+  assert(eigenvalues.at(0) * eigenvalues.at(1) > 0);
+  
+  // Get remaining lambdas
+  // Eqns 3.1.2.8 - 3.1.2.11
+  getBackprojectionRemainingLambdasShiu(eigenvalues, eigenvec, e3, lambda1, lambda2, e1, e2);
+
+  // Eqn 3.1.3.6
+  dist = getBackprojectionDistanceShiu(lambda1, lambda2, lambda3, radius);
 }
 
 TEST_F(NavigationTest, ConicBackprojection) {
   // Camera cam;
   Quadric quad(-15,0,100,"backprojection");
-  Eigen::Vector3d location = Eigen::Vector3d::Zero();
+  // Eigen::Vector3d location = Eigen::Vector3d::Zero();
+  Eigen::Vector3d location = R_MOON*Eigen::Vector3d::UnitZ();
   Eigen::Vector3d up_vector = Eigen::Vector3d::UnitZ();
   cam->resetCameraState();
-  cam->moveX(1e0);
+  cam->moveX(1e4);
   cam->pointTo(location, up_vector);
-  cam->moveRelative(Eigen::Vector3d(1e4, 0, 0));
+  // cam->moveRelative(Eigen::Vector3d(1e4, 0, 0));
+  Eigen::Quaterniond att = cam->getAttitude();
+  Eigen::Vector3d pos = cam->getPosition();
+  Eigen::MatrixXd ext(3,4);
+  Eigen::Matrix3d K = cam->getIntrinsicMatrix();
+
+  ext.topLeftCorner(3,3) = Eigen::Matrix3d::Identity();
+  ext.topRightCorner(3,1) = -pos;
+  ext = att.toRotationMatrix() * ext;
+  Eigen::MatrixXd proj = K * ext;
+  // Eigen::AffineCompact3d proj;
+  std::cout << "Transformation matrix:\n" << att.toRotationMatrix() << std::endl;
+  std::cout << "Extrinsic matrix:\n" << ext << std::endl;
   
   Eigen::Vector3d normal;
   double dist;
   std::cout << quad << std::endl;
   std::cout << cam << std::endl;
   std::cout << cam->getAttitude().inverse() << std::endl;
-  std::cout << "Extrinsic matrix:\n" << cam->getExtrinsicMatrix() << std::endl;
-  std::cout << "Projection matrix:\n" << cam->getProjectionMatrix() << std::endl;
-  double dist1 = (quad.getLocation() - cam->getPosition()).norm();
-  std::cout << "Distance should be roughly " << dist1 << "km\n";
-  std::cout << "Value of lambda1 should be " << std::pow(dist1/quad.getRadius(), 2.0/3.0) << std::endl;
+  // std::cout << "Extrinsic matrix:\n" << cam->getExtrinsicMatrix() << std::endl;
+  // std::cout << "Projection matrix:\n" << cam->getProjectionMatrix() << std::endl;
+  double dist2center = (quad.getLocation() - cam->getPosition()).norm();
+  // std::cout << "Distance should be roughly " << dist2center << "km\n";
+  // std::cout << "Value of lambda1 should be " << std::pow(dist2center/quad.getRadius(), 2.0/3.0) << std::endl;
   // Eigen::Matrix3d conic_envelope = quad.projectToConicEnvelope(cam->getProjectionMatrix());
-  Eigen::Matrix3d conic_locus = quad.projectToPlaneLocus(cam->getProjectionMatrix());
+  Eigen::Matrix3d conic_locus = quad.projectToPlaneLocus(ext);
+  // Eigen::Matrix3d conic_locus = quad.projectToPlaneLocus(cam->getProjectionMatrix());
   // Eigen::Matrix3d plane_locus = cam->getImagePlaneLocus(conic_locus);
   conicBackprojectionShiu(conic_locus, quad.getRadius(), normal, dist);
+  ASSERT_NEAR(dist2center, dist, 10);
   // conicBackprojection(conic_locus, quad.getRadius(), normal, dist);
   std::cout << "Conic normal: " << normal.transpose() << " | distance: " << dist << std::endl;
 }
