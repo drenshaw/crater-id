@@ -7,6 +7,7 @@ cid_sources = [
   'combinatorics.cpp', 
   'math_utils.cpp',
   'visuals.cpp',
+  'navigation.cpp',
 ]
 cid_main = ['main.cpp']
 boost_dep = dependency('boost', required: false)

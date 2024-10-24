@@ -4,6 +4,7 @@
 // #include <opencv2/highgui/highgui.hpp> 
 // #include <random>
 
+#include "navigation.h"
 #include "camera.h"
 #include "quadrics.h"
 #include "conics.h"
@@ -300,7 +301,7 @@ TEST_F(NavigationTest, ConicBackprojection) {
   Eigen::Matrix3d conic_locus = quad.projectToPlaneLocus(ext);
   // Eigen::Matrix3d conic_locus = quad.projectToPlaneLocus(cam->getProjectionMatrix());
   // Eigen::Matrix3d plane_locus = cam->getImagePlaneLocus(conic_locus);
-  conicBackprojectionShiu(conic_locus, quad.getRadius(), normal, dist);
+  Shiu::conicBackprojection(conic_locus, quad.getRadius(), normal, dist);
   ASSERT_NEAR(dist2center, dist, 10);
   // conicBackprojection(conic_locus, quad.getRadius(), normal, dist);
   std::cout << "Conic normal: " << normal.transpose() << " | distance: " << dist << std::endl;
