@@ -153,8 +153,14 @@ Eigen::Isometry3d Camera::getHomogeneousExtrinsicMatrix() const {
 }
 
 Eigen::MatrixXd Camera::getExtrinsicMatrix() const {
+  Eigen::Quaterniond att = this->getAttitude();
+  Eigen::Vector3d pos = this->getPosition();
+  Eigen::MatrixXd extrinsic(3,4);
+  extrinsic.topLeftCorner(3,3) = Eigen::Matrix3d::Identity();
+  extrinsic.topRightCorner(3,1) = -pos;
+  extrinsic = att.toRotationMatrix() * extrinsic;
   // Eigen::Affine3d extrinsic_matrix = this->getHomogeneousExtrinsicMatrix();
-  return this->getHomogeneousExtrinsicMatrix().matrix().topRows(3);
+  return extrinsic;
 }
 
 Eigen::Affine3d Camera::getHomogeneousProjectionMatrix() const {

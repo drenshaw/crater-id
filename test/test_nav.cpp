@@ -221,9 +221,74 @@ void getBackprojectionRemainingLambdasShiu( const std::vector<double>& eigenvalu
   e1 = e2.cross(e3);
 }
 
-std::tuple<Eigen::Vector3d, Eigen::Vector3d> getBackprojectionNormalsShiu() {
-
+void getBackprojectionNormalCanonicalShiu(const double lambda1, const double lambda2, 
+                                          const double lambda3, Eigen::Vector3d& normal) {
+  double abs_l1 = std::abs(lambda1);
+  double abs_l2 = std::abs(lambda2);
+  double abs_l3 = std::abs(lambda3);
+  double n_x =  std::sqrt((abs_l1-abs_l2)/(abs_l1+abs_l3));
+  double n_y =  0;
+  double n_z = -std::sqrt((abs_l2+abs_l3)/(abs_l1+abs_l3));
+  normal << n_x, n_y, n_z;
 }
+
+void getBackprojectionNormalShiu( const double lambda1, const double lambda2, const double lambda3,
+                                  const Eigen::Vector3d& e1, Eigen::Vector3d e3, 
+                                  Eigen::Vector3d& normal1, Eigen::Vector3d& normal2) {
+  Eigen::Vector3d canonical_normal;
+  getBackprojectionNormalCanonicalShiu(lambda1, lambda2, lambda3, canonical_normal);
+  double e1x = e1(0);
+  double e1y = e1(1);
+  double e1z = e1(2);
+  double e3x = e3(0);
+  double e3y = e3(1);
+  double e3z = e3(2);
+  double n_x = canonical_normal(0);
+  double n_z = canonical_normal(2);
+  double n_x1 =  e1x*n_x + e3x*n_z;
+  double n_y1 =  e1y*n_x + e3y*n_z;
+  double n_z1 =  e1z*n_x + e3z*n_z;
+  double n_x2 = -e1x*n_x + e3x*n_z;
+  double n_y2 = -e1y*n_x + e3y*n_z;
+  double n_z2 = -e1z*n_x + e3z*n_z;
+  normal1 << n_x1, n_y1, n_z1;
+  normal2 << n_x2, n_y2, n_z2;
+}
+
+void getBackprojectionCenterCanonicalShiu(
+  const double radius, const double lambda1, const double lambda2, const double lambda3, Eigen::Vector3d& center_offset) {
+  // Eqn 3.1.3.12 - 3.1.3.15
+  double abs_l1 = std::abs(lambda1);
+  double abs_l2 = std::abs(lambda2);
+  double abs_l3 = std::abs(lambda3);
+  double x = radius * std::sqrt((abs_l3*(abs_l1-abs_l2))/(abs_l1*(abs_l1+abs_l3)));
+  double y = 0;
+  double z = radius * std::sqrt((abs_l1*(abs_l2+abs_l3))/(abs_l3*(abs_l1+abs_l3)));
+  center_offset << x, y, z;
+}
+
+void getBackprojectionCenterShiu( const double radius, const double lambda1, const double lambda2, const double lambda3,
+                                  const Eigen::Vector3d& e1, Eigen::Vector3d e3, 
+                                  Eigen::Vector3d& center1, Eigen::Vector3d& center2) {
+  Eigen::Vector3d canonical_center;
+  getBackprojectionCenterCanonicalShiu(radius, lambda1, lambda2, lambda3, canonical_center);
+  double e1x = e1(0);
+  double e1y = e1(1);
+  double e1z = e1(2);
+  double e3x = e3(0);
+  double e3y = e3(1);
+  double e3z = e3(2);
+  double n_x = canonical_center(0);
+  double n_z = canonical_center(2);
+  double n_x1 =  e1x*n_x + e3x*n_z;
+  double n_y1 =  e1y*n_x + e3y*n_z;
+  double n_z1 =  e1z*n_x + e3z*n_z;
+  double n_x2 = -e1x*n_x + e3x*n_z;
+  double n_y2 = -e1y*n_x + e3y*n_z;
+  double n_z2 = -e1z*n_x + e3z*n_z;
+  center1 << n_x1, n_y1, n_z1;
+  center2 << n_x2, n_y2, n_z2;
+}                                    
 
 void conicBackprojectionShiu(const Eigen::Matrix3d& conic, const double radius, Eigen::Vector3d& normal, double& dist) {
   // Applying the concept of the canonical frame from Shiu:
@@ -262,11 +327,18 @@ void conicBackprojectionShiu(const Eigen::Matrix3d& conic, const double radius, 
 
   // Eqn 3.1.3.6
   dist = getBackprojectionDistanceShiu(lambda1, lambda2, lambda3, radius);
+  Eigen::Vector3d center1, center2;
+  getBackprojectionCenterShiu(radius, lambda1, lambda2, lambda3, e1, e3, center1, center2);
+  Eigen::Vector3d normal1, normal2;
+  getBackprojectionNormalShiu(lambda1, lambda2, lambda3, e1, e3, normal1,normal2);
+  std::cout << "Center1: " << center1.transpose() << " | Distance: " << center1.norm() << std::endl;
+  std::cout << "Center2: " << center2.transpose() << " | Distance: " << center2.norm() << std::endl;
+  std::cout << "Normal: " << normal1.transpose() << std::endl;
 }
 
 TEST_F(NavigationTest, ConicBackprojection) {
   // Camera cam;
-  Quadric quad(-15,0,100,"backprojection");
+  Quadric quad(-30,0,100,"backprojection");
   // Eigen::Vector3d location = Eigen::Vector3d::Zero();
   Eigen::Vector3d location = R_MOON*Eigen::Vector3d::UnitZ();
   Eigen::Vector3d up_vector = Eigen::Vector3d::UnitZ();
@@ -283,9 +355,11 @@ TEST_F(NavigationTest, ConicBackprojection) {
   ext.topRightCorner(3,1) = -pos;
   ext = att.toRotationMatrix() * ext;
   Eigen::MatrixXd proj = K * ext;
+  Eigen::MatrixXd extrinsic = cam->getExtrinsicMatrix();
+  ASSERT_TRUE(ext.isApprox(extrinsic));
   // Eigen::AffineCompact3d proj;
   std::cout << "Transformation matrix:\n" << att.toRotationMatrix() << std::endl;
-  std::cout << "Extrinsic matrix:\n" << ext << std::endl;
+  std::cout << "Extrinsic matrix:\n" << extrinsic << std::endl;
   
   Eigen::Vector3d normal;
   double dist;
@@ -298,10 +372,10 @@ TEST_F(NavigationTest, ConicBackprojection) {
   // std::cout << "Distance should be roughly " << dist2center << "km\n";
   // std::cout << "Value of lambda1 should be " << std::pow(dist2center/quad.getRadius(), 2.0/3.0) << std::endl;
   // Eigen::Matrix3d conic_envelope = quad.projectToConicEnvelope(cam->getProjectionMatrix());
-  Eigen::Matrix3d conic_locus = quad.projectToPlaneLocus(ext);
+  Eigen::Matrix3d conic_locus = quad.projectToPlaneLocus(extrinsic);
   // Eigen::Matrix3d conic_locus = quad.projectToPlaneLocus(cam->getProjectionMatrix());
   // Eigen::Matrix3d plane_locus = cam->getImagePlaneLocus(conic_locus);
-  Shiu::conicBackprojection(conic_locus, quad.getRadius(), normal, dist);
+  conicBackprojectionShiu(conic_locus, quad.getRadius(), normal, dist);
   ASSERT_NEAR(dist2center, dist, 10);
   // conicBackprojection(conic_locus, quad.getRadius(), normal, dist);
   std::cout << "Conic normal: " << normal.transpose() << " | distance: " << dist << std::endl;
