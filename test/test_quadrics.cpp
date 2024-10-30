@@ -376,43 +376,56 @@ TEST_F(QuadricTest, ProjectMoonCenter) {
   // }
 }
 
-void get3dAxes( const Camera& cam, 
-                Eigen::Vector2d& origin, Eigen::Vector2d& x_axis, 
-                Eigen::Vector2d& y_axis, Eigen::Vector2d& z_axis) {
-  Eigen::Vector3d x, y, z, o;
-  o = Eigen::Vector3d::Zero();
-  x = R_MOON/2*Eigen::Vector3d::UnitX();
-  y = R_MOON/2*Eigen::Vector3d::UnitY();
-  z = R_MOON/2*Eigen::Vector3d::UnitZ();
-  cam.world2Pixel(o, origin);
-  cam.world2Pixel(x, x_axis);
-  cam.world2Pixel(y, y_axis);
-  cam.world2Pixel(z, z_axis);
-}
+// void onMouse(int event, int x, int y, int, void*) { if (event == cv::EVENT_LBUTTONDOWN) { dragging = true; prev_pt = cv::Point(x, y); } else if (event == cv::EVENT_LBUTTONUP) { dragging = false; } else if (event == cv::EVENT_MOUSEMOVE && dragging) { cv::Point delta = cv::Point(x, y) - prev_pt; roi.x -= delta.x / scale; roi.y -= delta.y / scale; prev_pt = cv::Point(x, y); cv::resize(img, temp_img, cv::Size(), scale, scale); cv::imshow("Interactive Zoom", temp_img(roi)); } else if (event == cv::EVENT_MOUSEWHEEL) { if (cv::getMouseWheelDelta(event) > 0) { scale *= 1.1; } else { scale *= 0.9; } roi = cv::Rect2f(roi.x, roi.y, img.cols / scale, img.rows / scale); cv::resize(img, temp_img, cv::Size(), scale, scale); cv::imshow("Interactive Zoom", temp_img(roi)); } }
 
-Eigen::MatrixXd fitEllipse(const Eigen::MatrixXd& points) {
-  int N = points.rows();
-  Eigen::MatrixXd D(N, 6);
+void interactiveZoom(cv::Mat& image) {
 
-  for (int i = 0; i < N; ++i) {
-    double x = points(i, 0);
-    double y = points(i, 1);
-    D.row(i) << x * x, x * y, y * y, x, y, 1;
-  }
+    namedWindow("Image: Press 'x' to close", cv::WINDOW_NORMAL);
+    imshow("Image: Press 'x' to close", image);
 
-  Eigen::MatrixXd S = D.transpose() * D;
-  Eigen::MatrixXd C(6, 6);
-  C <<  0, 0, 2, 0, 0, 0,
-        0, 0, 0, 0, 0, 0,
-        2, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0;
+    int zoomFactor = 1;
+    int x = 0;
+    int y = 0;
 
-  Eigen::GeneralizedSelfAdjointEigenSolver<Eigen::MatrixXd> solver(S, C);
-  Eigen::VectorXd a = solver.eigenvectors().col(5);
+    while (true) {
+        int key = cv::waitKey(1);
 
-  return a;
+        if (key == 'x') {
+            break;
+        } else if (key == 'q') {
+            zoomFactor += 1;
+        } else if (key == 'e' && zoomFactor > 1) {
+            zoomFactor -= 1;
+        } else if (key == 'a') {
+            x -= 10; 
+        } else if (key == 'd') {
+            x += 10;
+        } else if (key == 'w') {
+            y -= 10;
+        } else if (key == 's') {
+            y += 10;
+        }
+
+        // Make sure the zoom center is within the image bounds
+        x = std::max(0, std::min(x, image.cols - 1));
+        y = std::max(0, std::min(y, image.rows - 1));
+
+        // Calculate the zoom region
+        int zoomWidth = image.cols / zoomFactor;
+        int zoomHeight = image.rows / zoomFactor;
+        int x1 = std::max(0, x - zoomWidth / 2);
+        int y1 = std::max(0, y - zoomHeight / 2);
+        int x2 = std::min(image.cols, x1 + zoomWidth);
+        int y2 = std::min(image.rows, y1 + zoomHeight);
+
+        // Extract and resize the zoom region
+        cv::Mat zoomedImage = image(cv::Rect(x1, y1, x2 - x1, y2 - y1));
+        resize(zoomedImage, zoomedImage, cv::Size(image.cols, image.rows), 0, 0, cv::INTER_LINEAR);
+
+        imshow("Image: Press 'x' to close", zoomedImage);
+    }
+
+    cv::destroyAllWindows();
 }
 
 TEST_F(QuadricTest, QuadricPoints) {
@@ -427,23 +440,21 @@ TEST_F(QuadricTest, QuadricPoints) {
   cv::Mat image = cam->getBlankCameraImage();
   std::vector<Eigen::Vector2d> pts_pxl;
   pts_pxl.reserve(n_pts);
-  Conic cc = quad.projectToImage(cam->getProjectionMatrix());
-  std::cout << "toImage: " << cc << std::endl;
+  Conic cc_from_proj = quad.projectToImage(cam->getProjectionMatrix());
+  std::cout << "toImage: " << cc_from_proj << std::endl;
   // Eigen::Matrix3d conic_locus = cam->projectQuadricToLocus(quad.getLocus());
   // Conic con;
   // con.fromLocus(conic_locus);
   // std::cout << con << std::endl;
 
-  Eigen::MatrixXd pp(n_pts, 2);
   for (auto pt_it = pts_cam.begin(); pt_it != pts_cam.end(); pt_it++) {
-    int index = std::distance(pts_cam.begin(), pt_it);
+    // int index = std::distance(pts_cam.begin(), pt_it);
     Eigen::Vector2d pt_pxl;
     cam->world2Pixel(*pt_it, pt_pxl);
     pts_pxl.push_back(pt_pxl);
-    pp(index, Eigen::all) = pt_pxl;
-    // pp(index, 1) = pt_pxl(1);
-    // std::cout << "Index: " << index << " | " << pt_pxl(0) << ", " << pt_pxl(1) << std::endl;
   }
+  Conic cc_from_pts(pts_pxl);
+  EXPECT_EQ(cc_from_proj, cc_from_pts);
   // Add the moon
   Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
   Eigen::Matrix3d moon_locus = cam->projectQuadricToLocus(sphere);
@@ -455,29 +466,18 @@ TEST_F(QuadricTest, QuadricPoints) {
   else {
     std::cout << "The Moon center is not in the image: " << moon.getCenter().transpose() << std::endl;
   }
-  Eigen::Vector2d origin, x_axis, y_axis, z_axis;
-  get3dAxes(*cam, origin, x_axis, y_axis, z_axis);
-  cv::Point2d o(origin(0), origin(1));
-  cv::Point2d x(x_axis(0), x_axis(1));
-  cv::Point2d y(y_axis(0), y_axis(1));
-  cv::Point2d z(z_axis(0), z_axis(1));
-  std::cout << "Origin: " << o << std::endl;
-  std::cout << "X-axis: " << x << std::endl;
-  std::cout << "Y-axis: " << y << std::endl;
-  std::cout << "Z-axis: " << z << std::endl;
-  cv::circle(image, o, 5, cv::viz::Color::black());
-  cv::arrowedLine(image, o, x, cv::viz::Color::red());
-  cv::arrowedLine(image, o, y, cv::viz::Color::green());
-  cv::arrowedLine(image, o, z, cv::viz::Color::blue());
+  viz::draw3dAxes(image, *cam);
   viz::drawPoints(image, pts_pxl, viz::CV_colors);
   // Showing image inside a window 
-  ellipseFitLstSq(pp);
   double scaling = 0.5;
   cv::Mat outImg;
   cv::resize(image, outImg, cv::Size(), scaling, scaling);
-  // cv::imshow("Points", image); 
-  cv::imshow("Points", outImg); 
-  cv::waitKey(0); 
+  interactiveZoom(outImg);
+  // // cv::imshow("Points", outImg); 
+  // COpenCVWindowExt window ("Moon stuff"); 
+  // window.ImShow (outImg);
+  // // window.ImRead("/home/ndvr/Pictures/IMG_20230904_121221.jpg");
+  // cv::waitKey(0); 
 }
 
 void getQuadricNsewPts(const Quadric& quad, Eigen::Vector3d& n, Eigen::Vector3d& s, Eigen::Vector3d& e, Eigen::Vector3d& w) {
@@ -533,8 +533,11 @@ TEST_F(QuadricTest, ProjectCrater) {
     cv::drawMarker(image, cv::Point(pixel_e[0], pixel_e[1]), cv::viz::Color::orange());
     cv::drawMarker(image, cv::Point(pixel_w[0], pixel_w[1]), cv::viz::Color::blue());
     // Showing image inside a window 
-    cv::resize(image, outImg, cv::Size(), scaling, scaling);
-    cv::imshow("Projecting Moon to Camera", outImg); 
+    // cv::resize(image, outImg, cv::Size(), scaling, scaling);
+    // COpenCVWindowExt window ("Src"); 
+    // // window.ImShow (outImg);
+    // window.ImRead("/home/ndvr/Pictures/IMG_20230904_121221.jpg");
+    // cv::imshow("Projecting Moon to Camera", outImg); 
     // cv::waitKey(0); 
 
     cam->rotate(rot);
