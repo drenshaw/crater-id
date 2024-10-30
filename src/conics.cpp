@@ -45,6 +45,11 @@ Conic::Conic(const std::array<double, IMPLICIT_PARAM>& impl) {
 Conic::Conic(const Eigen::Matrix3d& locus) {
   this->setLocus(locus);
 }
+Conic::Conic(const std::vector<Eigen::Vector2d>& points) {
+  std::array<double, IMPLICIT_PARAM> impl;
+  impl = ellipseFitLstSq(points);
+  setImplicitParameters(impl);
+}
 
 void Conic::setID() {
   this->id_ = next_id++;
@@ -497,6 +502,32 @@ void normalizeImplicitParameters(std::vector<double>& impl_params) {
   double vecNormRecip = 1/impl_params.at(5);
   std::transform(impl_params.begin(), impl_params.end(), impl_params.begin(),
                std::bind(std::multiplies<double>(), std::placeholders::_1, vecNormRecip));
+}
+
+std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vector2d>& points) {
+  int n_pts = points.size();
+  Eigen::MatrixXd pts_cam(n_pts, 2);
+  std::vector<Eigen::Vector2d>::const_iterator it;
+  for (it = points.begin(); it != points.end(); it++) {
+    int index = std::distance(points.begin(), it);
+    pts_cam(index, Eigen::all) = *it;
+  }
+  Eigen::ArrayXd X = pts_cam.col(0);
+  Eigen::ArrayXd Y = pts_cam.col(1);
+  Eigen::MatrixXd Ax(n_pts, 5);
+  Ax << X.array().pow(2), X.array()*Y.array(), Y.array().pow(2), X, Y;
+  // std::cout << "Here is the Ax array:\n" << Ax << std::endl;
+  Eigen::MatrixXd bx = Eigen::MatrixXd::Ones(n_pts, 1);
+  // Ax.template Eigen::BDCSVD<Eigen::ComputeThinU | Eigen::ComputeThinV>().solve(bx);
+  Eigen::BDCSVD<Eigen::MatrixXd> SVD(Ax, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  Eigen::MatrixXd solu = SVD.solve(bx);
+  std::array<double, IMPLICIT_PARAM> impl = {solu(0), solu(1), solu(2), solu(3), solu(4), -1.0};
+  Conic conic(impl);
+  // // auto sol = Ax.colPivHouseholderQr().solve(bx);
+  // Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(Ax.rows(), Ax.cols());
+  // cod.setThreshold(Eigen::Default);
+  // auto se = cod.compute(bx);
+  return impl;
 }
 
 /*********************************************************/

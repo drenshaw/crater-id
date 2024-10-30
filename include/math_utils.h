@@ -14,7 +14,7 @@
 // #include "crater-id.h"
 
 #define R_MOON 1737.4
-const double EPS = (10 * std::numeric_limits<double>::epsilon());
+const double EPS = 1e-8;
 
 double getCofactor(const Eigen::MatrixXd& matrix, int p, int q);
 Eigen::MatrixXd cofactor(const Eigen::MatrixXd& matrix);

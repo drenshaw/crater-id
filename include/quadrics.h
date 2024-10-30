@@ -39,6 +39,7 @@ class Quadric {
     Eigen::Matrix3d projectToPlaneEnvelope(const Eigen::MatrixXd& extrinsic_mtx) const;
     Eigen::Matrix3d projectToPlaneLocus(const Eigen::MatrixXd& extrinsic_mtx) const;
     Conic projectToImagePlane(const Eigen::MatrixXd& extrinsic_mtx) const;
+    void getRimPoints(const uint n_pts, std::vector<Eigen::Vector3d>& pts_cam) const;
 
   private:
     Eigen::Matrix4d generateQuadricLocusFromPointRadius() const;

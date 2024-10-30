@@ -30,6 +30,7 @@ class Conic {
     Conic(const std::vector<double>&);
     Conic(const std::array<double, IMPLICIT_PARAM>& impl);
     Conic(const Eigen::Matrix3d& locus);
+    Conic(const std::vector<Eigen::Vector2d>& points);
     bool operator==(const Conic& other_conic) const;
     bool operator!=(const Conic& other_conic) const;
     bool operator==(const Conic* other_conic) const;
@@ -93,6 +94,7 @@ class Conic {
     friend std::ostream& operator<<(std::ostream& os, const Conic&);
 };
 
+std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vector2d>& points);
 
 /*********************************************************/
 /***********************Conic Utils***********************/
