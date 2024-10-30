@@ -93,6 +93,7 @@ class Conic {
     friend std::ostream& operator<<(std::ostream& os, const Conic&);
 };
 
+Conic ellipseFitLstSq(const Eigen::MatrixXd& points);
 
 /*********************************************************/
 /***********************Conic Utils***********************/
