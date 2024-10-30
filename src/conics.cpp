@@ -46,6 +46,11 @@ Conic::Conic(const Eigen::Matrix3d& locus) {
   this->setLocus(locus);
 }
 Conic::Conic(const std::vector<Eigen::Vector2d>& points) {
+  if(points.size() < 5) {
+    std::cerr << "Too few points to form an ellipse: " 
+              << "need >=5, given " << points.size() << std::endl;
+    throw std::runtime_error("Too few points to form an ellipse.");              
+  }
   std::array<double, IMPLICIT_PARAM> impl;
   impl = ellipseFitLstSq(points);
   setImplicitParameters(impl);
@@ -505,7 +510,11 @@ void normalizeImplicitParameters(std::vector<double>& impl_params) {
 }
 
 std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vector2d>& points) {
+  std::array<double, IMPLICIT_PARAM> impl;
   int n_pts = points.size();
+  if(n_pts < 5) {
+    impl.fill({std::nan("")});
+  }
   Eigen::MatrixXd pts_cam(n_pts, 2);
   std::vector<Eigen::Vector2d>::const_iterator it;
   for (it = points.begin(); it != points.end(); it++) {
@@ -521,7 +530,7 @@ std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vect
   // Ax.template Eigen::BDCSVD<Eigen::ComputeThinU | Eigen::ComputeThinV>().solve(bx);
   Eigen::BDCSVD<Eigen::MatrixXd> SVD(Ax, Eigen::ComputeThinU | Eigen::ComputeThinV);
   Eigen::MatrixXd solu = SVD.solve(bx);
-  std::array<double, IMPLICIT_PARAM> impl = {solu(0), solu(1), solu(2), solu(3), solu(4), -1.0};
+  impl = {solu(0), solu(1), solu(2), solu(3), solu(4), -1.0};
   Conic conic(impl);
   // // auto sol = Ax.colPivHouseholderQr().solve(bx);
   // Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(Ax.rows(), Ax.cols());

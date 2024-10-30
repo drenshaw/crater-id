@@ -99,19 +99,19 @@ void conicBackprojection( const Eigen::Matrix3d& conic, const double radius,
   // Eqns 3.1.2.8 - 3.1.2.11
   Shiu::getBackprojectionLambda2(rem_eigenval, rem_eigenvec, lambda1, lambda2, u2);
   u1 = u2.cross(u3);
-  // // Eqn 3.1.3.6
-  // // double dist = getBackprojectionDistance(lambda1, lambda2, lambda3, radius);
-  // getBackprojectionCenter(radius, lambda1, lambda2, lambda3, u1, u3, centers);
-  // getBackprojectionNormal(lambda1, lambda2, lambda3, u1, u3, normals);
-  // Eigen::Vector3d center1, center2, normal1, normal2;
-  // center1 = centers.at(0);
-  // center2 = centers.at(1);
-  // normal1 = normals.at(0);
-  // normal2 = normals.at(1);
-  // std::cout << "Center1: " << center1.transpose() << " | Distance: " << center1.norm() << std::endl;
-  // std::cout << "Normal1: " << normal1.transpose() << std::endl;
-  // std::cout << "Center2: " << center2.transpose() << " | Distance: " << center2.norm() << std::endl;
-  // std::cout << "Normal2: " << normal2.transpose() << std::endl;
+  // Eqn 3.1.3.6
+  // double dist = getBackprojectionDistance(lambda1, lambda2, lambda3, radius);
+  Shiu::getBackprojectionCenter(radius, lambda1, lambda2, lambda3, u1, u3, centers);
+  Shiu::getBackprojectionNormal(lambda1, lambda2, lambda3, u1, u3, normals);
+  Eigen::Vector3d center1, center2, normal1, normal2;
+  center1 = centers.at(0);
+  center2 = centers.at(1);
+  normal1 = normals.at(0);
+  normal2 = normals.at(1);
+  std::cout << "Center1: " << center1.transpose() << " | Distance: " << center1.norm() << std::endl;
+  std::cout << "Normal1: " << normal1.transpose() << std::endl;
+  std::cout << "Center2: " << center2.transpose() << " | Distance: " << center2.norm() << std::endl;
+  std::cout << "Normal2: " << normal2.transpose() << std::endl;
 }
 
 } // end namespace Christian
@@ -135,7 +135,8 @@ void getBackprojectionLambda1(const Eigen::Vector3d& eigenvalues,
                               int& mu_d_idx,
                               Eigen::Vector3d& e3) {
   // Find the eigenvalue with the different sign
-  // Eqns 3.1.2.5 - 3.1.2.7
+  // Shiu Eqns 3.1.2.5 - 3.1.2.7
+  // Christian Eqn 58
   Eigen::Vector3d f_d;
   std::vector<double> eigenval(eigenvalues.data(), eigenvalues.data() + eigenvalues.size());
   mu_d_idx = findOppositeSignedValueIndex(eigenval);
@@ -266,11 +267,9 @@ void conicBackprojection( const Eigen::Matrix3d& conic, const double radius,
   // Applying the concept of the canonical frame from Shiu:
   // "3D loc. of circular and spherical features by monocular ... vision"
   // Eigenvalues and eigenvectors
-  
-  // Eigenvalues and eigenvectors
-  Eigen::Vector3d eigenval;
-  Eigen::Matrix3d eigenvec;
-  if(!getEigenstuffConic(conic, eigenval, eigenvec)) {
+  Eigen::Vector3d eigenvalues;
+  Eigen::Matrix3d eigenvectors;
+  if(!getEigenstuffConic(conic, eigenvalues, eigenvectors)) {
     std::cerr << __func__ << "-> backprojection eigenstuff failed.\n";
     return;
   }
@@ -279,16 +278,16 @@ void conicBackprojection( const Eigen::Matrix3d& conic, const double radius,
   Eigen::Vector3d g1, g2, u3, u2, u1;
   int mu_d_idx;  
 
-  // Find the eigenvalue with the different sign
+  // Find the eigenvalue with the different sign (--+ or -++)
   // Eqns 3.1.2.5 - 3.1.2.7
   std::vector<int> indices = {0, 1, 2};
-  getBackprojectionLambda1(eigenval, eigenvec, mu_d_idx, u3);
-  lambda3 = eigenval(mu_d_idx);
-  std::cout << "Eigenvalues: " << eigenval.transpose() << std::endl;
-  std::cout << "Eigenvectors:\n" << eigenvec << std::endl;
+  getBackprojectionLambda1(eigenvalues, eigenvectors, mu_d_idx, u3);
+  lambda3 = eigenvalues(mu_d_idx);
+  std::cout << "Eigenvalues: " << eigenvalues.transpose() << std::endl;
+  std::cout << "Eigenvectors:\n" << eigenvectors << std::endl;
   indices.erase(indices.begin() + mu_d_idx);
-  Eigen::Vector2d rem_eigenval = eigenval(indices);
-  Eigen::MatrixXd rem_eigenvec = eigenvec(Eigen::all, indices);
+  Eigen::Vector2d rem_eigenval = eigenvalues(indices);
+  Eigen::MatrixXd rem_eigenvec = eigenvectors(Eigen::all, indices);
 
   // Get remaining lambdas
   // Eqns 3.1.2.8 - 3.1.2.11
