@@ -455,6 +455,23 @@ TEST_F(QuadricTest, Reprojection) {
   getQuadricNsewPts(thirty, n, s, e, w);
 }
 
+TEST_F(QuadricTest, ProjectionMatrix) {
+  cam->resetCameraState();
+  Eigen::Vector3d move1(10,20,30);
+  cam->move(move1);
+  cam->pointTo(Eigen::Vector3d::Zero(), Eigen::Vector3d::UnitZ());
+  Eigen::Quaterniond att = cam->getAttitude();
+  Eigen::Vector3d pos = cam->getPosition();
+  Eigen::MatrixXd ext(3,4);
+
+  ext.topLeftCorner(3,3) = Eigen::Matrix3d::Identity();
+  ext.topRightCorner(3,1) = -pos;
+  ext = att.toRotationMatrix() * ext;
+  // Eigen::AffineCompact3d proj;
+  std::cout << "Transformation matrix:\n" << att.toRotationMatrix() << std::endl;
+  std::cout << "Extrinsic matrix:\n" << ext << std::endl;
+}
+
 TEST_F(QuadricTest, ParameterExtraction) {
   // // Example 3x3 matrix representation of an ellipse
   //   Eigen::Matrix3d A;
