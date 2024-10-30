@@ -201,6 +201,25 @@ Conic Quadric::projectToImagePlane(const Eigen::MatrixXd& extrinsic_mtx) const {
   return conic;
 }
 
+void Quadric::getRimPoints(const uint n_pts, std::vector<Eigen::Vector3d>& pts_cam) const {
+  double radius = this->getRadius();
+  Eigen::Matrix3d T_e2m = this->getQuadricTransformationMatrix();
+  double north_pole_lat = 90;
+  double lat_offset = north_pole_lat - rad2deg(std::asin(radius/R_MOON));
+  Eigen::ArrayXXd latlon(n_pts, 2);
+  latlon.col(0) = lat_offset*Eigen::ArrayXd::Ones(n_pts);
+  double spacing = 360. / n_pts;
+  latlon.col(1) = Eigen::ArrayXd::LinSpaced(n_pts, 0, 360-spacing);
+  for(uint i = 0; i < n_pts; i++) {
+    Eigen::Vector2d ll = latlon.row(i);
+    double lat = ll(0);
+    double lon = ll(1);
+    Eigen::Vector3d pt = latlonalt(lat, lon, 0);
+    Eigen::Vector3d pt_cam = T_e2m * pt;
+    pts_cam.push_back(pt_cam);
+  }
+}
+
 
 std::ostream& operator<<(std::ostream& os, const Quadric& quad) {
   std::streamsize ss = std::cout.precision();

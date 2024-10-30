@@ -45,6 +45,11 @@ Conic::Conic(const std::array<double, IMPLICIT_PARAM>& impl) {
 Conic::Conic(const Eigen::Matrix3d& locus) {
   this->setLocus(locus);
 }
+Conic::Conic(const std::vector<Eigen::Vector2d>& points) {
+  std::array<double, IMPLICIT_PARAM> impl;
+  impl = ellipseFitLstSq(points);
+  setImplicitParameters(impl);
+}
 
 void Conic::setID() {
   this->id_ = next_id++;
@@ -499,10 +504,16 @@ void normalizeImplicitParameters(std::vector<double>& impl_params) {
                std::bind(std::multiplies<double>(), std::placeholders::_1, vecNormRecip));
 }
 
-Conic ellipseFitLstSq(const Eigen::MatrixXd& points) {
-  int n_pts = points.rows();
-  Eigen::ArrayXd X = points.col(0);
-  Eigen::ArrayXd Y = points.col(1);
+std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vector2d>& points) {
+  int n_pts = points.size();
+  Eigen::MatrixXd pts_cam(n_pts, 2);
+  std::vector<Eigen::Vector2d>::const_iterator it;
+  for (it = points.begin(); it != points.end(); it++) {
+    int index = std::distance(points.begin(), it);
+    pts_cam(index, Eigen::all) = *it;
+  }
+  Eigen::ArrayXd X = pts_cam.col(0);
+  Eigen::ArrayXd Y = pts_cam.col(1);
   Eigen::MatrixXd Ax(n_pts, 5);
   Ax << X.array().pow(2), X.array()*Y.array(), Y.array().pow(2), X, Y;
   // std::cout << "Here is the Ax array:\n" << Ax << std::endl;
@@ -516,7 +527,7 @@ Conic ellipseFitLstSq(const Eigen::MatrixXd& points) {
   // Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(Ax.rows(), Ax.cols());
   // cod.setThreshold(Eigen::Default);
   // auto se = cod.compute(bx);
-  return conic;
+  return impl;
 }
 
 /*********************************************************/

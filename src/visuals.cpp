@@ -106,7 +106,7 @@ void drawLines(cv::Mat& image, const std::vector<Eigen::Vector3d>& lines, const 
   assert(lines.size() <= colors.size());
   for (auto conic_it = lines.begin(); conic_it != lines.end(); ++conic_it) {
     int index = std::distance(lines.begin(), conic_it);
-    drawLine(image, *conic_it, text.at(index), CV_colors.at(index));
+    drawLine(image, *conic_it, text.at(index), colors.at(index));
   }
 }
 
@@ -115,8 +115,22 @@ void drawLines(const std::vector<Eigen::Vector3d>& lines, const std::vector<std:
                 cv::Scalar(255, 255, 255)); 
   drawLines(image, lines, text, colors);
   // Showing image inside a window 
-  cv::imshow("Ellipses", image); 
+  cv::imshow("Lines", image); 
   cv::waitKey(0); 
+}
+
+void drawPoint(cv::Mat& image, const Eigen::Vector2d& point, const cv::Scalar& color) {
+
+    cv::Point2d pt_cv = {point(0), point(1)};
+    cv::drawMarker(image, pt_cv, color);
+}
+
+void drawPoints(cv::Mat& image, const std::vector<Eigen::Vector2d>& points, const std::vector<cv::Scalar>& colors) {
+  assert(points.size() <= colors.size());
+  for (auto pt_it = points.begin(); pt_it != points.end(); ++pt_it) {
+    int index = std::distance(points.begin(), pt_it);
+    drawPoint(image, *pt_it, viz::CV_colors.at(index));
+  }
 }
 
 void getSlopeInterceptFromStandard(const Eigen::Vector3d& my_line, double& slope, double& intercept) {
@@ -175,6 +189,34 @@ bool getEndpointsFromLine(const cv::Mat& image, const Eigen::Vector3d& my_line, 
   return true;
 }
 
+void get3dAxes( const Camera& cam, 
+                Eigen::Vector2d& origin, Eigen::Vector2d& x_axis, 
+                Eigen::Vector2d& y_axis, Eigen::Vector2d& z_axis) {
+  Eigen::Vector3d x, y, z, o;
+  o = Eigen::Vector3d::Zero();
+  x = R_MOON/2*Eigen::Vector3d::UnitX();
+  y = R_MOON/2*Eigen::Vector3d::UnitY();
+  z = R_MOON/2*Eigen::Vector3d::UnitZ();
+  cam.world2Pixel(o, origin);
+  cam.world2Pixel(x, x_axis);
+  cam.world2Pixel(y, y_axis);
+  cam.world2Pixel(z, z_axis);
+}
+
+void draw3dAxes(cv::Mat& image, const Camera& cam) {
+  Eigen::Vector2d origin, x_axis, y_axis, z_axis;
+  viz::get3dAxes(cam, origin, x_axis, y_axis, z_axis);
+  cv::Point2d o(origin(0), origin(1));
+  cv::Point2d x(x_axis(0), x_axis(1));
+  cv::Point2d y(y_axis(0), y_axis(1));
+  cv::Point2d z(z_axis(0), z_axis(1));
+  
+  cv::circle(image, o, 8, cv::viz::Color::black());
+  cv::circle(image, o, 5, cv::viz::Color::white());
+  cv::arrowedLine(image, o, x, cv::viz::Color::red());
+  cv::arrowedLine(image, o, y, cv::viz::Color::green());
+  cv::arrowedLine(image, o, z, cv::viz::Color::blue());
+}
 
 // void Sphere()
 // {

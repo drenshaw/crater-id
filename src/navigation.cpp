@@ -88,19 +88,17 @@ void conicBackprojection( const Eigen::Matrix3d& conic, const double radius,
 
   // Find the eigenvalue with the different sign
   // Eqns 3.1.2.5 - 3.1.2.7
-  Shiu::getBackprojectionLambda1(eigenvalues, eigenvec, mu_d_idx, u3);
+  std::vector<int> indices = {0, 1, 2};
+  Shiu::getBackprojectionLambda1(eigenval, eigenvec, mu_d_idx, u3);
   lambda3 = eigenval(mu_d_idx);
-  eigenvalues.erase(eigenvalues.begin() + mu_d_idx);
-
-  // std::cout << "Unique value: " << lambda3 << " at index " << mu_d_idx << std::endl;
-  assert(eigenvalues.size() == 2);
-  // std::cout << "Remaining eigenvalues: " << eigenvalues.at(0) << ", " << eigenvalues.at(1) << std::endl;
-  assert(eigenvalues.at(0) * eigenvalues.at(1) > 0);
+  indices.erase(indices.begin() + mu_d_idx);
+  Eigen::Vector2d rem_eigenval = eigenval(indices);
+  Eigen::MatrixXd rem_eigenvec = eigenvec(Eigen::all, indices);
 
   // Get remaining lambdas
   // Eqns 3.1.2.8 - 3.1.2.11
-  getBackprojectionRemainingLambdas(eigenvalues, eigenvec, u3, lambda1, lambda2, u1, u2);
-
+  Shiu::getBackprojectionLambda2(rem_eigenval, rem_eigenvec, lambda1, lambda2, u2);
+  u1 = u2.cross(u3);
   // // Eqn 3.1.3.6
   // // double dist = getBackprojectionDistance(lambda1, lambda2, lambda3, radius);
   // getBackprojectionCenter(radius, lambda1, lambda2, lambda3, u1, u3, centers);
@@ -132,14 +130,15 @@ double getBackprojectionDistance(const double lambda1, const double lambda2, con
   return dist;
 }
 
-void getBackprojectionLambda1(const std::vector<double>& eigenvalues,
-                                  const Eigen::Matrix3d& eigenvectors,
-                                  int& mu_d_idx,
-                                  Eigen::Vector3d& e3) {
+void getBackprojectionLambda1(const Eigen::Vector3d& eigenvalues,
+                              const Eigen::Matrix3d& eigenvectors,
+                              int& mu_d_idx,
+                              Eigen::Vector3d& e3) {
   // Find the eigenvalue with the different sign
   // Eqns 3.1.2.5 - 3.1.2.7
   Eigen::Vector3d f_d;
-  mu_d_idx = findOppositeSignedValueIndex(eigenvalues);
+  std::vector<double> eigenval(eigenvalues.data(), eigenvalues.data() + eigenvalues.size());
+  mu_d_idx = findOppositeSignedValueIndex(eigenval);
   if(mu_d_idx == -1) {
     // std::cerr << "Eigenvalue of opposite sign not found: " << eigenvalues.transpose() << std::endl;
     return;
@@ -155,36 +154,37 @@ void getBackprojectionLambda1(const std::vector<double>& eigenvalues,
   // std::cout << "Remaining eigenvalues: " << eigen_cpy.at(0) << ", " << eigen_cpy.at(1) << std::endl;
 }
 
-void getBackprojectionRemainingLambdas( const std::vector<double>& eigenvalues,
-                                            const Eigen::Matrix3d& eigenvectors,
-                                            const Eigen::Vector3d e3,
-                                            double& lambda1, double& lambda2,
-                                            Eigen::Vector3d& e1, Eigen::Vector3d& e2) {
-
-  double omega1, omega2;
+void getBackprojectionLambda2(const Eigen::Vector2d& eigenvalues,
+                              const Eigen::MatrixXd& eigenvectors,
+                              double& lambda1, double& lambda2,
+                              Eigen::Vector3d& e2) {
+  assert(eigenvectors.cols() == 2);
   Eigen::Vector3d g1, g2;
   // Get remaining lambdas
   // Eqns 3.1.2.8 - 3.1.2.11
-  int indexMin = 0;
-  int indexMax = 1;
-  omega1 = eigenvalues.at(indexMax);
-  omega2 = eigenvalues.at(indexMin);
-  g1 = eigenvectors.col(indexMax);
-  g2 = eigenvectors.col(indexMin);
-  if(omega1 == omega2) {
-    std::cerr << "Not confident in handling right cones yet!\n";
-  }
-  if(std::abs(omega1) < std::abs(omega2)) {
-    lambda2 = omega1;
-    lambda1 = omega2;
-    e2 = g1;
-  }
-  else {
-    lambda2 = omega2;
-    lambda1 = omega1;
-    e2 = g2;
-  }
-  e1 = e2.cross(e3);
+  
+  Eigen::Vector2d::Index minRow, maxRow;
+  Eigen::Vector2d abs_eigenvalues = eigenvalues.cwiseAbs();
+  abs_eigenvalues.minCoeff(&minRow);
+  abs_eigenvalues.maxCoeff(&maxRow);
+  lambda1 = eigenvalues(maxRow);
+  lambda2 = eigenvalues(minRow);
+  e2 = eigenvectors.col(minRow);
+  // double omega1, omega2;
+  // // e1 = eigenvectors.col(minRow);
+  // if(omega1 == omega2) {
+  //   std::cerr << "Not confident in handling right cones yet!\n";
+  // }
+  // if(std::abs(omega1) < std::abs(omega2)) {
+  //   lambda2 = omega1;
+  //   lambda1 = omega2;
+  //   e2 = g1;
+  // }
+  // else {
+  //   lambda2 = omega2;
+  //   lambda1 = omega1;
+  //   e2 = g2;
+  // }
 }
 
 void getBackprojectionNormalCanonical(const double lambda1, const double lambda2, 
@@ -266,38 +266,38 @@ void conicBackprojection( const Eigen::Matrix3d& conic, const double radius,
   // Applying the concept of the canonical frame from Shiu:
   // "3D loc. of circular and spherical features by monocular ... vision"
   // Eigenvalues and eigenvectors
+  
+  // Eigenvalues and eigenvectors
   Eigen::Vector3d eigenval;
   Eigen::Matrix3d eigenvec;
   if(!getEigenstuffConic(conic, eigenval, eigenvec)) {
     std::cerr << __func__ << "-> backprojection eigenstuff failed.\n";
     return;
   }
-  // Store eigenvalues in a vector for easy manipulation
-  std::vector<double> eigenvalues(eigenval.data(), eigenval.data() + eigenval.size());
 
   double lambda3, lambda2, lambda1;
-  Eigen::Vector3d g1, g2, e3, e2, e1;
+  Eigen::Vector3d g1, g2, u3, u2, u1;
   int mu_d_idx;  
 
   // Find the eigenvalue with the different sign
   // Eqns 3.1.2.5 - 3.1.2.7
-  getBackprojectionLambda1(eigenvalues, eigenvec, mu_d_idx, e3);
+  std::vector<int> indices = {0, 1, 2};
+  getBackprojectionLambda1(eigenval, eigenvec, mu_d_idx, u3);
   lambda3 = eigenval(mu_d_idx);
-  eigenvalues.erase(eigenvalues.begin() + mu_d_idx);
+  std::cout << "Eigenvalues: " << eigenval.transpose() << std::endl;
+  std::cout << "Eigenvectors:\n" << eigenvec << std::endl;
+  indices.erase(indices.begin() + mu_d_idx);
+  Eigen::Vector2d rem_eigenval = eigenval(indices);
+  Eigen::MatrixXd rem_eigenvec = eigenvec(Eigen::all, indices);
 
-  // std::cout << "Unique value: " << lambda3 << " at index " << mu_d_idx << std::endl;
-  assert(eigenvalues.size() == 2);
-  // std::cout << "Remaining eigenvalues: " << eigenvalues.at(0) << ", " << eigenvalues.at(1) << std::endl;
-  assert(eigenvalues.at(0) * eigenvalues.at(1) > 0);
-  
   // Get remaining lambdas
   // Eqns 3.1.2.8 - 3.1.2.11
-  getBackprojectionRemainingLambdas(eigenvalues, eigenvec, e3, lambda1, lambda2, e1, e2);
-
+  getBackprojectionLambda2(rem_eigenval, rem_eigenvec, lambda1, lambda2, u2);
+  u1 = u2.cross(u3);
   // Eqn 3.1.3.6
   // double dist = getBackprojectionDistance(lambda1, lambda2, lambda3, radius);
-  getBackprojectionCenter(radius, lambda1, lambda2, lambda3, e1, e3, centers);
-  getBackprojectionNormal(lambda1, lambda2, lambda3, e1, e3, normals);
+  Shiu::getBackprojectionCenter(radius, lambda1, lambda2, lambda3, u1, u3, centers);
+  Shiu::getBackprojectionNormal(lambda1, lambda2, lambda3, u1, u3, normals);
   Eigen::Vector3d center1, center2, normal1, normal2;
   center1 = centers.at(0);
   center2 = centers.at(1);

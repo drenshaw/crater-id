@@ -3,6 +3,7 @@
 
 
 int findOppositeSignedValueIndex(const std::vector<double>& vec);
+bool getEigenstuffConic(const Eigen::Matrix3d& conic, Eigen::Vector3d& eigenval, Eigen::Matrix3d& eigenvec);
 
 template<typename T>
 std::vector<size_t> argsort(const std::vector<T> &array) {
@@ -16,7 +17,6 @@ std::vector<size_t> argsort(const std::vector<T> &array) {
 
     return indices;
 }
-bool getEigenstuffConic(const Eigen::Matrix3d& conic, Eigen::Vector3d& eigenval, Eigen::Matrix3d& eigenvec);
 
 namespace Christian {
                                
@@ -25,16 +25,18 @@ void conicBackprojection( const Eigen::Matrix3d& conic, const double radius,
                               std::array<Eigen::Vector3d, 2>& normals);
 }
 namespace Shiu {
-double getBackprojectionDistance(const double lambda1, const double lambda2, const double lambda3, const double radius);
-void getBackprojectionLambda1(const std::vector<double>& eigenvalues,
-                                  const Eigen::Matrix3d& eigenvectors,
-                                  int& mu_d_idx,
-                                  Eigen::Vector3d& e3);
-void getBackprojectionRemainingLambdas( const std::vector<double>& eigenvalues,
-                                            const Eigen::Matrix3d& eigenvectors,
-                                            const Eigen::Vector3d e3,
-                                            double& lambda1, double& lambda2,
-                                            Eigen::Vector3d& e1, Eigen::Vector3d& e2);
+double getBackprojectionDistance( const double lambda1, 
+                                  const double lambda2, 
+                                  const double lambda3, 
+                                  const double radius);
+void getBackprojectionLambda1(const Eigen::Vector3d& eigenvalues,
+                              const Eigen::Matrix3d& eigenvectors,
+                              int& mu_d_idx,
+                              Eigen::Vector3d& e3);
+void getBackprojectionLambda2(const Eigen::Vector2d& eigenvalues,
+                              const Eigen::MatrixXd& eigenvectors,
+                              double& lambda1, double& lambda2,
+                              Eigen::Vector3d& e2);
 void getBackprojectionNormalCanonical(const double lambda1, const double lambda2, 
                                           const double lambda3, Eigen::Vector3d& normal);
 void getBackprojectionNormal( const double lambda1, const double lambda2, const double lambda3,
