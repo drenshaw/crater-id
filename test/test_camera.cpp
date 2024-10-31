@@ -35,21 +35,22 @@ class CameraTest : public testing::Test {
 };
 
 TEST_F(CameraTest, InitCamera) {
-  // Eigen::Matrix4d extrinsic_h = cam->getHomogeneousExtrinsicMatrix();
-  // Eigen::Matrix3d intrinsic   = cam->getIntrinsicMatrix();
-  // Eigen::MatrixXd extrinsic   = cam->getExtrinsicMatrix();
-  // Eigen::MatrixXd proj_mtx    = cam->getProjectionMatrix();
-  // std::cout << "Extrinsic Matrix:\n" << extrinsic_h << std::endl;
-  // std::cout << "Intrinsic Matrix:\n" << intrinsic << std::endl;
-  // std::cout << "\nProjection Matrix:\n" << cam->getHomogeneousProjectionMatrix() << std::endl;
+  
+  Eigen::Vector3d cam_pos = 1e4*latlon2bearing(-15, 0);
+  Eigen::Vector3d look_at_me = 1e4*Eigen::Vector3d::Zero();
+  Eigen::Vector3d up_vector = Eigen::Vector3d::UnitZ();
+  cam->setPosition(cam_pos);
+  cam->pointTo(look_at_me, up_vector);
+  
+  Eigen::MatrixXd proj_mtx    = cam->getProjectionMatrix();
 
-  // Quadric quad(-89, 0, 200, "south_pole");
-  // Eigen::Matrix4d q_locus = quad.getLocus();
-  // Eigen::Matrix3d c_locus = proj_mtx * q_locus * proj_mtx.transpose();
-  // std::cout << "Projected locus:\n" << q_locus << std::endl << c_locus << std::endl;
-  // Conic con(c_locus);
-  // std::cout << "Projected conic: " << con << std::endl;
+  Quadric quad(-5, 0, 200, "south_pole");
+  Eigen::Matrix4d q_envelope = quad.getEnvelope();
+  Eigen::Matrix3d c_envelope = proj_mtx * q_envelope * proj_mtx.transpose();
+  Conic con(adjugate(c_envelope));
+  Conic conic = quad.projectToImage(cam->getProjectionMatrix());
 
+  ASSERT_EQ(con, conic);
   }
 
 TEST_F(CameraTest, CameraFOVX) {
@@ -66,24 +67,21 @@ TEST_F(CameraTest, CameraFOVY) {
   EXPECT_DOUBLE_EQ(rad2deg(fovd), fovy);
 }
 
+TEST_F(CameraTest, GetImageMidpoint) {
+  Eigen::Matrix3d intrinsic = cam->getIntrinsicMatrix();
+  Eigen::Vector2d img_midpoint1(intrinsic(0,2), intrinsic(1,2));
+  Eigen::Vector2d img_midpoint = cam->getImageMidpoint();
+  ASSERT_TRUE(img_midpoint1.isApprox(img_midpoint));
+}
+
+TEST_F(CameraTest, InverseIntrinsicMatrix) {
+  Eigen::Matrix3d K = cam->getIntrinsicMatrix();
+  Eigen::Matrix3d Kinv = cam->getInverseIntrinsicMatrix();
+
+  ASSERT_TRUE(K.inverse().isApprox(Kinv));
+}
+
 TEST_F(CameraTest, PointMovingInRightDirection) {
-  Eigen::Isometry3d transformation = Eigen::Isometry3d::Identity();
-  Eigen::AngleAxisd rot = Eigen::AngleAxisd(M_PI / 4, Eigen::Vector3d::UnitY());
-  // Eigen::AngleAxisd rot1 = Eigen::AngleAxisd(M_PI / 4, Eigen::Vector3d::UnitY());
-  Eigen::Vector3d translation(1, 0, 0);
-  transformation.rotate(rot);
-  transformation.pretranslate(translation);
-
-  cam->moveCamera(Eigen::Quaterniond(rot));
-  cam->moveCamera(translation);
-
-  // Example 3D point
-  Eigen::Vector3d point(1, 0, 5);
-  Eigen::Vector2d pt_pxl;
-  cam->world2Pixel(point, pt_pxl);
-  Eigen::Vector2d expected_pixel(296.5, 1024.5);
-  ASSERT_TRUE(pt_pxl.isApprox(expected_pixel));
-  
   Eigen::Vector3d cam_pos = 1e4*latlon2bearing(0, 0);
   Eigen::Vector3d look_at_me = 1e4*Eigen::Vector3d::Zero();
   Eigen::Vector3d up_vector = Eigen::Vector3d::UnitZ();
@@ -175,6 +173,11 @@ TEST_F(CameraTest, TransformState) {
   Eigen::Vector3d vec(0.1, 0.2, 100);
   transform.translation() = vec;
   ASSERT_TRUE(transform.translation().isApprox(vec));
+
+  Eigen::Quaterniond qrand = Eigen::Quaterniond::UnitRandom();
+  Eigen::Matrix3d mrand = qrand.toRotationMatrix();
+  Eigen::Vector3d v_rand = Eigen::Vector3d::Random();
+  ASSERT_TRUE((qrand*v_rand).isApprox(mrand*v_rand));
 }
 
 TEST_F(CameraTest, EnsurePassiveXform) {
@@ -209,7 +212,7 @@ TEST_F(CameraTest, pointInDirection) {
   Eigen::Vector2d cam_mid = Eigen::Vector2d(1296.5, 1024.5);
   double prec = 1e-3;
   // // TODO: is this backwards?
-  cam->moveCamera(cam_pos);
+  cam->move(cam_pos);
   cam->pointTo(location, Eigen::Vector3d::UnitZ());
   cam->world2Pixel(location, pixel);
   EXPECT_TRUE(pixel.isApprox(cam_mid, prec));
@@ -241,7 +244,7 @@ TEST_F(CameraTest, pointInDirection) {
 TEST_F(CameraTest, ProjectQuadricAfterRotation) {
 
   Eigen::Matrix3d rotMatrix1 = Eigen::AngleAxisd(-M_PI / 6, Eigen::Vector3d::UnitZ()).toRotationMatrix();
-  cam->moveCamera(rotMatrix1);
+  cam->rotate(rotMatrix1);
   // std::cout << *cam << std::endl;
   Eigen::Matrix3d intrinsic = cam->getIntrinsicMatrix();
   Eigen::MatrixXd extrinsic = cam->getExtrinsicMatrix();
@@ -259,7 +262,7 @@ TEST_F(CameraTest, ProjectQuadricAfterRotation) {
   Conic c(c_locus);
   // std::cout << c << std::endl;
 
-  EXPECT_TRUE(conic==c);
+  EXPECT_EQ(conic, c);
 
   // TODO: ensure that this active rotation results in the proper frame transformation
   // Then figure out the projection matrix issue
@@ -299,64 +302,54 @@ TEST_F(CameraTest, Rotations) {
 }
 
 TEST_F(CameraTest, IsInFrame) {
-  Eigen::Matrix3d intrinsic;
   // TODO: am I mixing things up by having pretranslate in the camera class? things might be wrong there
-  intrinsic = cam->getIntrinsicMatrix();
-  // intrinsic << 800, 0, 320.5,
-  //               0, 800, 240.5,
-  //               0, 0, 1;
-  Eigen::Vector2d img_midpoint(intrinsic(0,2), intrinsic(1,2));
+  Eigen::Vector2d img_midpoint = cam->getImageMidpoint();
 
   // Example transformation matrix (arbitrary rotation and translation)
   Eigen::AngleAxisd rot = Eigen::AngleAxisd(M_PI / 4, Eigen::Vector3d::UnitY());
   // Eigen::AngleAxisd rot1 = Eigen::AngleAxisd(M_PI / 4, Eigen::Vector3d::UnitY());
   Eigen::Vector3d offset(1, 0, 0);
-  cam->moveCamera(rot.toRotationMatrix());
+  cam->rotate(rot);
   cam->setPosition(offset);
 
   // Example 3D point
   Eigen::Vector3d point(1, 0, 5);
 
   // Variable to hold the resulting pixel coordinate
-  Eigen::Vector2d pixel;
+  Eigen::Vector2d pixel, other_pxl(296.5, 1024.5);
 
   // Project the point to pixel coordinates
   bool success;
 
   success = cam->isInCameraFrame(point, pixel);
-  // std::cout << "Pixel coordinates: " << pixel.transpose() << " are " 
-  //           << (success ? " ":"NOT ") << "in the image" << std::endl;
   ASSERT_TRUE(success);
-  ASSERT_FALSE(img_midpoint.isApprox(pixel));
+  ASSERT_TRUE(other_pxl.isApprox(pixel));
+  other_pxl(296.5,1024.5);
 
   Eigen::Vector3d translation1(0, 0, -5);
-  cam->moveCamera(translation1);
+  cam->move(translation1);
   // Project the point to pixel coordinates
   ASSERT_TRUE(cam->isInCameraFrame(point, pixel));
-  ASSERT_FALSE(img_midpoint.isApprox(pixel));
+  ASSERT_TRUE(other_pxl.isApprox(pixel));
   // std::cout << "Pixel coordinates: " << pixel.transpose() << " are " 
   //           << (success ? "":"NOT ") << "in the image" << std::endl;
   
-  cam->moveCamera(rot);            
+  cam->rotate(rot);            
   // Project the point to pixel coordinates
   EXPECT_THROW(cam->isInCameraFrame(point, pixel), std::runtime_error);
 
   Eigen::Vector3d translation2(16, 4, 0);
-  cam->moveCamera(translation2);
+  cam->move(translation2);
   
   cam->pointTo(point, Eigen::Vector3d::UnitZ());
   EXPECT_TRUE(cam->isInCameraFrame(point, pixel));
   EXPECT_TRUE(img_midpoint.isApprox(pixel));
-  // std::cout << "Pixel coordinates: " << pixel.transpose() << " are " 
-  //           << (success ? "":"NOT ") << "in the image" << std::endl;
 
   Eigen::AngleAxisd rot1 = Eigen::AngleAxisd(M_PI / 12, Eigen::Vector3d::UnitY());
-  cam->moveCamera(rot1);
+  cam->rotate(rot1);
   Eigen::Vector2d rot1_exp_pixel(1028.55, 1024.5);
   EXPECT_TRUE(cam->isInCameraFrame(point, pixel));
   EXPECT_TRUE(rot1_exp_pixel.isApprox(pixel, 1e-5));
-  // std::cout << "Pixel coordinates: " << pixel.transpose() << " are " 
-  //           << (success ? "":"NOT ") << "in the image" << std::endl;
 
   cam->resetCameraState();
   cam->pointTo(point, Eigen::Vector3d::UnitZ());
@@ -366,12 +359,121 @@ TEST_F(CameraTest, IsInFrame) {
 }
 
 TEST_F(CameraTest, ProjectQuadric) {
-  // Quadric quad1(10, 30, 50, "Crater 1");
-  // Quadric quad2(-10, 15, 100, "Crater 2");
-  // Quadric quad3(-30, -10, 75, "Crater 3");
-  // Quadric quad4(0, -20, 150, "Crater 4");
+  Quadric quad1( 10,  15, 50, "Crater 1");
+  Quadric quad2(-10,  15, 100, "Crater 2");
+  Quadric quad3(-30, -10, 75, "Crater 3");
+  Quadric quad4(  0, -20, 150, "Crater 4");
 
-  // Eigen::MatrixXd proj_mtx = cam->getProjectionMatrix();
+  Eigen::Vector3d up_axis(0,0,1);
+  cam->move(Eigen::Vector3d(1e4, 0, 0));
+  cam->pointTo(quad1.getLocation(), up_axis);
+  
 
   // Eigen::Matrix3d c_envelope = cam->projectQuadric(quad1.getEnvelope());
+  // Eigen::Matrix3d c_locus = adjugate(c_envelope);
+  // std::cout << "Image Ellipse: " << Conic(c_locus) << std::endl;
+  // std::cout << "Image Plane Ellipse: " << Conic(cam->getImagePlaneLocus(c_locus)) << std::endl;
+}
+
+TEST_F(CameraTest, MoveCamera) {
+  cam->resetCameraState();
+  Eigen::AngleAxisd rot1 = Eigen::AngleAxisd(M_PI / 12, Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd rot2 = Eigen::AngleAxisd(M_PI / 5, Eigen::Vector3d::UnitZ());
+  Eigen::AngleAxisd rot3 = Eigen::AngleAxisd(15*M_PI / 7, Eigen::Vector3d::UnitX());
+  Eigen::Vector3d move1(10,20,30);
+  Eigen::Vector3d move2(37,50,300);
+  Eigen::Vector3d move3(-110,-20,0);
+  Eigen::Vector3d move4(-80,-30,-230);
+  cam->move(move1);
+  ASSERT_TRUE(cam->getPosition().isApprox(move1));
+  cam->rotate(rot1);
+
+  cam->move(move2);
+  ASSERT_TRUE(cam->getPosition().isApprox(move1+move2));
+  cam->rotate(rot2);
+
+  cam->move(move3);
+  ASSERT_TRUE(cam->getPosition().isApprox(move1+move2+move3));
+  cam->rotate(rot3);
+
+  cam->move(move4);
+  ASSERT_TRUE(cam->getPosition().isApprox(move1+move2+move3+move4));
+  
+}
+
+TEST_F(CameraTest, RotateCamera) {
+  cam->resetCameraState();
+  Eigen::AngleAxisd rot1 = Eigen::AngleAxisd( M_PI / 12, Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd att1 = Eigen::AngleAxisd(-M_PI / 12, Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd rot2 = Eigen::AngleAxisd( M_PI / 5, Eigen::Vector3d::UnitZ());
+  Eigen::AngleAxisd att2 = Eigen::AngleAxisd(-M_PI / 5, Eigen::Vector3d::UnitZ());
+  Eigen::AngleAxisd rot3 = Eigen::AngleAxisd( 15*M_PI / 7, Eigen::Vector3d::UnitX());
+  Eigen::AngleAxisd att3 = Eigen::AngleAxisd(-15*M_PI / 7, Eigen::Vector3d::UnitX());
+
+  // One rotation
+  cam->rotate(rot1);
+  Eigen::Quaterniond q_att = cam->getAttitude();
+  ASSERT_TRUE(q_att.isApprox(Eigen::Quaterniond(att1)));
+
+  // Two rotations
+  cam->resetCameraState();
+  cam->rotate(rot1);
+  cam->rotate(rot2);
+  
+  Eigen::Quaterniond att12 = Eigen::Quaterniond(att2*att1);
+  Eigen::Quaterniond q_att2 = cam->getAttitude();
+  cam->resetCameraState();
+  cam->rotate(rot1*rot2);
+  Eigen::Quaterniond q_att2_mult = cam->getAttitude();
+  ASSERT_TRUE(att12.isApprox(q_att2));
+  // TODO: Figure out why this is incorrect in the first vector element
+  ASSERT_TRUE(q_att2_mult.isApprox(q_att2) || q_att2_mult.coeffs().isApprox(-q_att2.coeffs()));
+
+  // Three rotations
+  cam->resetCameraState();
+  cam->rotate(rot1);
+  cam->rotate(rot2);
+  cam->rotate(rot3);
+  
+  Eigen::Quaterniond att123 = Eigen::Quaterniond(att3*att2*att1);
+  Eigen::Quaterniond q_att3 = cam->getAttitude();
+  cam->resetCameraState();
+  cam->rotate(rot1*rot2*rot3);
+  Eigen::Quaterniond q_att3_mult = cam->getAttitude();
+  // Eigen does not handle equality of negative quaternions
+  ASSERT_TRUE(att123.isApprox(q_att3) || att123.coeffs().isApprox(-q_att3.coeffs()));
+  // TODO: Figure out why this is incorrect in the first vector element
+  ASSERT_TRUE(q_att3_mult.isApprox(q_att3));
+}
+
+TEST_F(CameraTest, SetAttitude) {
+  cam->resetCameraState();
+  Eigen::AngleAxisd rot1 = Eigen::AngleAxisd( M_PI / 12, Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd att1 = Eigen::AngleAxisd(-M_PI / 12, Eigen::Vector3d::UnitY());
+
+  cam->rotate(rot1);
+  Eigen::Quaterniond res_rot = cam->getAttitude();
+
+  cam->resetCameraState();
+  cam->setAttitude(att1);
+  Eigen::Quaterniond res_att = cam->getAttitude();
+
+  ASSERT_TRUE(res_att.isApprox(res_rot));
+}
+
+TEST_F(CameraTest, ProjectionMatrix) {
+  cam->resetCameraState();
+  Eigen::Vector3d move1(10,20,30);
+  cam->move(move1);
+  cam->pointTo(Eigen::Vector3d::Zero(), Eigen::Vector3d::UnitZ());
+  Eigen::Quaterniond att = cam->getAttitude();
+  Eigen::Vector3d pos = cam->getPosition();
+  Eigen::MatrixXd ext(3,4);
+
+  ext.topLeftCorner(3,3) = Eigen::Matrix3d::Identity();
+  ext.topRightCorner(3,1) = -pos;
+  ext = att.toRotationMatrix() * ext;
+  // Eigen::AffineCompact3d proj;
+  std::cout << "Transformation matrix:\n" << att.toRotationMatrix() << std::endl;
+  std::cout << "Extrinsic matrix:\n" << ext << std::endl;
 }

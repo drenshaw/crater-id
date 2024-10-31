@@ -1,5 +1,7 @@
 #include "visuals.h"
 #include "camera.h"
+#include "quadrics.h"
+
 #include "opencv2/core/types.hpp"
 #include "opencv2/viz/types.hpp"
 #include <iostream>
@@ -28,7 +30,7 @@ void drawEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
   }
   // Drawing the ellipse 
   cv::ellipse(image, ellipse_center, 
-              conic.getSize(), 90+conic.getAngleDeg(), 
+              conic.getSize(), conic.getAngleDeg(), 
               0, 360, 
               color, -1, cv::LINE_AA); 
 
@@ -59,6 +61,33 @@ void drawEllipses(cv::Mat& image, const std::vector<Conic>& conics, const std::v
     int index = std::distance(conics.begin(), conic_it);
     drawEllipse(image, *conic_it, CV_colors.at(index));
   }
+}
+
+void drawEllipses(cv::Mat& image, const Camera& camera, const std::vector<Quadric>& quadrics, const std::vector<cv::Scalar>& colors) {
+  assert(quadrics.size() <= colors.size());
+  std::vector<Conic> conics;
+  conics.reserve(quadrics.size());
+  Eigen::MatrixXd proj = camera.getProjectionMatrix();
+  for(const Quadric& quadric : quadrics) {
+    Conic conic(quadric.projectToImageLocus(proj));
+    // conic.fromLocus(camera.projectQuadricToLocus(quadric.getLocus()));
+    conics.push_back(conic);
+  }
+  Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
+  Eigen::Matrix3d moon_locus = camera.projectQuadricToLocus(sphere);
+  Conic moon(moon_locus);
+  // std::cout << "Moon ellipse: " << moon << std::endl;
+  if(camera.isInCameraFrame(moon.getCenter())) {
+    viz::drawEllipse(image, moon, cv::viz::Color::gray());
+  }
+  else {
+    std::cout << "The Moon center is not in the image: " << moon.getCenter().transpose() << std::endl;
+  }
+  // for (auto conic_it = conics.begin(); conic_it != conics.end(); ++conic_it) {
+  //   int index = std::distance(conics.begin(), conic_it);
+  //   drawEllipse(image, *conic_it, CV_colors.at(index));
+  // }
+  drawEllipses(image, conics, colors);
 }
 
 void drawEllipses(const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors) {
@@ -106,7 +135,7 @@ void drawLines(cv::Mat& image, const std::vector<Eigen::Vector3d>& lines, const 
   assert(lines.size() <= colors.size());
   for (auto conic_it = lines.begin(); conic_it != lines.end(); ++conic_it) {
     int index = std::distance(lines.begin(), conic_it);
-    drawLine(image, *conic_it, text.at(index), CV_colors.at(index));
+    drawLine(image, *conic_it, text.at(index), colors.at(index));
   }
 }
 
@@ -115,8 +144,22 @@ void drawLines(const std::vector<Eigen::Vector3d>& lines, const std::vector<std:
                 cv::Scalar(255, 255, 255)); 
   drawLines(image, lines, text, colors);
   // Showing image inside a window 
-  cv::imshow("Ellipses", image); 
+  cv::imshow("Lines", image); 
   cv::waitKey(0); 
+}
+
+void drawPoint(cv::Mat& image, const Eigen::Vector2d& point, const cv::Scalar& color) {
+
+    cv::Point2d pt_cv = {point(0), point(1)};
+    cv::drawMarker(image, pt_cv, color);
+}
+
+void drawPoints(cv::Mat& image, const std::vector<Eigen::Vector2d>& points, const std::vector<cv::Scalar>& colors) {
+  assert(points.size() <= colors.size());
+  for (auto pt_it = points.begin(); pt_it != points.end(); ++pt_it) {
+    int index = std::distance(points.begin(), pt_it);
+    drawPoint(image, *pt_it, viz::CV_colors.at(index));
+  }
 }
 
 void getSlopeInterceptFromStandard(const Eigen::Vector3d& my_line, double& slope, double& intercept) {
@@ -175,6 +218,86 @@ bool getEndpointsFromLine(const cv::Mat& image, const Eigen::Vector3d& my_line, 
   return true;
 }
 
+void get3dAxes( const Camera& cam, 
+                Eigen::Vector2d& origin, Eigen::Vector2d& x_axis, 
+                Eigen::Vector2d& y_axis, Eigen::Vector2d& z_axis) {
+  Eigen::Vector3d x, y, z, o;
+  o = Eigen::Vector3d::Zero();
+  x = R_MOON/2*Eigen::Vector3d::UnitX();
+  y = R_MOON/2*Eigen::Vector3d::UnitY();
+  z = R_MOON/2*Eigen::Vector3d::UnitZ();
+  cam.world2Pixel(o, origin);
+  cam.world2Pixel(x, x_axis);
+  cam.world2Pixel(y, y_axis);
+  cam.world2Pixel(z, z_axis);
+}
+
+void draw3dAxes(cv::Mat& image, const Camera& cam) {
+  Eigen::Vector2d origin, x_axis, y_axis, z_axis;
+  viz::get3dAxes(cam, origin, x_axis, y_axis, z_axis);
+  cv::Point2d o(origin(0), origin(1));
+  cv::Point2d x(x_axis(0), x_axis(1));
+  cv::Point2d y(y_axis(0), y_axis(1));
+  cv::Point2d z(z_axis(0), z_axis(1));
+  
+  cv::circle(image, o, 8, cv::viz::Color::black());
+  cv::circle(image, o, 5, cv::viz::Color::white());
+  cv::arrowedLine(image, o, x, cv::viz::Color::red());
+  cv::arrowedLine(image, o, y, cv::viz::Color::green());
+  cv::arrowedLine(image, o, z, cv::viz::Color::blue());
+}
+
+// void onMouse(int event, int x, int y, int, void*) { if (event == cv::EVENT_LBUTTONDOWN) { dragging = true; prev_pt = cv::Point(x, y); } else if (event == cv::EVENT_LBUTTONUP) { dragging = false; } else if (event == cv::EVENT_MOUSEMOVE && dragging) { cv::Point delta = cv::Point(x, y) - prev_pt; roi.x -= delta.x / scale; roi.y -= delta.y / scale; prev_pt = cv::Point(x, y); cv::resize(img, temp_img, cv::Size(), scale, scale); cv::imshow("Interactive Zoom", temp_img(roi)); } else if (event == cv::EVENT_MOUSEWHEEL) { if (cv::getMouseWheelDelta(event) > 0) { scale *= 1.1; } else { scale *= 0.9; } roi = cv::Rect2f(roi.x, roi.y, img.cols / scale, img.rows / scale); cv::resize(img, temp_img, cv::Size(), scale, scale); cv::imshow("Interactive Zoom", temp_img(roi)); } }
+
+void interactiveZoom(cv::Mat& image) {
+
+    namedWindow("Image: Press 'x' to close", cv::WINDOW_NORMAL);
+    imshow("Image: Press 'x' to close", image);
+
+    int zoomFactor = 1;
+    int x = 0;
+    int y = 0;
+
+    while (true) {
+        int key = cv::waitKey(1);
+
+        if (key == 'x') {
+            break;
+        } else if (key == 'q') {
+            zoomFactor += 1;
+        } else if (key == 'e' && zoomFactor > 1) {
+            zoomFactor -= 1;
+        } else if (key == 'a') {
+            x -= 10; 
+        } else if (key == 'd') {
+            x += 10;
+        } else if (key == 'w') {
+            y -= 10;
+        } else if (key == 's') {
+            y += 10;
+        }
+
+        // Make sure the zoom center is within the image bounds
+        x = std::max(0, std::min(x, image.cols - 1));
+        y = std::max(0, std::min(y, image.rows - 1));
+
+        // Calculate the zoom region
+        int zoomWidth = image.cols / zoomFactor;
+        int zoomHeight = image.rows / zoomFactor;
+        int x1 = std::max(0, x - zoomWidth / 2);
+        int y1 = std::max(0, y - zoomHeight / 2);
+        int x2 = std::min(image.cols, x1 + zoomWidth);
+        int y2 = std::min(image.rows, y1 + zoomHeight);
+
+        // Extract and resize the zoom region
+        cv::Mat zoomedImage = image(cv::Rect(x1, y1, x2 - x1, y2 - y1));
+        resize(zoomedImage, zoomedImage, cv::Size(image.cols, image.rows), 0, 0, cv::INTER_LINEAR);
+
+        imshow("Image: Press 'x' to close", zoomedImage);
+    }
+
+    cv::destroyAllWindows();
+}
 
 // void Sphere()
 // {

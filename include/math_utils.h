@@ -13,12 +13,13 @@
 // #include <boost/log/trivial.hpp>
 // #include "crater-id.h"
 
-const double EPS = (10 * std::numeric_limits<double>::epsilon());
+#define R_MOON 1737.4
+const double EPS = 1e-8;
 
 double getCofactor(const Eigen::MatrixXd& matrix, int p, int q);
 Eigen::MatrixXd cofactor(const Eigen::MatrixXd& matrix);
 Eigen::MatrixXd adjugate(const Eigen::MatrixXd&);
-Eigen::Matrix3d get3x3SymmetricAdjugateMatrix(const Eigen::Matrix3d&);
+Eigen::Matrix3d symmetricAdjugate(const Eigen::Matrix3d&);
 
 // TODO: be careful using templates here: if an "int" is passed, we get an "int" back
 template <typename T>
@@ -211,6 +212,10 @@ double getAngleBetweenLatLon(const T lat1, const T lon1, const T lat2, const T l
   return getAngleBetweenVectors(point1, point2);
 }
 
+double calculateCraterRimFromRadius(const double radius);
+Eigen::Vector3d latlonrad2CraterRim(const double lat, const double lon, const double radius);
+Eigen::Vector3d latlonalt(const double lat, const double lon, const double altitude);
+
 template <typename T>
 void makeUnique(T& vec) {
   std::sort(vec.begin(), vec.end());
@@ -229,6 +234,25 @@ std::vector<uint> getRange(std::vector<T> vec) {
     vec_range.push_back(idx);
   }
   return vec_range;
+}
+
+template<typename Iterator>
+uint getIndex(const Iterator& vec, const Iterator& it) {
+  return std::distance(vec, it);
+}
+
+template<typename T>
+bool allEqualVector(std::vector<T>& vec) {
+  return std::adjacent_find(
+    vec.begin(), vec.end(), std::not_equal_to<>() ) == vec.end();
+}
+
+template<typename T>
+std::vector<T> copyAllBut(const std::vector<T>& vec, const T& index) {
+    std::vector<T> allButIndex;
+    std::copy_if(vec.begin(), vec.end(), std::back_inserter(allButIndex), 
+             [index](const T& t) { return t != index; });
+  return allButIndex;
 }
 
 // TODO: Use LLHtoECEF instead for the time being for consistency

@@ -2,6 +2,8 @@
 #include <opencv2/viz/types.hpp>
 
 #include "conics.h"
+#include "camera.h"
+#include "quadrics.h"
 
 template <typename Iterator>
     void advance_all (Iterator & iterator) {
@@ -67,13 +69,21 @@ const std::vector<cv::Scalar> CV_colors = {
 void drawEllipse( cv::Mat& image, const Conic& conic, const cv::Scalar& color=cv::Scalar(0, 255, 255));
 void drawEllipse( const Conic& conic, const cv::Scalar& color=cv::Scalar(0, 255, 255));
 void drawEllipses(cv::Mat& image, const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors={});
+void drawEllipses(cv::Mat& image, const Camera& camera, const std::vector<Quadric>& quadrics, const std::vector<cv::Scalar>& colors={});
 void drawEllipses(const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors={});
 void drawLine(cv::Mat& image, const Eigen::Vector3d& my_line, const std::string& text, const cv::Scalar& my_color);
 void drawLine(const Eigen::Vector3d& my_line, const std::string& text, const cv::Scalar& my_color);
 void drawLines(cv::Mat& image, const std::vector<Eigen::Vector3d>& lines, const std::vector<std::string>& text, const std::vector<cv::Scalar>& colors);
 void drawLines(const std::vector<Eigen::Vector3d>& lines, const std::string& text, const std::vector<cv::Scalar>& colors);
+void drawPoint(cv::Mat& image, const Eigen::Vector2d& point, const cv::Scalar& color);
+void drawPoints(cv::Mat& image, const std::vector<Eigen::Vector2d>& points, const std::vector<cv::Scalar>& colors);
 void getSlopeInterceptFromStandard(const Eigen::Vector3d& my_line, double& slope, double& intercept);
 bool getEndpointsFromLine(const cv::Mat& image, const Eigen::Vector3d& my_line, cv::Point2l& start_pt, cv::Point2l& end_pt);
+void get3dAxes( const Camera& cam, 
+                Eigen::Vector2d& origin, Eigen::Vector2d& x_axis, 
+                Eigen::Vector2d& y_axis, Eigen::Vector2d& z_axis);
+void draw3dAxes(cv::Mat& image, const Camera& cam);
+void interactiveZoom(cv::Mat& image);
 /* VTK */
 // #include <cstdlib>
 // #include <vtkActor.h>

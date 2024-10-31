@@ -8,4 +8,5 @@ install_headers(
   'quadrics.h',
   'visuals.h',
   'camera.h',
+  'navigation.h',
 )

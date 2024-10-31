@@ -144,23 +144,23 @@ Eigen::Matrix3d Camera::getInverseIntrinsicMatrix() const {
   Eigen::Matrix3d inv_intrinsic;
   inv_intrinsic <<  1/dx_, -skew_/(dx_*dy_), (skew_*vp_ - dy_*up_)/(dx_*dy_),
                     0,                1/dy_,                        -vp_/dy_,
-                    0,                    0,                                1;
+                    0,                    0,                               1;
   return inv_intrinsic;
 }
 
 Eigen::Isometry3d Camera::getHomogeneousExtrinsicMatrix() const {
-  // Eigen::Isometry3d extrinsic_matrix;
-  // extrinsic_matrix.linear() = this->getAttitudeMatrix();
-  // // TODO: should this be negative?
-  // extrinsic_matrix.translation() = this->getPosition();
-  // extrinsic_matrix = this->state_.inverse();
-  // extrinsic_matrix.translation() = -this->getPosition();
   return this->state_.inverse();
 }
 
 Eigen::MatrixXd Camera::getExtrinsicMatrix() const {
+  Eigen::Quaterniond att = this->getAttitude();
+  Eigen::Vector3d pos = this->getPosition();
+  Eigen::MatrixXd extrinsic(3,4);
+  extrinsic.topLeftCorner(3,3) = Eigen::Matrix3d::Identity();
+  extrinsic.topRightCorner(3,1) = -pos;
+  extrinsic = att.toRotationMatrix() * extrinsic;
   // Eigen::Affine3d extrinsic_matrix = this->getHomogeneousExtrinsicMatrix();
-  return this->getHomogeneousExtrinsicMatrix().matrix().topRows(3);
+  return extrinsic;
 }
 
 Eigen::Affine3d Camera::getHomogeneousProjectionMatrix() const {
@@ -202,6 +202,16 @@ double Camera::getImageWidth() const {
 
 double Camera::getImageHeight() const {
   return this->image_size_.height;
+}
+
+void Camera::getImageMidpoint(Eigen::Vector2d& img_midpoint) const {
+  img_midpoint = {this->up_, this->vp_};
+}
+
+Eigen::Vector2d Camera::getImageMidpoint() const {
+  Eigen::Vector2d img_midpoint;
+  this->getImageMidpoint(img_midpoint);
+  return img_midpoint;
 }
 
 cv::Size2i Camera::getImageSize() const {
@@ -287,8 +297,6 @@ void Camera::setExtrinsicMatrix(const Eigen::Matrix3d& extrinsic) {
 }
 
 void Camera::setAttitude(const Eigen::Quaterniond& orientation) {
-  // Eigen::Isometry3d transform;
-  // transform = orientation.inverse() * Eigen::Translation<double,3>(this->state_.translation());
   this->state_.linear() = orientation.normalized().inverse().toRotationMatrix();
   // std::cout << __func__ << ": " << orientation << std::endl;
 }
@@ -298,9 +306,8 @@ void Camera::setAttitude(const Eigen::Matrix3d& orientation) {
   // std::cout << __func__ << ":\n" << orientation << std::endl;
 }
 
-void Camera::setAttitude(const Eigen::Vector3d& orientation) {
-  throw std::runtime_error("This method is not yet implemented.\n");
-  // this->state_.rotation() = orientation;
+void Camera::setAttitude(const Eigen::AngleAxisd& orientation) {
+  this->setAttitude(Eigen::Quaterniond(orientation));
 }
 
 void Camera::setLocation(const Eigen::Vector3d& location) {
@@ -316,35 +323,52 @@ void Camera::moveCamera(const Eigen::Isometry3d& transform) {
   this->state_.rotate(transform.rotation()).pretranslate(transform.translation());
 }
 
-void Camera::moveCamera(const Eigen::Quaterniond& rotation) {
+void Camera::moveX(const double x_offset) {
+  Eigen::Vector3d movement;
+  movement << x_offset, 0, 0;
+  this->move(movement);
+}
+
+void Camera::moveY(const double y_offset) {
+  Eigen::Vector3d movement = {0, y_offset, 0};
+  this->move(movement);
+}
+
+void Camera::moveZ(const double z_offset) {
+  Eigen::Vector3d movement = {0, 0, z_offset};
+  this->move(movement);
+}
+
+
+void Camera::rotate(const Eigen::Quaterniond& rotation) {
   this->state_.rotate(rotation);
 }
 
-void Camera::moveCamera(const Eigen::Matrix3d& rotation) {
+void Camera::rotate(const Eigen::Matrix3d& rotation) {
   this->state_.rotate(rotation);
 }
 
-void Camera::moveCamera(const Eigen::AngleAxisd& rotation) {
-  this->moveCamera(rotation.toRotationMatrix());
+void Camera::rotate(const Eigen::AngleAxisd& rotation) {
+  this->rotate(rotation.toRotationMatrix());
 }
 
 // TODO: need to determine/express if the translation is in the inertial or body frame
-void Camera::moveCamera(const Eigen::Vector3d& translation) {
+void Camera::move(const Eigen::Vector3d& translation) {
   this->state_.pretranslate(translation);
 }
-void Camera::moveCamera(const Eigen::Translation3d& translation) {
+void Camera::move(const Eigen::Translation3d& translation) {
   this->state_.pretranslate(translation.translation());
 }
 
-void Camera::moveCameraRelative(const Eigen::Quaterniond& rotation) {
+void Camera::rotateRelative(const Eigen::Quaterniond& rotation) {
   this->state_.prerotate(rotation);
 }
 
 // this is intended to make it possible to move the camera in the local frame (e.g., forward)
-void Camera::moveCameraRelative(const Eigen::Vector3d& translation) {
+void Camera::moveRelative(const Eigen::Vector3d& translation) {
   this->state_.translate(translation);
 }
-void Camera::moveCameraRelative(const Eigen::Translation3d& translation) {
+void Camera::moveRelative(const Eigen::Translation3d& translation) {
   this->state_.translate(translation.translation());
 }
 
@@ -355,6 +379,11 @@ void Camera::pointTo(const Eigen::Vector3d& point, const Eigen::Vector3d& up_axi
   }
   Eigen::Matrix3d xform = lookAt(this->getPosition(), point, up_axis);
   this->state_.linear() = xform.transpose();
+}
+
+void Camera::pointTo(const double lat, const double lon, const Eigen::Vector3d& up_axis) {
+  Eigen::Vector3d point = latlonalt(lat, lon, 0);
+  this->pointTo(point, up_axis);
 }
 
 void Camera::moveTo(const Eigen::Vector3d& point) {
@@ -386,6 +415,11 @@ Eigen::Matrix3d Camera::projectQuadricToLocus(const Eigen::Matrix4d& quadric_loc
   return adjugate(proj * adjugate(quadric_locus) * proj.transpose());
 }
 
+Eigen::Matrix3d Camera::getImagePlaneLocus(const Eigen::Matrix3d& image_locus) const {
+  Eigen::Matrix3d Kinv = this->getInverseIntrinsicMatrix();
+  Eigen::Matrix3d envelope = adjugate(image_locus);
+  return adjugate(Kinv * envelope * Kinv.transpose());
+}
 
 
 std::ostream& operator<<(std::ostream& os, const Camera& cam) {

@@ -74,9 +74,9 @@ Quadric::Quadric(const Eigen::Vector3d& position, const double radius, const std
 Quadric::Quadric(const std::string id, const Eigen::Vector3d& position, const double radius) :
   Quadric(position, radius, id) {}
 Quadric::Quadric(const double lat, const double lon, const double radius, const std::string id) :
-  Quadric(latlonrad2XYZ(lat, lon, radius), radius, id) {}
+  Quadric(latlonrad2CraterRim(lat, lon, radius), radius, id) {}
 Quadric::Quadric(const std::string id, const double lat, const double lon, const double radius) :
-  Quadric(latlonrad2XYZ(lat, lon, radius), radius, id) {}
+  Quadric(latlonrad2CraterRim(lat, lon, radius), radius, id) {}
 Quadric::Quadric(const std::string id, const Eigen::Vector3d& position, const double radius, const Eigen::Vector3d& surface_normal) :
   Quadric(position, radius, surface_normal, id) {}
 
@@ -169,10 +169,55 @@ std::string Quadric::getID() const {
   return this->id_;
 }
 
-Conic Quadric::projectToConic(const Eigen::MatrixXd& proj_mtx) const{
+Eigen::Matrix3d Quadric::projectToImageEnvelope(const Eigen::MatrixXd& proj_mtx) const{
   Eigen::Matrix3d conic_envelope = proj_mtx * this->getEnvelope() * proj_mtx.transpose();
-  Conic conic(adjugate(conic_envelope));
+  return conic_envelope;
+}
+
+Eigen::Matrix3d Quadric::projectToImageLocus(const Eigen::MatrixXd& proj_mtx) const{
+  Eigen::Matrix3d conic_envelope = this->projectToImageEnvelope(proj_mtx);
+  return adjugate(conic_envelope);
+}
+
+Conic Quadric::projectToImage(const Eigen::MatrixXd& proj_mtx) const{
+  Eigen::Matrix3d locus = this->projectToImageLocus(proj_mtx);
+  Conic conic(locus);
   return conic;
+}
+
+Eigen::Matrix3d Quadric::projectToPlaneEnvelope(const Eigen::MatrixXd& extrinsic_mtx) const {
+  Eigen::Matrix3d conic_envelope = extrinsic_mtx * this->getEnvelope() * extrinsic_mtx.transpose();
+  return conic_envelope;
+}
+
+Eigen::Matrix3d Quadric::projectToPlaneLocus(const Eigen::MatrixXd& extrinsic_mtx) const {
+  Eigen::Matrix3d conic_envelope = this->projectToImageEnvelope(extrinsic_mtx);
+  return adjugate(conic_envelope);
+}
+
+Conic Quadric::projectToImagePlane(const Eigen::MatrixXd& extrinsic_mtx) const {
+  Eigen::Matrix3d locus = this->projectToPlaneLocus(extrinsic_mtx);
+  Conic conic(locus);
+  return conic;
+}
+
+void Quadric::getRimPoints(const uint n_pts, std::vector<Eigen::Vector3d>& pts_cam) const {
+  double radius = this->getRadius();
+  Eigen::Matrix3d T_e2m = this->getQuadricTransformationMatrix();
+  double north_pole_lat = 90;
+  double lat_offset = north_pole_lat - rad2deg(std::asin(radius/R_MOON));
+  Eigen::ArrayXXd latlon(n_pts, 2);
+  latlon.col(0) = lat_offset*Eigen::ArrayXd::Ones(n_pts);
+  double spacing = 360. / n_pts;
+  latlon.col(1) = Eigen::ArrayXd::LinSpaced(n_pts, 0, 360-spacing);
+  for(uint i = 0; i < n_pts; i++) {
+    Eigen::Vector2d ll = latlon.row(i);
+    double lat = ll(0);
+    double lon = ll(1);
+    Eigen::Vector3d pt = latlonalt(lat, lon, 0);
+    Eigen::Vector3d pt_cam = T_e2m * pt;
+    pts_cam.push_back(pt_cam);
+  }
 }
 
 
@@ -204,15 +249,6 @@ bool isSamePlane(const Eigen::Hyperplane<double, 3>& p1, const Eigen::Hyperplane
 
 bool isSamePlane(const Quadric& quad1, const Quadric& quad2, const double thresh) {
   return isSamePlane(quad1.getPlane(), quad2.getPlane(), thresh);
-}
-
-Eigen::Vector3d latlonrad2XYZ(const double lat, const double lon, const double radius) {
-  const double dist = calculateCraterRimFromRadius(radius);
-  return dist * latlon2bearing(lat, lon);
-}
-
-double calculateCraterRimFromRadius(const double radius) {
-  return std::sqrt(std::pow(R_MOON, 2) - std::pow(radius, 2));
 }
 
 Eigen::Hyperplane<double, 3> SurfacePointToPlane(const Eigen::Matrix3d& T_e2m, 

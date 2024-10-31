@@ -34,7 +34,7 @@ double getCofactor(const Eigen::MatrixXd& matrix, size_t cf_row, size_t cf_col) 
   for (size_t irow = 0; irow < nrow; irow++) {
     for (size_t icol = 0; icol < ncol; icol++) {
       //  Copying into temporary matrix only those
-      //  element which are not in given row and
+      //  elements which are not in given row and
       //  column
       if (irow != cf_row && icol != cf_col) {
         cf_temp(i, j++) = matrix(irow, icol);
@@ -70,6 +70,9 @@ Eigen::MatrixXd adjugate(const Eigen::MatrixXd& matrix) {
   if(matrix.rows() != matrix.cols()) {
     throw std::runtime_error("Matrix is not square");
   }
+  if(matrix.rows() == 3 && matrix.cols() == 3 && matrix.isApprox(matrix.transpose())) {
+    return symmetricAdjugate(matrix);
+  }
   Eigen::MatrixXd mtx_adj = cofactor(matrix);
 
   // std::cout << __func__ << " Adjugate:\n" << mtx_adj << std::endl;
@@ -86,37 +89,42 @@ Eigen::MatrixXd adjugate(const Eigen::MatrixXd& matrix) {
   // and this fun fact does not hold
   // Another check for adjugates is ensure that the matrix times its
   // adjugate is the identity matrix scaled by the det of the matrix
+  mtx_adj = (mtx_adj.cwiseAbs().array() < 1e-100).select(0, mtx_adj);
+
   return mtx_adj.transpose();
 }
 
-Eigen::Matrix3d get3x3SymmetricAdjugateMatrix(const Eigen::Matrix3d& mtx) {
+Eigen::Matrix3d symmetricAdjugate(const Eigen::Matrix3d& mtx) {
+  if(mtx.hasNaN()) {
+    throw std::runtime_error("Matrix contains NaN values.");
+  }
   Eigen::Matrix3d mtx_adj = Eigen::Matrix3d(3, 3);
 
   // get elements of A
-  const auto a_11 = mtx.coeff(0, 0);
-  const auto a_12 = mtx.coeff(0, 1);
-  const auto a_13 = mtx.coeff(0, 2);
+  const double a_11 = mtx.coeff(0, 0);
+  const double a_12 = mtx.coeff(0, 1);
+  const double a_13 = mtx.coeff(0, 2);
 
-  const auto a_22 = mtx.coeff(1, 1);
-  const auto a_23 = mtx.coeff(1, 2);
+  const double a_22 = mtx.coeff(1, 1);
+  const double a_23 = mtx.coeff(1, 2);
 
-  const auto a_33 = mtx.coeff(2, 2);
+  const double a_33 = mtx.coeff(2, 2);
 
   // Compute entries of cofactor matrix which, in a symmetric matrix, 
   // are the entries of the adjugate
   // entries Aij == Aji
-  const auto mtx_adj11 =  a_22*a_33 - a_23*a_23;
-  const auto mtx_adj12 = -a_12*a_33 + a_23*a_13;
-  const auto mtx_adj13 =  a_12*a_23 - a_22*a_13;
+  const double mtx_adj11 =  a_22*a_33 - a_23*a_23;
+  const double mtx_adj12 = -a_12*a_33 + a_23*a_13;
+  const double mtx_adj13 =  a_12*a_23 - a_22*a_13;
 
-  const auto mtx_adj21 = mtx_adj12;
-  const auto mtx_adj22 = a_11*a_33 - a_13*a_13;
-  const auto mtx_adj23 = -a_11*a_23 + a_12*a_13;
+  const double mtx_adj21 = mtx_adj12;
+  const double mtx_adj22 = a_11*a_33 - a_13*a_13;
+  const double mtx_adj23 = -a_11*a_23 + a_12*a_13;
 
-  const auto mtx_adj31 = mtx_adj13;
-  const auto mtx_adj32 = mtx_adj23;
-  const auto mtx_adj33 = a_11*a_22 - a_12*a_12;
-  mtx_adj << mtx_adj11, mtx_adj12, mtx_adj13,
+  const double mtx_adj31 = mtx_adj13;
+  const double mtx_adj32 = mtx_adj23;
+  const double mtx_adj33 = a_11*a_22 - a_12*a_12;
+  mtx_adj <<  mtx_adj11, mtx_adj12, mtx_adj13,
               mtx_adj21, mtx_adj22, mtx_adj23, 
               mtx_adj31, mtx_adj32, mtx_adj33;
   return mtx_adj;
@@ -134,6 +142,19 @@ double getAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::Vector
   return acos(getPseudoAngleBetweenVectors(point1, point2));
 }
 
+
+Eigen::Vector3d latlonrad2CraterRim(const double lat, const double lon, const double radius) {
+  const double dist = calculateCraterRimFromRadius(radius);
+  return dist * latlon2bearing(lat, lon);
+}
+
+Eigen::Vector3d latlonalt(const double lat, const double lon, const double altitude) {
+  return (R_MOON + altitude) * latlon2bearing(lat, lon);
+}
+
+double calculateCraterRimFromRadius(const double radius) {
+  return std::sqrt(std::pow(R_MOON, 2) - std::pow(radius, 2));
+}
 
 Eigen::Vector3d getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen::Vector3d& vec2) {
   if(vec1.isApprox(vec2)) {

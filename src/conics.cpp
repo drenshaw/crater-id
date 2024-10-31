@@ -31,16 +31,29 @@ Conic::Conic(const std::array<double, GEOMETRIC_PARAM>& geom_arr) :
     angle_         {geom_arr.at(4)} {
   setID();
 }
-Conic::Conic(const std::vector<double>& vec) : 
-    semimajor_axis_{vec.at(0)},
-    semiminor_axis_{vec.at(1)},
-    x_center_      {vec.at(2)},
-    y_center_      {vec.at(3)},
-    angle_         {vec.at(4)} {
+Conic::Conic(const std::vector<double>& geom_vec) : 
+    semimajor_axis_{geom_vec.at(0)},
+    semiminor_axis_{geom_vec.at(1)},
+    x_center_      {geom_vec.at(2)},
+    y_center_      {geom_vec.at(3)},
+    angle_         {geom_vec.at(4)} {
   this->setID();
+}
+Conic::Conic(const std::array<double, IMPLICIT_PARAM>& impl) {
+  setImplicitParameters(impl);
 }
 Conic::Conic(const Eigen::Matrix3d& locus) {
   this->setLocus(locus);
+}
+Conic::Conic(const std::vector<Eigen::Vector2d>& points) {
+  if(points.size() < 5) {
+    std::cerr << "Too few points to form an ellipse: " 
+              << "need >=5, given " << points.size() << std::endl;
+    throw std::runtime_error("Too few points to form an ellipse.");              
+  }
+  std::array<double, IMPLICIT_PARAM> impl;
+  impl = ellipseFitLstSq(points);
+  setImplicitParameters(impl);
 }
 
 void Conic::setID() {
@@ -141,7 +154,7 @@ void Conic::setLocus(const Eigen::Matrix3d& locus) {
     geom_params = fromLocus(locus);
   }
   catch (const std::runtime_error& e) {
-    std::cout << __func__ << " " << e.what() << std::endl;
+    std::cout << __func__ << "--> " << e.what() << std::endl;
     throw std::runtime_error("Locus is singular when attempting to make a conic.");
   }
   setGeometricParameters(geom_params);
@@ -172,7 +185,7 @@ Eigen::Matrix3d Conic::toLocus() const {
     return locus2Geom(locus);
   }
   catch (const std::runtime_error& e) {
-    std::cout << __func__ << " " << e.what() << std::endl;
+    std::cout << __func__ << "--> " << e.what() << std::endl;
     throw std::runtime_error("Locus is singular.");
   }
 }
@@ -295,7 +308,7 @@ std::array<double, IMPLICIT_PARAM> locus2Implicit(const Eigen::Matrix3d& locus) 
   // loc = locus(2,2) == 0 ? locus : locus/locus(2,2);
   
   if(loc.determinant() == 0) {
-    std::cerr << __func__ << " Locus is singular:\n" << loc << std::endl;
+    std::cerr << __func__ << "--> Locus is singular:\n" << loc << std::endl;
     throw std::runtime_error("Matrix for locus is singular.");
   }
   /*
@@ -304,20 +317,20 @@ std::array<double, IMPLICIT_PARAM> locus2Implicit(const Eigen::Matrix3d& locus) 
       | d/2  e/2   f  |
   */
   if(loc.hasNaN()) {
-    std::cerr << __func__ << " Locus has NaN:\n" << loc << std::endl;
+    std::cerr << __func__ << "--> Locus has NaN:\n" << loc << std::endl;
     throw std::runtime_error("The above locus has NaN value");
   }
   if(!isEllipse(loc)) {
-    std::cerr << loc << std::endl;
+    std::cerr << __func__ << "--> \n" << loc << std::endl;
     throw std::runtime_error("The above input matrix does not represent an ellipse.");
   }
   double A, B, C, D, E, F;
-  A =  loc.coeff(0,0);
+  A =    loc.coeff(0,0);
   B =  2*loc.coeff(0,1);
-  C =  loc.coeff(1,1);
+  C =    loc.coeff(1,1);
   D =  2*loc.coeff(0,2);
   E =  2*loc.coeff(1,2);
-  F =  loc.coeff(2,2); 
+  F =    loc.coeff(2,2); 
   return {A, B, C, D, E, F};
 }
 
@@ -327,7 +340,7 @@ std::array<double, GEOMETRIC_PARAM> locus2Geom(const Eigen::Matrix3d& locus) {
     return implicit2Geom(impl_params);
   }
   catch (const std::runtime_error& e) {
-    std::cerr << __func__ << " " << e.what() << std::endl << locus << std::endl;
+    std::cerr << __func__ << "--> " << e.what() << std::endl << locus << std::endl;
     throw std::runtime_error("Matrix is singular.");
   }
 }
@@ -365,9 +378,14 @@ bool isEllipse(const Eigen::Matrix3d& conic_locus) {
 // }
 
 std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLICIT_PARAM>& impl_params) {
-  double numerator, denominator_a, denominator_b;
+  // double numerator, denominator_a, denominator_b;
   double B2_minus_4AC, xc, yc, phi;
-  double semimajor_axis, semiminor_axis, amc2, b2;
+  double semimajor_axis, semiminor_axis;//, amc2, b2;
+  /*
+      |  A   B/2  D/2 |
+  C = | B/2   C   E/2 |
+      | D/2  E/2   F  |
+  */
   double A = impl_params.at(0);
   double B = impl_params.at(1);
   double C = impl_params.at(2);
@@ -376,43 +394,41 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
   double F = impl_params.at(5);
   // Compute discriminant for quadratic equation
   B2_minus_4AC = std::pow(B, 2) - 4*A*C;
+  assert(B2_minus_4AC < 0);
   // Compute ellipse center (See Eq 4.16 in [Christian, 2010])
   xc = (2*C*D - B*E) / B2_minus_4AC;
   yc = (2*A*E - B*D) / B2_minus_4AC;
   // Compute ellipse semimajor axis (a) and seminor axis (b)
   // (See Eqs 4.17 and 4.18 in [Christian, 2010])
-  numerator = 2*(A*E*E + C*D*D - B*D*E + F*B2_minus_4AC);
-  amc2 = std::pow(A - C, 2);
-  b2 = std::pow(B, 2);
-  denominator_a = B2_minus_4AC*(-std::sqrt(amc2 + b2) - (A + C));
-  denominator_b = B2_minus_4AC*( std::sqrt(amc2 + b2) - (A + C));
-  assert(denominator_a != 0 && !std::isnan(denominator_a));
-  assert(denominator_b != 0 && !std::isnan(denominator_b));
-  // TODO: is this valid?
-  semimajor_axis = std::sqrt(std::abs(numerator / denominator_a));
-  semiminor_axis = std::sqrt(std::abs(numerator / denominator_b));
+  double num;
+  num = 2*((A*E*E + C*D*D - B*D*E)/(4*A*C - B*B) - F);
+  double den = std::sqrt(std::pow(A-C,2) + std::pow(B,2));
+  assert(den != 0 && !std::isnan(den));
+  semimajor_axis = std::sqrt(num/(A+C-den));
+  semiminor_axis = std::sqrt(num/(A+C+den));
+
   // Compute angle from the x axis to semimajor axis direction
   // (See Eq 4.19 in [Christian, 2010])
   // NOTE: do NOT use `atan2` for phi calculation
-  if(B == 0) { // aligned with x- or y-axis
-    if(A < C)  // aligned with x-axis
-      phi = 0.0;
-    else
-      phi = M_PI_2;
-  } else {
-    if(A < C)
-      phi = 0.5*std::atan(B / (A - C));
-    else
-      phi = M_PI_2 + 0.5*std::atan(B / (A - C));
-  }
+  phi = (B == 0) ? 0.0 : 0.5*std::atan(B / (A - C));
+  if(A > C)
+    phi += M_PI_2;
   if(semimajor_axis < semiminor_axis) {
     std::swap(semimajor_axis, semiminor_axis);
     phi += M_PI_2;
   }
   std::array<double, GEOMETRIC_PARAM> geom;
-  geom = {semimajor_axis, semiminor_axis, xc, yc, phi};
+  // auto roundd = [](double val) {return std::round(val*1e3)/1e3;};
+  auto roundd = [](double val) {return val;};
+  geom = {
+    roundd(semimajor_axis), 
+    roundd(semiminor_axis), 
+    roundd(xc), 
+    roundd(yc), 
+    roundd(phi)};
   if(vectorContainsNaN(geom)) {
     std::cerr 
+      << __func__ << "-->\n"
       << "Semimajor axis : " << semimajor_axis << std::endl
       << "Semiminor axis : " << semiminor_axis << std::endl
       << "Center (x)     : " << xc << std::endl
@@ -447,6 +463,8 @@ std::array<double, IMPLICIT_PARAM> geom2Implicit( const double semimajor_axis,
 
   std::array<double, IMPLICIT_PARAM> coeff;
 
+  // Using conversion found in Christion 2020
+  // "Lunar crater identification in digital images"
   coeff.at(0) =  a2*sin_phi_2 + b2*cos_phi_2;
   coeff.at(1) =  2*(b2-a2)*sin_phi*cos_phi;
   coeff.at(2) =  a2*cos_phi_2 + b2*sin_phi_2;
@@ -489,6 +507,36 @@ void normalizeImplicitParameters(std::vector<double>& impl_params) {
   double vecNormRecip = 1/impl_params.at(5);
   std::transform(impl_params.begin(), impl_params.end(), impl_params.begin(),
                std::bind(std::multiplies<double>(), std::placeholders::_1, vecNormRecip));
+}
+
+std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vector2d>& points) {
+  std::array<double, IMPLICIT_PARAM> impl;
+  int n_pts = points.size();
+  if(n_pts < 5) {
+    impl.fill({std::nan("")});
+  }
+  Eigen::MatrixXd pts_cam(n_pts, 2);
+  std::vector<Eigen::Vector2d>::const_iterator it;
+  for (it = points.begin(); it != points.end(); it++) {
+    int index = std::distance(points.begin(), it);
+    pts_cam(index, Eigen::all) = *it;
+  }
+  Eigen::ArrayXd X = pts_cam.col(0);
+  Eigen::ArrayXd Y = pts_cam.col(1);
+  Eigen::MatrixXd Ax(n_pts, 5);
+  Ax << X.array().pow(2), X.array()*Y.array(), Y.array().pow(2), X, Y;
+  // std::cout << "Here is the Ax array:\n" << Ax << std::endl;
+  Eigen::MatrixXd bx = Eigen::MatrixXd::Ones(n_pts, 1);
+  // Ax.template Eigen::BDCSVD<Eigen::ComputeThinU | Eigen::ComputeThinV>().solve(bx);
+  Eigen::BDCSVD<Eigen::MatrixXd> SVD(Ax, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  Eigen::MatrixXd solu = SVD.solve(bx);
+  impl = {solu(0), solu(1), solu(2), solu(3), solu(4), -1.0};
+  Conic conic(impl);
+  // // auto sol = Ax.colPivHouseholderQr().solve(bx);
+  // Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(Ax.rows(), Ax.cols());
+  // cod.setThreshold(Eigen::Default);
+  // auto se = cod.compute(bx);
+  return impl;
 }
 
 /*********************************************************/
@@ -721,13 +769,13 @@ Eigen::Matrix3d canonical(const Eigen::Matrix3d& image_conic) {
 
   double a = std::sqrt(mu/lambda1);
   double b = std::sqrt(mu/lambda2);
-  // double a2 = std::pow(a,2);
-  // double b2 = std::pow(b,2);
-  // double A_prime = b2;
-  // double C_prime = a2;
-  // double F_prime = -a2*b2;
+  double a2 = std::pow(a,2);
+  double b2 = std::pow(b,2);
+  double A_prime = b2;
+  double C_prime = a2;
+  double F_prime = -a2*b2;
   Eigen::Matrix3d canonical = Eigen::Matrix3d::Identity();
-  canonical.diagonal() = Eigen::Vector3d(a, b, -1);
+  canonical.diagonal() = Eigen::Vector3d(A_prime, C_prime, F_prime);
   return canonical;
 }
 

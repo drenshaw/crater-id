@@ -12,18 +12,6 @@
 
 #define R_MOON 1737.4
 
-// #include <iomanip>
-
-/* // CATCH2 Testing Framework
-#include <catch2/catch_test_macros.hpp>
-#include <stdexcept>
-
-TEST_CASE( "Factorial of 0 is 1 (fail)", "[single-file]" ) {
-    REQUIRE( 1 == 1 );
-    std::cout << "Test1\n";
-}
-*/
-
 class QuadricTest : public testing::Test {
 protected:
   QuadricTest() {
@@ -276,7 +264,7 @@ void plotCraters(const Camera& camera, const std::vector<Quadric>& craters) {
     Eigen::Matrix3d locus = adjugate(conic_envelope);
     Conic conic(locus);
     
-    Conic con = crater.projectToConic(camera.getProjectionMatrix());
+    Conic con = crater.projectToImage(camera.getProjectionMatrix());
     if(camera.isInCameraFrame(crater.getLocation())) {
       conics.push_back(con);
     }
@@ -329,7 +317,7 @@ TEST_F(QuadricTest, ProjectQuadric) {
   cam->moveTo(pos);
   cam->pointTo(origin, -Eigen::Vector3d::UnitY());
   Eigen::MatrixXd proj_mtx = cam->getProjectionMatrix();
-  plotCraters(*cam, quadrics);
+  // plotCraters(*cam, quadrics);
 }
 
 TEST_F(QuadricTest, MakeSphere) {
@@ -349,11 +337,10 @@ TEST_F(QuadricTest, MakeSphere) {
     Quadric quad(lat , lon, radius, "");
     craters.push_back(quad);
   }
-  plotCraters(*cam, craters);
+  // plotCraters(*cam, craters);
 }
 
 TEST_F(QuadricTest, ProjectMoonCenter) {
-
   // Eigen::Vector3d pos(2.5e3, 0, 0);
   // // cam->moveCamera(pos);
   // cam->moveTo(pos);
@@ -385,12 +372,63 @@ TEST_F(QuadricTest, ProjectMoonCenter) {
   //   // cv::imshow("Projecting Moon to Camera", outImg); 
   //   // cv::waitKey(0); 
 
-  //   cam->moveCamera(rot);
+  //   cam->rotate(rot);
   // }
 }
 
+TEST_F(QuadricTest, QuadricPoints) {
+  int n_pts = 10;
+  std::vector<Eigen::Vector3d> pts_cam;
+  std::vector<Eigen::Vector2d> pxl_cam;
+  pts_cam.reserve(n_pts);
+  Quadric quad(35, 25, 300, "getpoints");
+  quad.getRimPoints(n_pts, pts_cam);
+  cam->setPosition(Eigen::Vector3d(3e3, 2.0e3, 1e3));
+  cam->pointTo(Eigen::Vector3d::Zero(), Eigen::Vector3d::UnitZ());
+  cv::Mat image = cam->getBlankCameraImage();
+  std::vector<Eigen::Vector2d> pts_pxl;
+  pts_pxl.reserve(n_pts);
+  Conic cc_from_proj = quad.projectToImage(cam->getProjectionMatrix());
+  std::cout << "toImage: " << cc_from_proj << std::endl;
+  // Eigen::Matrix3d conic_locus = cam->projectQuadricToLocus(quad.getLocus());
+  // Conic con;
+  // con.fromLocus(conic_locus);
+  // std::cout << con << std::endl;
+
+  for (auto pt_it = pts_cam.begin(); pt_it != pts_cam.end(); pt_it++) {
+    // int index = std::distance(pts_cam.begin(), pt_it);
+    Eigen::Vector2d pt_pxl;
+    cam->world2Pixel(*pt_it, pt_pxl);
+    pts_pxl.push_back(pt_pxl);
+  }
+  Conic cc_from_pts(pts_pxl);
+  EXPECT_EQ(cc_from_proj, cc_from_pts);
+  // Add the moon
+  Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
+  Eigen::Matrix3d moon_locus = cam->projectQuadricToLocus(sphere);
+  Conic moon(moon_locus);
+  std::cout << "Moon ellipse: " << moon << std::endl;
+  if(cam->isInCameraFrame(moon.getCenter())) {
+    viz::drawEllipse(image, moon, cv::viz::Color::gray());
+  }
+  else {
+    std::cout << "The Moon center is not in the image: " << moon.getCenter().transpose() << std::endl;
+  }
+  viz::draw3dAxes(image, *cam);
+  viz::drawPoints(image, pts_pxl, viz::CV_colors);
+  // Showing image inside a window 
+  double scaling = 0.5;
+  cv::Mat outImg;
+  cv::resize(image, outImg, cv::Size(), scaling, scaling);
+  viz::interactiveZoom(outImg);
+  // // cv::imshow("Points", outImg); 
+  // COpenCVWindowExt window ("Moon stuff"); 
+  // window.ImShow (outImg);
+  // // window.ImRead("/home/ndvr/Pictures/IMG_20230904_121221.jpg");
+  // cv::waitKey(0); 
+}
+
 void getQuadricNsewPts(const Quadric& quad, Eigen::Vector3d& n, Eigen::Vector3d& s, Eigen::Vector3d& e, Eigen::Vector3d& w) {
-// void getQuadricNsewPts(const Quadric& quad) {
   Eigen::Vector3d center = quad.getLocation();
   double radius = quad.getRadius();
   Eigen::Matrix3d T_e2m = getENUFrame(center);
@@ -399,9 +437,6 @@ void getQuadricNsewPts(const Quadric& quad, Eigen::Vector3d& n, Eigen::Vector3d&
   s_off = -n_off;
   e_off =  radius*T_e2m.col(0);
   w_off = -e_off;
-  // // std::cout << "Transform:\n" << T_e2m << std::endl;
-  // std::cout << "North offset: " << n_off.transpose() << std::endl;
-  // std::cout << "East  offset: " << e_off.transpose() << std::endl;
   n = center + n_off;
   s = center + s_off;
   e = center + e_off;
@@ -423,15 +458,15 @@ TEST_F(QuadricTest, ProjectCrater) {
   Eigen::Vector2d pixel;
   cv::Mat image = cam->getBlankCameraImage();
   cv::Mat outImg;
-  double scaling = 0.5;
+  // double scaling = 0.5;
   Eigen::AngleAxisd rot = Eigen::AngleAxisd(-M_PI / 36, Eigen::Vector3d::UnitX());
   for(int i = 0; i < 10; i++) {
     cam->resetImage(image);
     Eigen::MatrixXd proj = cam->getProjectionMatrix();
-    Eigen::Matrix3d locus = adjugate(proj * adjugate(zero.getLocus()) * proj.transpose());
+    Eigen::Matrix3d locus = zero.projectToImageLocus(proj);
     // Eigen::Matrix3d locus = cam->projectQuadricToLocus(zero.getLocus());
     // std::cout << "Count:\n" << zero.getLocus() << std::endl;
-    std::cout << "Locus:\n" << locus << std::endl;
+    // std::cout << "Locus:\n" << locus << std::endl;
     Conic crater(locus);
     Eigen::Vector2d pixel_n, pixel_s, pixel_e, pixel_w;
     cam->world2Pixel(n, pixel_n);
@@ -446,11 +481,14 @@ TEST_F(QuadricTest, ProjectCrater) {
     cv::drawMarker(image, cv::Point(pixel_e[0], pixel_e[1]), cv::viz::Color::orange());
     cv::drawMarker(image, cv::Point(pixel_w[0], pixel_w[1]), cv::viz::Color::blue());
     // Showing image inside a window 
-    cv::resize(image, outImg, cv::Size(), scaling, scaling);
-    cv::imshow("Projecting Moon to Camera", outImg); 
-    cv::waitKey(0); 
+    // cv::resize(image, outImg, cv::Size(), scaling, scaling);
+    // COpenCVWindowExt window ("Src"); 
+    // // window.ImShow (outImg);
+    // window.ImRead("/home/ndvr/Pictures/IMG_20230904_121221.jpg");
+    // cv::imshow("Projecting Moon to Camera", outImg); 
+    // cv::waitKey(0); 
 
-    cam->moveCamera(rot);
+    cam->rotate(rot);
   }
 }
 
@@ -465,6 +503,23 @@ TEST_F(QuadricTest, Reprojection) {
   getQuadricNsewPts(ten, n, s, e, w);
   getQuadricNsewPts(twenty, n, s, e, w);
   getQuadricNsewPts(thirty, n, s, e, w);
+}
+
+TEST_F(QuadricTest, ProjectionMatrix) {
+  cam->resetCameraState();
+  Eigen::Vector3d move1(10,20,30);
+  cam->move(move1);
+  cam->pointTo(Eigen::Vector3d::Zero(), Eigen::Vector3d::UnitZ());
+  Eigen::Quaterniond att = cam->getAttitude();
+  Eigen::Vector3d pos = cam->getPosition();
+  Eigen::MatrixXd ext(3,4);
+
+  ext.topLeftCorner(3,3) = Eigen::Matrix3d::Identity();
+  ext.topRightCorner(3,1) = -pos;
+  ext = att.toRotationMatrix() * ext;
+  // Eigen::AffineCompact3d proj;
+  std::cout << "Transformation matrix:\n" << att.toRotationMatrix() << std::endl;
+  std::cout << "Extrinsic matrix:\n" << ext << std::endl;
 }
 
 TEST_F(QuadricTest, ParameterExtraction) {
