@@ -42,7 +42,7 @@ protected:
 
 };
 
-TEST_F(NavigationTest, ConicBackprojection) {
+TEST_F(NavigationTest, ShiuConicBackprojection) {
   // Camera cam;
   // Quadric quad(-30,0,100,"backprojection");
   // Eigen::Vector3d location = Eigen::Vector3d::Zero();
@@ -72,90 +72,36 @@ TEST_F(NavigationTest, ConicBackprojection) {
   Conic cc(conic_locus);
   std::cout << cc << std::endl;
   Shiu::conicBackprojection(conic_locus, quadric_default->getRadius(), centers, normals);
-  // conicBackprojection(conic_locus, quad.getRadius(), normal, dist);
-  std::cout << "Conic center1: " << centers.at(0).transpose() << " | normal1: " << normals.at(0).transpose() << std::endl;
-  std::cout << "Conic center2: " << centers.at(1).transpose() << " | normal2: " << normals.at(1).transpose() << std::endl;
-}
-
-void conicBackprojection( const Eigen::Matrix3d& conic, const double radius, 
-                          std::array<Eigen::Vector3d, 2>& centers, 
-                          std::array<Eigen::Vector3d, 2>& normals) {
-  // Applying the transforms found in Christian white paper
-  // "Perspective projection of ellipses and ellipsoids with applications to spacecraft navigation"
-  
-  // Eigenvalues and eigenvectors
-  Eigen::Vector3d eigenval;
-  Eigen::Matrix3d eigenvec;
-  if(!getEigenstuffConic(conic, eigenval, eigenvec)) {
-    std::cerr << __func__ << "-> backprojection eigenstuff failed.\n";
-    return;
-  }
-
-  double lambda3, lambda2, lambda1;
-  Eigen::Vector3d g1, g2, u3, u2, u1;
-  int mu_d_idx;  
-
-  // Find the eigenvalue with the different sign
-  // Eqns 3.1.2.5 - 3.1.2.7
-  std::vector<int> indices = {0, 1, 2};
-  Shiu::getBackprojectionLambda1(eigenval, eigenvec, mu_d_idx, u3);
-  lambda3 = eigenval(mu_d_idx);
-  std::cout << "Eigenvalues: " << eigenval.transpose() << std::endl;
-  std::cout << "Eigenvectors:\n" << eigenvec << std::endl;
-  indices.erase(indices.begin() + mu_d_idx);
-  Eigen::Vector2d rem_eigenval = eigenval(indices);
-  Eigen::MatrixXd rem_eigenvec = eigenvec(Eigen::all, indices);
-
-  // Get remaining lambdas
-  // Eqns 3.1.2.8 - 3.1.2.11
-  Shiu::getBackprojectionLambda2(rem_eigenval, rem_eigenvec, lambda1, lambda2, u2);
-  u1 = u2.cross(u3);
-  Eigen::Matrix3d diagg;
-  diagg << u1, u2, u3;
-  std::cout << "Diagonalized:\n" << diagg.transpose() * conic * diagg << std::endl;
-  double kx2 = 1/std::abs(lambda1);
-  double ky2 = 1/std::abs(lambda2);
-  double kz2 = 1/std::abs(lambda3);
-  double alpha = (ky2 - kx2) / (ky2 + kz2);
-  double z_prime = 1/(1+std::sqrt(alpha));
-  double kxz = std::sqrt(kx2/kz2);
-  double Xi = kxz/(1-alpha);
-  double Zi = 1/(1-alpha);
-  double dist = std::sqrt(std::pow(kxz,2)+alpha)/(1-alpha);
-  std::cout << "X: " << Xi << " | Z: " << Zi << " | dist: " << dist << std::endl;
-
-  // Eqn 3.1.3.6
-  // double dist = getBackprojectionDistance(lambda1, lambda2, lambda3, radius);
-  Shiu::getBackprojectionCenter(radius, lambda1, lambda2, lambda3, u1, u3, centers);
-  Shiu::getBackprojectionNormal(lambda1, lambda2, lambda3, u1, u3, normals);
-  // Eigen::Vector3d center1, center2, normal1, normal2;
-  // center1 = centers.at(0);
-  // center2 = centers.at(1);
-  // normal1 = normals.at(0);
-  // normal2 = normals.at(1);
-  // std::cout << "Center1: " << center1.transpose() << " | Distance: " << center1.norm() << std::endl;
-  // std::cout << "Normal1: " << normal1.transpose() << std::endl;
-  // std::cout << "Center2: " << center2.transpose() << " | Distance: " << center2.norm() << std::endl;
-  // std::cout << "Normal2: " << normal2.transpose() << std::endl;
 }
 
 TEST_F(NavigationTest, ChristianBackprojection) {
   // Camera cam;
   // Quadric quad(-30,0,100,"backprojection");
   // Eigen::Vector3d location = Eigen::Vector3d::Zero();
-  Eigen::Vector3d look_here = -0*Eigen::Vector3d::UnitZ();
+  Eigen::Vector3d look_here = -1e2*Eigen::Vector3d::UnitZ();
   Eigen::Vector3d up_vector = Eigen::Vector3d::UnitZ();
   // cam->resetCameraState();
   cam->moveX(1e4);
+  cam->moveY(-1e3);
+  cam->moveZ(-2e3);
   cam->pointTo(look_here, up_vector);
   
   // Eigen::MatrixXd proj = cam->getProjectionMatrix();
   Eigen::MatrixXd extrinsic = cam->getExtrinsicMatrix();
+
+  Eigen::Matrix3d att = cam->getAttitudeMatrix();
+  Eigen::Vector3d centerWrtCamWorld = quadric_default->getLocation() - cam->getPosition();
+  Eigen::Vector3d centerWrtCam = att * centerWrtCamWorld;
+  double dist2center = (centerWrtCamWorld).norm();
+  Eigen::Vector3d normal_test = att * quadric_default->getNormal();
+  std::cout << "---\n---Truth Data---\n";
+  std::cout << "---DISTANCE TO QUADRIC CENTER: " << dist2center << std::endl;
+  std::cout << "---CAMERA TO QUADRIC CENTER: " << centerWrtCam.transpose() << std::endl;
+  std::cout << "---QUADRIC NORMAL WRT CAMERA: " << normal_test.transpose() << std::endl;
   
   std::array<Eigen::Vector3d, 2> centers, normals;
   Eigen::Vector3d center1, center2, normal1, normal2;
   // double dist;
-  // double dist2center = (quad.getLocation() - cam->getPosition()).norm();
   // Eigen::Matrix3d conic_locus = quad.projectToPlaneLocus(extrinsic);
   Eigen::Matrix3d conic_locus = quadric_default->projectToPlaneLocus(extrinsic);
   conicBackprojection(conic_locus, quadric_default->getRadius(), centers, normals);
@@ -164,12 +110,15 @@ TEST_F(NavigationTest, ChristianBackprojection) {
   center2 = centers.at(1);
   normal1 = normals.at(0);
   normal2 = normals.at(1);
-  Eigen::Vector3d normal1_cam = cam->getAttitudeMatrix().inverse() * normal1;
-  Eigen::Vector3d normal2_cam = cam->getAttitudeMatrix().inverse() * normal2;
-  std::cout << "Normal (cam) 1: " << normal1_cam.transpose() << std::endl;
-  std::cout << "Normal (cam) 2: " << normal2_cam.transpose() << std::endl;
-  std::cout << "Angle 1: " << rad2deg(std::acos(q_normal.dot(-normal1_cam))) << std::endl;
-  std::cout << "Angle 2: " << rad2deg(std::acos(q_normal.dot(-normal2_cam))) << std::endl;
+  std::cout << "+++\n+++Calculations+++\n";
+  std::cout << "Center (cam) 1: " << center1.transpose() << std::endl;
+  std::cout << "Center (cam) 2: " << center2.transpose() << std::endl;
+  std::cout << "Normal (cam) 1: " << normal1.transpose() << std::endl;
+  std::cout << "Normal (cam) 2: " << normal2.transpose() << std::endl;
+  std::cout << "Angle 1: " << rad2deg(std::acos(q_normal.dot(-normal1))) << std::endl;
+  std::cout << "Angle 2: " << rad2deg(std::acos(q_normal.dot(-normal2))) << std::endl;
+  ASSERT_TRUE(centerWrtCam.isApprox(center1, 1e-3) || centerWrtCam.isApprox(center2, 1e-3));
+  ASSERT_TRUE( normal_test.isApprox(normal1, 1e-3) ||  normal_test.isApprox(normal2, 1e-3));
   // conicBackprojection(conic_locus, quad.getRadius(), normal, dist);
 }
 

@@ -376,58 +376,6 @@ TEST_F(QuadricTest, ProjectMoonCenter) {
   // }
 }
 
-// void onMouse(int event, int x, int y, int, void*) { if (event == cv::EVENT_LBUTTONDOWN) { dragging = true; prev_pt = cv::Point(x, y); } else if (event == cv::EVENT_LBUTTONUP) { dragging = false; } else if (event == cv::EVENT_MOUSEMOVE && dragging) { cv::Point delta = cv::Point(x, y) - prev_pt; roi.x -= delta.x / scale; roi.y -= delta.y / scale; prev_pt = cv::Point(x, y); cv::resize(img, temp_img, cv::Size(), scale, scale); cv::imshow("Interactive Zoom", temp_img(roi)); } else if (event == cv::EVENT_MOUSEWHEEL) { if (cv::getMouseWheelDelta(event) > 0) { scale *= 1.1; } else { scale *= 0.9; } roi = cv::Rect2f(roi.x, roi.y, img.cols / scale, img.rows / scale); cv::resize(img, temp_img, cv::Size(), scale, scale); cv::imshow("Interactive Zoom", temp_img(roi)); } }
-
-void interactiveZoom(cv::Mat& image) {
-
-    namedWindow("Image: Press 'x' to close", cv::WINDOW_NORMAL);
-    imshow("Image: Press 'x' to close", image);
-
-    int zoomFactor = 1;
-    int x = 0;
-    int y = 0;
-
-    while (true) {
-        int key = cv::waitKey(1);
-
-        if (key == 'x') {
-            break;
-        } else if (key == 'q') {
-            zoomFactor += 1;
-        } else if (key == 'e' && zoomFactor > 1) {
-            zoomFactor -= 1;
-        } else if (key == 'a') {
-            x -= 10; 
-        } else if (key == 'd') {
-            x += 10;
-        } else if (key == 'w') {
-            y -= 10;
-        } else if (key == 's') {
-            y += 10;
-        }
-
-        // Make sure the zoom center is within the image bounds
-        x = std::max(0, std::min(x, image.cols - 1));
-        y = std::max(0, std::min(y, image.rows - 1));
-
-        // Calculate the zoom region
-        int zoomWidth = image.cols / zoomFactor;
-        int zoomHeight = image.rows / zoomFactor;
-        int x1 = std::max(0, x - zoomWidth / 2);
-        int y1 = std::max(0, y - zoomHeight / 2);
-        int x2 = std::min(image.cols, x1 + zoomWidth);
-        int y2 = std::min(image.rows, y1 + zoomHeight);
-
-        // Extract and resize the zoom region
-        cv::Mat zoomedImage = image(cv::Rect(x1, y1, x2 - x1, y2 - y1));
-        resize(zoomedImage, zoomedImage, cv::Size(image.cols, image.rows), 0, 0, cv::INTER_LINEAR);
-
-        imshow("Image: Press 'x' to close", zoomedImage);
-    }
-
-    cv::destroyAllWindows();
-}
-
 TEST_F(QuadricTest, QuadricPoints) {
   int n_pts = 10;
   std::vector<Eigen::Vector3d> pts_cam;
@@ -472,7 +420,7 @@ TEST_F(QuadricTest, QuadricPoints) {
   double scaling = 0.5;
   cv::Mat outImg;
   cv::resize(image, outImg, cv::Size(), scaling, scaling);
-  interactiveZoom(outImg);
+  viz::interactiveZoom(outImg);
   // // cv::imshow("Points", outImg); 
   // COpenCVWindowExt window ("Moon stuff"); 
   // window.ImShow (outImg);
@@ -510,7 +458,7 @@ TEST_F(QuadricTest, ProjectCrater) {
   Eigen::Vector2d pixel;
   cv::Mat image = cam->getBlankCameraImage();
   cv::Mat outImg;
-  double scaling = 0.5;
+  // double scaling = 0.5;
   Eigen::AngleAxisd rot = Eigen::AngleAxisd(-M_PI / 36, Eigen::Vector3d::UnitX());
   for(int i = 0; i < 10; i++) {
     cam->resetImage(image);

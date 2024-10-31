@@ -29,58 +29,69 @@ bool getEigenstuffConic(const Eigen::Matrix3d& conic, Eigen::Vector3d& eigenval,
 
 namespace Christian {
 
-void getBackprojectionRemainingLambdas( const std::vector<double>& eigenvalues,
-                                            const Eigen::Matrix3d& eigenvectors,
-                                            const Eigen::Vector3d e3,
-                                            double& lambda1, double& lambda2,
-                                            Eigen::Vector3d& e1, Eigen::Vector3d& e2) {
-  double omega1, omega2;
-  Eigen::Vector3d g1, g2;
-  // Get remaining lambdas
-  // Eqns 3.1.2.8 - 3.1.2.11
-  
-  Eigen::Vector2d eig;
-  eig << eigenvalues.at(0), eigenvalues.at(1);
-  Eigen::Vector2d::Index maxRow,maxCol;
-  eig.maxCoeff(&maxRow, &maxCol);
-  std::cout << "Max row: " << maxRow << ", max col: " << maxCol << std::endl;
-  int indexMin = 0;
-  int indexMax = 1;
-  omega1 = eigenvalues.at(indexMax);
-  omega2 = eigenvalues.at(indexMin);
-  g1 = eigenvectors.col(indexMax);
-  g2 = eigenvectors.col(indexMin);
-  if(omega1 == omega2) {
-    std::cerr << "Not confident in handling right cones yet!\n";
-  }
-  if(std::abs(omega1) < std::abs(omega2)) {
-    lambda2 = omega1;
-    lambda1 = omega2;
-    e2 = g1;
-  }
-  else {
-    lambda2 = omega2;
-    lambda1 = omega1;
-    e2 = g2;
-  }
-  e1 = e2.cross(e3);
+void getBackprojectedCenter(const double radius, const std::array<double, 3>& lambdas,
+                            const Eigen::Matrix3d& canonizing, 
+                            std::array<Eigen::Vector3d, 2>& centers) {
+
+  double lambda1 = lambdas.at(0);
+  double lambda2 = lambdas.at(1);
+  double lambda3 = lambdas.at(2);
+  double kx2 = 1/std::abs(lambda1);
+  double ky2 = 1/std::abs(lambda2);
+  double kz2 = 1/std::abs(lambda3);
+  double alpha = (ky2 - kx2) / (ky2 + kz2);
+  double kxz2 = kx2/kz2;
+  double sqrtAlphaPlusKxz = std::sqrt(alpha + kxz2);
+  Eigen::Vector3d center_posX, center_negX, center_pos, center_neg;
+  double scalarR = radius/sqrtAlphaPlusKxz;
+  center_posX <<  std::sqrt(alpha*kxz2), 0, 1;
+  center_negX << -std::sqrt(alpha*kxz2), 0, 1;
+  center_posX *= scalarR;
+  center_negX *= scalarR;
+  center_pos  = canonizing * center_posX;
+  center_neg  = canonizing * center_negX;
+  centers = {center_pos, center_neg};
+}
+
+void getBackprojectedNormal(const std::array<double, 3>& lambdas,
+                            const Eigen::Matrix3d& canonizing,
+                            std::array<Eigen::Vector3d, 2>& normals) {
+
+  double lambda1 = lambdas.at(0);
+  double lambda2 = lambdas.at(1);
+  double lambda3 = lambdas.at(2);  
+  // X-axis corresponds to semiminor (smaller) axis
+  double kx2 = 1/std::abs(lambda1);
+  double ky2 = 1/std::abs(lambda2);
+  double kz2 = 1/std::abs(lambda3);
+  double alpha = (ky2 - kx2) / (ky2 + kz2);        
+  Eigen::Vector3d normal_posX, normal_negX, normal_pos, normal_neg;
+  double kxz2 = kx2/kz2;
+  double kxz = std::sqrt(kxz2);
+  double sqrtAlphaPlusKxz = std::sqrt(alpha + kxz2);
+  double scalarN = 1/sqrtAlphaPlusKxz;
+  normal_posX <<  std::sqrt(alpha), 0, -kxz;
+  normal_negX << -std::sqrt(alpha), 0, -kxz;
+  normal_posX *= scalarN;
+  normal_negX *= scalarN;
+  normal_pos  = canonizing * normal_posX;
+  normal_neg  = canonizing * normal_negX;
+  normals = {normal_pos, normal_neg};
 }
 
 void conicBackprojection( const Eigen::Matrix3d& conic, const double radius, 
-                              std::array<Eigen::Vector3d, 2>& centers, 
-                              std::array<Eigen::Vector3d, 2>& normals) {
+                          std::array<Eigen::Vector3d, 2>& centers, 
+                          std::array<Eigen::Vector3d, 2>& normals) {
   // Applying the transforms found in Christian white paper
   // "Perspective projection of ellipses and ellipsoids with applications to spacecraft navigation"
   
+  // Eigenvalues and eigenvectors
   Eigen::Vector3d eigenval;
   Eigen::Matrix3d eigenvec;
   if(!getEigenstuffConic(conic, eigenval, eigenvec)) {
     std::cerr << __func__ << "-> backprojection eigenstuff failed.\n";
     return;
   }
-  
-  // Store eigenvalues in a vector for easy manipulation
-  std::vector<double> eigenvalues(eigenval.data(), eigenval.data() + eigenval.size());
 
   double lambda3, lambda2, lambda1;
   Eigen::Vector3d g1, g2, u3, u2, u1;
@@ -91,6 +102,8 @@ void conicBackprojection( const Eigen::Matrix3d& conic, const double radius,
   std::vector<int> indices = {0, 1, 2};
   Shiu::getBackprojectionLambda1(eigenval, eigenvec, mu_d_idx, u3);
   lambda3 = eigenval(mu_d_idx);
+  // std::cout << "Eigenvalues: " << eigenval.transpose() << std::endl;
+  // std::cout << "Eigenvectors:\n" << eigenvec << std::endl;
   indices.erase(indices.begin() + mu_d_idx);
   Eigen::Vector2d rem_eigenval = eigenval(indices);
   Eigen::MatrixXd rem_eigenvec = eigenvec(Eigen::all, indices);
@@ -99,19 +112,12 @@ void conicBackprojection( const Eigen::Matrix3d& conic, const double radius,
   // Eqns 3.1.2.8 - 3.1.2.11
   Shiu::getBackprojectionLambda2(rem_eigenval, rem_eigenvec, lambda1, lambda2, u2);
   u1 = u2.cross(u3);
-  // // Eqn 3.1.3.6
-  // // double dist = getBackprojectionDistance(lambda1, lambda2, lambda3, radius);
-  // getBackprojectionCenter(radius, lambda1, lambda2, lambda3, u1, u3, centers);
-  // getBackprojectionNormal(lambda1, lambda2, lambda3, u1, u3, normals);
-  // Eigen::Vector3d center1, center2, normal1, normal2;
-  // center1 = centers.at(0);
-  // center2 = centers.at(1);
-  // normal1 = normals.at(0);
-  // normal2 = normals.at(1);
-  // std::cout << "Center1: " << center1.transpose() << " | Distance: " << center1.norm() << std::endl;
-  // std::cout << "Normal1: " << normal1.transpose() << std::endl;
-  // std::cout << "Center2: " << center2.transpose() << " | Distance: " << center2.norm() << std::endl;
-  // std::cout << "Normal2: " << normal2.transpose() << std::endl;
+  Eigen::Matrix3d canonizing;
+  canonizing << u1, u2, u3;
+
+  std::array<double, 3> lambdas = {lambda1, lambda2, lambda3};
+  getBackprojectedCenter(radius, lambdas, canonizing, centers);
+  getBackprojectedNormal(lambdas, canonizing, normals);
 }
 
 } // end namespace Christian
@@ -135,7 +141,8 @@ void getBackprojectionLambda1(const Eigen::Vector3d& eigenvalues,
                               int& mu_d_idx,
                               Eigen::Vector3d& e3) {
   // Find the eigenvalue with the different sign
-  // Eqns 3.1.2.5 - 3.1.2.7
+  // Shiu Eqns 3.1.2.5 - 3.1.2.7
+  // Christian Eqn 58
   Eigen::Vector3d f_d;
   std::vector<double> eigenval(eigenvalues.data(), eigenvalues.data() + eigenvalues.size());
   mu_d_idx = findOppositeSignedValueIndex(eigenval);
@@ -266,11 +273,9 @@ void conicBackprojection( const Eigen::Matrix3d& conic, const double radius,
   // Applying the concept of the canonical frame from Shiu:
   // "3D loc. of circular and spherical features by monocular ... vision"
   // Eigenvalues and eigenvectors
-  
-  // Eigenvalues and eigenvectors
-  Eigen::Vector3d eigenval;
-  Eigen::Matrix3d eigenvec;
-  if(!getEigenstuffConic(conic, eigenval, eigenvec)) {
+  Eigen::Vector3d eigenvalues;
+  Eigen::Matrix3d eigenvectors;
+  if(!getEigenstuffConic(conic, eigenvalues, eigenvectors)) {
     std::cerr << __func__ << "-> backprojection eigenstuff failed.\n";
     return;
   }
@@ -279,16 +284,16 @@ void conicBackprojection( const Eigen::Matrix3d& conic, const double radius,
   Eigen::Vector3d g1, g2, u3, u2, u1;
   int mu_d_idx;  
 
-  // Find the eigenvalue with the different sign
+  // Find the eigenvalue with the different sign (--+ or -++)
   // Eqns 3.1.2.5 - 3.1.2.7
   std::vector<int> indices = {0, 1, 2};
-  getBackprojectionLambda1(eigenval, eigenvec, mu_d_idx, u3);
-  lambda3 = eigenval(mu_d_idx);
-  std::cout << "Eigenvalues: " << eigenval.transpose() << std::endl;
-  std::cout << "Eigenvectors:\n" << eigenvec << std::endl;
+  getBackprojectionLambda1(eigenvalues, eigenvectors, mu_d_idx, u3);
+  lambda3 = eigenvalues(mu_d_idx);
+  std::cout << "Eigenvalues: " << eigenvalues.transpose() << std::endl;
+  std::cout << "Eigenvectors:\n" << eigenvectors << std::endl;
   indices.erase(indices.begin() + mu_d_idx);
-  Eigen::Vector2d rem_eigenval = eigenval(indices);
-  Eigen::MatrixXd rem_eigenvec = eigenvec(Eigen::all, indices);
+  Eigen::Vector2d rem_eigenval = eigenvalues(indices);
+  Eigen::MatrixXd rem_eigenvec = eigenvectors(Eigen::all, indices);
 
   // Get remaining lambdas
   // Eqns 3.1.2.8 - 3.1.2.11

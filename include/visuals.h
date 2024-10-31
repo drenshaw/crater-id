@@ -80,7 +80,8 @@ bool getEndpointsFromLine(const cv::Mat& image, const Eigen::Vector3d& my_line, 
 void get3dAxes( const Camera& cam, 
                 Eigen::Vector2d& origin, Eigen::Vector2d& x_axis, 
                 Eigen::Vector2d& y_axis, Eigen::Vector2d& z_axis);
-void draw3dAxes(cv::Mat& image, const Camera& cam);                
+void draw3dAxes(cv::Mat& image, const Camera& cam);
+void interactiveZoom(cv::Mat& image);
 /* VTK */
 // #include <cstdlib>
 // #include <vtkActor.h>
