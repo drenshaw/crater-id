@@ -1,7 +1,12 @@
+#include "quadrics.h"
+
 #include <eigen3/Eigen/Geometry>
 #include <numeric>
 
 
+/*********************************************************/
+/***************  Single Crater Functions  ***************/
+/*********************************************************/
 int findOppositeSignedValueIndex(const std::vector<double>& vec);
 bool getEigenstuffConic(const Eigen::Matrix3d& conic, Eigen::Vector3d& eigenval, Eigen::Matrix3d& eigenvec);
 
@@ -65,3 +70,29 @@ void conicBackprojection( const Eigen::Matrix3d& conic_locus, const double radiu
                           Eigen::Vector3d& normal, double& dist);
 Eigen::Matrix3d canonical(const Eigen::Matrix3d& image_conic);
 }
+
+/*********************************************************/
+/*************** Multiple Crater Functions ***************/
+/*********************************************************/
+uint chooseSupportingPlanes(const double angle, 
+                            const std::array<Eigen::Vector3d, 2>& normals1, 
+                            const std::array<Eigen::Vector3d, 2>& normals2);
+
+void selectSupportingPlaneIndex(const uint index, uint& index_a, uint& index_b);
+
+void selectSupportingPlaneNormals(const uint index,
+                                  const std::array<Eigen::Vector3d, 2>& normals1,
+                                  const std::array<Eigen::Vector3d, 2>& normals2,
+                                  Eigen::Vector3d& normal1,
+                                  Eigen::Vector3d& normal2);
+
+void selectSupportingPlaneCenters(const uint index,
+                                  const std::array<Eigen::Vector3d, 2>& centers1,
+                                  const std::array<Eigen::Vector3d, 2>& centers2,
+                                  Eigen::Vector3d& center1,
+                                  Eigen::Vector3d& center2);
+
+void reprojectLociiToQuadrics(const std::vector<Quadric>& quadrics,
+                              const std::vector<Eigen::Matrix3d>& locii,
+                              std::vector<Eigen::Vector3d>& centers,
+                              std::vector<Eigen::Vector3d>& normals);

@@ -236,6 +236,25 @@ std::vector<uint> getRange(std::vector<T> vec) {
   return vec_range;
 }
 
+template<typename Iterator>
+uint getIndex(const Iterator& vec, const Iterator& it) {
+  return std::distance(vec, it);
+}
+
+template<typename T>
+bool allEqualVector(std::vector<T>& vec) {
+  return std::adjacent_find(
+    vec.begin(), vec.end(), std::not_equal_to<>() ) == vec.end();
+}
+
+template<typename T>
+std::vector<T> copyAllBut(const std::vector<T>& vec, const T& index) {
+    std::vector<T> allButIndex;
+    std::copy_if(vec.begin(), vec.end(), std::back_inserter(allButIndex), 
+             [index](const T& t) { return t != index; });
+  return allButIndex;
+}
+
 // TODO: Use LLHtoECEF instead for the time being for consistency
 // TODO: Sometimes, this and LLHtoECEF get negatives of each other
 template <typename T>

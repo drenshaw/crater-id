@@ -1,5 +1,7 @@
 #include "visuals.h"
 #include "camera.h"
+#include "quadrics.h"
+
 #include "opencv2/core/types.hpp"
 #include "opencv2/viz/types.hpp"
 #include <iostream>
@@ -59,6 +61,33 @@ void drawEllipses(cv::Mat& image, const std::vector<Conic>& conics, const std::v
     int index = std::distance(conics.begin(), conic_it);
     drawEllipse(image, *conic_it, CV_colors.at(index));
   }
+}
+
+void drawEllipses(cv::Mat& image, const Camera& camera, const std::vector<Quadric>& quadrics, const std::vector<cv::Scalar>& colors) {
+  assert(quadrics.size() <= colors.size());
+  std::vector<Conic> conics;
+  conics.reserve(quadrics.size());
+  Eigen::MatrixXd proj = camera.getProjectionMatrix();
+  for(const Quadric& quadric : quadrics) {
+    Conic conic(quadric.projectToImageLocus(proj));
+    // conic.fromLocus(camera.projectQuadricToLocus(quadric.getLocus()));
+    conics.push_back(conic);
+  }
+  Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
+  Eigen::Matrix3d moon_locus = camera.projectQuadricToLocus(sphere);
+  Conic moon(moon_locus);
+  // std::cout << "Moon ellipse: " << moon << std::endl;
+  if(camera.isInCameraFrame(moon.getCenter())) {
+    viz::drawEllipse(image, moon, cv::viz::Color::gray());
+  }
+  else {
+    std::cout << "The Moon center is not in the image: " << moon.getCenter().transpose() << std::endl;
+  }
+  // for (auto conic_it = conics.begin(); conic_it != conics.end(); ++conic_it) {
+  //   int index = std::distance(conics.begin(), conic_it);
+  //   drawEllipse(image, *conic_it, CV_colors.at(index));
+  // }
+  drawEllipses(image, conics, colors);
 }
 
 void drawEllipses(const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors) {

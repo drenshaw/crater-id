@@ -3,6 +3,7 @@
 
 #include "conics.h"
 #include "camera.h"
+#include "quadrics.h"
 
 template <typename Iterator>
     void advance_all (Iterator & iterator) {
@@ -68,6 +69,7 @@ const std::vector<cv::Scalar> CV_colors = {
 void drawEllipse( cv::Mat& image, const Conic& conic, const cv::Scalar& color=cv::Scalar(0, 255, 255));
 void drawEllipse( const Conic& conic, const cv::Scalar& color=cv::Scalar(0, 255, 255));
 void drawEllipses(cv::Mat& image, const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors={});
+void drawEllipses(cv::Mat& image, const Camera& camera, const std::vector<Quadric>& quadrics, const std::vector<cv::Scalar>& colors={});
 void drawEllipses(const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors={});
 void drawLine(cv::Mat& image, const Eigen::Vector3d& my_line, const std::string& text, const cv::Scalar& my_color);
 void drawLine(const Eigen::Vector3d& my_line, const std::string& text, const cv::Scalar& my_color);

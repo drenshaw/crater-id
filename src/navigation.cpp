@@ -1,10 +1,15 @@
 #include "navigation.h"
+#include "quadrics.h"
+#include "math_utils.h"
 
 #include <eigen3/Eigen/Dense>
 #include <vector>
 #include <numeric>
 #include <iostream>
 
+/*********************************************************/
+/***************  Single Crater Functions  ***************/
+/*********************************************************/
 int findOppositeSignedValueIndex(const std::vector<double>& vec) {
   double sign_val = std::accumulate(
     begin(vec), end(vec), 1.0, std::multiplies<double>());
@@ -413,4 +418,103 @@ Eigen::Matrix3d canonical(const Eigen::Matrix3d& image_conic) {
 }
 
 } // end namespace Kanatani
+
+/*********************************************************/
+/*************** Multiple Crater Functions ***************/
+/*********************************************************/
+uint chooseSupportingPlanes(const double angle, 
+                            const std::array<Eigen::Vector3d, 2>& normals1, 
+                            const std::array<Eigen::Vector3d, 2>& normals2) {
+  // Kanatani calls the plane in the camera frame containing the 3d circle
+  // the "supporting plane"
+  double angle00 = getAngleBetweenVectors(normals1.at(0), normals2.at(0));
+  double angle01 = getAngleBetweenVectors(normals1.at(0), normals2.at(1));
+  double angle10 = getAngleBetweenVectors(normals1.at(1), normals2.at(0));
+  double angle11 = getAngleBetweenVectors(normals1.at(1), normals2.at(1));
+  // TODO: Getting issues when the cone is circular (i.e., crater is perpendicular to us)
+  Eigen::Vector4d angles;
+  angles << angle00, angle01, angle10, angle11;
+  Eigen::Vector4d d_angles = angles.array() - angle;
+  Eigen::Vector4d absd_angles = d_angles.cwiseAbs();
+  Eigen::Vector4d::Index min_idx;
+  absd_angles.minCoeff(&min_idx);
+  if(absd_angles(min_idx) > 1e-8) {
+    std::cout << "Angles differences are too large: " << d_angles(min_idx) 
+              << " @ index " << min_idx << " | " 
+              << d_angles.transpose() << std::endl;
+    // TODO: This is a great choice for std::optional
+    return 5;
+  }
+  return min_idx;
+}
+
+void selectSupportingPlaneIndex(const uint index, uint& index_a, uint& index_b) {
+  index_a = index / 2;
+  index_b = index % 2;
+}
+
+void selectSupportingPlaneNormals(const uint index,
+                                  const std::array<Eigen::Vector3d, 2>& normals1,
+                                  const std::array<Eigen::Vector3d, 2>& normals2,
+                                  Eigen::Vector3d& normal1,
+                                  Eigen::Vector3d& normal2) {
+  uint index_a, index_b;
+  selectSupportingPlaneIndex(index, index_a, index_b);
+  normal1 = normals1.at(index_a);
+  normal2 = normals2.at(index_b);
+}
+
+void selectSupportingPlaneCenters(const uint index,
+                                  const std::array<Eigen::Vector3d, 2>& centers1,
+                                  const std::array<Eigen::Vector3d, 2>& centers2,
+                                  Eigen::Vector3d& center1,
+                                  Eigen::Vector3d& center2) {
+  selectSupportingPlaneNormals(index, centers1, centers2, center1, center2);
+}
+
+void reprojectLociiToQuadrics(const std::vector<Quadric>& quadrics,
+                              const std::vector<Eigen::Matrix3d>& locii,
+                              std::vector<Eigen::Vector3d>& centers,
+                              std::vector<Eigen::Vector3d>& normals) {
+  uint q_size = quadrics.size();
+  centers.clear();
+  normals.clear();
+  std::vector<uint> indices;
+  indices.reserve(q_size - 1);
+  std::vector<Eigen::Matrix3d>::const_iterator it;
+  for (it = locii.begin(); it != locii.end(); it++) {
+    int index = getIndex(locii.begin(), it);
+    Quadric quad = quadrics.at(index);
+    double radius1 = quad.getRadius();
+    std::array<Eigen::Vector3d, 2> centers1, normals1;
+    Christian::conicBackprojection(*it, radius1, centers1, normals1);
+
+    // Now remove the current quadric and locus; put them in separate vector
+    std::vector<Quadric> other_quadrics = copyAllBut(quadrics, quad);
+    std::vector<Eigen::Matrix3d> other_locii = copyAllBut(locii, *it);
+    Eigen::Vector3d center1, center2, normal1, normal2;
+
+    std::vector<Eigen::Matrix3d>::iterator it, it_other;
+    for(it_other = other_locii.begin(); it_other != other_locii.end(); it_other++) {
+      int index_other = getIndex(other_locii.begin(), it_other);
+      Quadric other_quadric = other_quadrics.at(index_other);
+      double radius2 = other_quadric.getRadius();
+      std::array<Eigen::Vector3d, 2> centers2, normals2;
+      Christian::conicBackprojection(*it_other, radius2, centers2, normals2);
+      double angle = quad.getAngleBetweenQuadrics(other_quadric);
+      uint idx_ab = chooseSupportingPlanes(angle, normals1, normals2);
+      selectSupportingPlaneNormals(idx_ab, normals1, normals2, normal1, normal2);
+      selectSupportingPlaneCenters(idx_ab, centers1, centers2, center1, center2);
+      double angle_calc = getAngleBetweenVectors(normal1, normal2);
+      assert(std::abs(angle_calc - angle)<1e-8);
+      indices.push_back(idx_ab / 2);
+    }
+    if(!allEqualVector(indices)) {
+      std::cout << "Not all entries are equal.\n";
+    }
+    normals.push_back(normal1);
+    centers.push_back(center1);
+    indices.clear();
+  }
+}
 
