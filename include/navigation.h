@@ -23,7 +23,15 @@ namespace Christian {
 void conicBackprojection( const Eigen::Matrix3d& conic, const double radius, 
                               std::array<Eigen::Vector3d, 2>& centers, 
                               std::array<Eigen::Vector3d, 2>& normals);
-}
+void getBackprojectedCenter(const double radius, const std::array<double, 3>& lambdas,
+                            const Eigen::Matrix3d& canonizing, 
+                            std::array<Eigen::Vector3d, 2>& centers);
+
+void getBackprojectedNormal(const std::array<double, 3>& lambdas,
+                            const Eigen::Matrix3d& canonizing,
+                            std::array<Eigen::Vector3d, 2>& normals);
+} // end namespace Christian
+
 namespace Shiu {
 double getBackprojectionDistance( const double lambda1, 
                                   const double lambda2, 
