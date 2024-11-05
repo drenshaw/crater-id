@@ -256,10 +256,30 @@ Eigen::Vector3d Camera::world2Camera(const Eigen::Vector3d& pt) const {
   return pt_cam;
 }
 
+void Camera::world2Camera(const std::vector<Eigen::Vector3d>& pts, std::vector<Eigen::Vector3d>& pts_cam) const {
+  pts_cam.clear();
+  std::vector<Eigen::Vector3d>::const_iterator it;
+  for(it = pts.begin(); it != pts.end(); it++) {
+    Eigen::Vector3d pt_cam;
+    this->world2Camera(*it, pt_cam);
+    pts_cam.push_back(pt_cam);
+  }
+}
+
 Eigen::Vector2d Camera::world2Pixel(const Eigen::Vector3d& pt) const {
   Eigen::Vector2d pt_pxl;
   this->world2Pixel(pt, pt_pxl);
   return pt_pxl;
+}
+
+void Camera::world2Pixel(const std::vector<Eigen::Vector3d>& pts, std::vector<Eigen::Vector2d>& pts_pxl) const {
+  pts_pxl.clear();
+  std::vector<Eigen::Vector3d>::const_iterator it;
+  for(it = pts.begin(); it != pts.end(); it++) {
+    Eigen::Vector2d pt_pxl;
+    this->world2Pixel(*it, pt_pxl);
+    pts_pxl.push_back(pt_pxl);
+  }
 }
 
 bool Camera::isInFrontOfCamera(const Eigen::Vector3d& pt) const {

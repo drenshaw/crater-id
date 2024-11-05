@@ -56,15 +56,15 @@ void drawEllipse(const Conic& conic, const cv::Scalar& color) {
 }
 
 void drawEllipses(cv::Mat& image, const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors) {
-  assert(conics.size() <= colors.size());
+  // assert(conics.size() <= colors.size());
   for (auto conic_it = conics.begin(); conic_it != conics.end(); ++conic_it) {
     int index = std::distance(conics.begin(), conic_it);
-    drawEllipse(image, *conic_it, CV_colors.at(index));
+    drawEllipse(image, *conic_it, colors.at(index%colors.size()));
   }
 }
 
 void drawEllipses(cv::Mat& image, const Camera& camera, const std::vector<Quadric>& quadrics, const std::vector<cv::Scalar>& colors) {
-  assert(quadrics.size() <= colors.size());
+  // assert(quadrics.size() <= colors.size());
   std::vector<Conic> conics;
   conics.reserve(quadrics.size());
   Eigen::MatrixXd proj = camera.getProjectionMatrix();
@@ -83,10 +83,6 @@ void drawEllipses(cv::Mat& image, const Camera& camera, const std::vector<Quadri
   else {
     std::cout << "The Moon center is not in the image: " << moon.getCenter().transpose() << std::endl;
   }
-  // for (auto conic_it = conics.begin(); conic_it != conics.end(); ++conic_it) {
-  //   int index = std::distance(conics.begin(), conic_it);
-  //   drawEllipse(image, *conic_it, CV_colors.at(index));
-  // }
   drawEllipses(image, conics, colors);
 }
 
@@ -135,7 +131,7 @@ void drawLines(cv::Mat& image, const std::vector<Eigen::Vector3d>& lines, const 
   assert(lines.size() <= colors.size());
   for (auto conic_it = lines.begin(); conic_it != lines.end(); ++conic_it) {
     int index = std::distance(lines.begin(), conic_it);
-    drawLine(image, *conic_it, text.at(index), colors.at(index));
+    drawLine(image, *conic_it, text.at(index), colors.at(index%colors.size()));
   }
 }
 
@@ -155,10 +151,10 @@ void drawPoint(cv::Mat& image, const Eigen::Vector2d& point, const cv::Scalar& c
 }
 
 void drawPoints(cv::Mat& image, const std::vector<Eigen::Vector2d>& points, const std::vector<cv::Scalar>& colors) {
-  assert(points.size() <= colors.size());
+  // assert(points.size() <= colors.size());
   for (auto pt_it = points.begin(); pt_it != points.end(); ++pt_it) {
     int index = std::distance(points.begin(), pt_it);
-    drawPoint(image, *pt_it, viz::CV_colors.at(index));
+    drawPoint(image, *pt_it, colors.at(index%colors.size()));
   }
 }
 
@@ -299,6 +295,23 @@ void interactiveZoom(cv::Mat& image) {
     cv::destroyAllWindows();
 }
 
+
+
+// #include <cstdlib>
+// #include <vtk-9.1/vtkActor.h>
+// #include <vtk-9.1/vtkCamera.h>
+// #include <vtk-9.1/vtkContourFilter.h>
+// #include <vtk-9.1/vtkImageData.h>
+// #include <vtk-9.1/vtkNamedColors.h>
+// #include <vtk-9.1/vtkNew.h>
+// #include <vtk-9.1/vtkOutlineFilter.h>
+// #include <vtk-9.1/vtkPolyDataMapper.h>
+// #include <vtk-9.1/vtkProperty.h>
+// #include <vtk-9.1/vtkQuadric.h>
+// #include <vtk-9.1/vtkRenderWindow.h>
+// #include <vtk-9.1/vtkRenderWindowInteractor.h>
+// #include <vtk-9.1/vtkRenderer.h>
+// #include <vtk-9.1/vtkSampleFunction.h>
 // void Sphere()
 // {
 //   // create the quadric function definition

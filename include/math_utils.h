@@ -26,6 +26,15 @@ template <typename T>
 double deg2rad(const T deg);
 template <typename T>
 double rad2deg(const T rad);
+double mod(const double a, const double N);
+double wrap2(double angle, const double wrapper, const double offset=0.0);
+double wrap_2pi(double angle);
+double wrap_360(double angle);
+double wrap_npi_pi(double angle);
+double wrap_npi2_pi2(double angle);
+double wrap_n90_90(double angle);
+template <typename T>
+T round_dec(const T val, const int prec);
 template <typename T>
 Eigen::Vector3d latlon2bearing(const T lat, const T lon);
 template <typename T>
@@ -157,6 +166,11 @@ double deg2rad(const T deg) {
 template <typename T>
 double rad2deg(const T rad) {
   return static_cast<double>(rad) * 180. / M_PI;
+}
+template <typename T>
+T round_dec(const T val, const int prec) {
+  int scaling = std::pow(10, prec);
+  return std::round(val * scaling)/scaling;
 }
 
 template <typename T>

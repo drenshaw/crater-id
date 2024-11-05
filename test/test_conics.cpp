@@ -1,6 +1,5 @@
 #include "gtest/gtest.h"
 #include <array>
-// #include <eigen3/Eigen/src/Geometry/Transform.h>
 #include <cmath>
 #include <eigen3/Eigen/Dense>
 #include <opencv2/core/core.hpp> 
@@ -205,6 +204,89 @@ TEST_F(ConicTest, ImplicitToGeometric){
   ASSERT_NEAR(conic_impl.getAngle(), phi, 1e-3);
   // std::cout << conic_impl << std::endl;
   // viz::drawEllipse(conic_impl, cv::viz::Color::red());
+}
+
+TEST_F(ConicTest, WrappingDegrees) {
+  // int n_iter = 48;
+  // double spacing = 720 / (n_iter/2);
+  // for(int i = -n_iter/2; i < n_iter/2; i++) {
+  //   double angle = i * spacing;
+  //   double wrapped = wrap_360(angle);
+  //   std::cout << "I: " << angle << " => " << wrapped << std::endl;
+  // }
+  double angle30 = 30;
+  double angle30_truth = angle30;
+  double angle30_w360 = wrap_360(angle30);
+  ASSERT_DOUBLE_EQ(angle30_truth, angle30_w360);
+
+  double anglen30 = -30;
+  double anglen30_truth = 330.;
+  double anglen30_w360 = wrap_360(anglen30);
+  ASSERT_DOUBLE_EQ(anglen30_truth, anglen30_w360);
+
+  double angle390 = 390;
+  double angle390_truth = 30;
+  double angle390_w360 = wrap_360(angle390);
+  ASSERT_DOUBLE_EQ(angle390_truth, angle390_w360);
+
+  double anglen390 = -390;
+  double anglen390_truth = 330;
+  double anglen390_w360 = wrap_360(anglen390);
+  ASSERT_DOUBLE_EQ(anglen390_truth, anglen390_w360);
+}
+
+TEST_F(ConicTest, WrappingRadians) {
+  double eps = 1e-10;
+  int n_iter = 48;
+  double spacing = 720. / (n_iter/2);
+  for(int i = -n_iter/2; i < n_iter/2; i++) {
+    double angle = double(i) * spacing;
+    double wrapped = wrap_2pi(deg2rad(angle));
+    double wrapped_deg = wrap_360(angle);
+    // std::cout << "angle: " << angle << " => " << rad2deg(wrapped) << std::endl;
+    ASSERT_NEAR(wrapped_deg, rad2deg(wrapped), eps);
+  }
+  double angle30 = deg2rad(30);
+  double angle30_truth = angle30;
+  double angle30_w2pi = wrap_2pi(angle30);
+  double angle30_wnpi = wrap_npi2_pi2(angle30);
+  ASSERT_NEAR(angle30_truth, angle30_w2pi, eps);
+  ASSERT_NEAR(angle30_truth, angle30_wnpi, eps);
+
+  double anglen30 = deg2rad(-30);
+  double anglen30_truth = deg2rad(330.);
+  double anglen30_w2pi = wrap_2pi(anglen30);
+  double anglen30_wnpi = wrap_npi2_pi2(anglen30);
+  ASSERT_NEAR(anglen30_truth, anglen30_w2pi, eps);
+  ASSERT_NEAR(anglen30, anglen30_wnpi, eps);
+
+  double angle390 = deg2rad(390);
+  double angle390_truth = deg2rad(30);
+  double angle390_w2pi = wrap_2pi(angle390);
+  double angle390_wnpi = wrap_npi2_pi2(angle390);
+  ASSERT_NEAR(angle390_truth, angle390_w2pi, eps);
+  ASSERT_NEAR(angle390_truth, angle390_wnpi, eps);
+
+  double anglen390 = deg2rad(-390);
+  double anglen390_truth = deg2rad(330);
+  double anglen390_truth_npi = deg2rad(-30);
+  double anglen390_w2pi = wrap_2pi(anglen390);
+  double anglen390_wnpi = wrap_npi2_pi2(anglen390);
+  ASSERT_NEAR(anglen390_truth, anglen390_w2pi, eps);
+  ASSERT_NEAR(anglen390_truth_npi, anglen390_wnpi, eps);
+}
+
+TEST_F(ConicTest, ToLocus) {
+  const int n_elem = 15;
+  const double angle_delta = 360. / double(n_elem);
+  double smajor = 100, sminor = 50, xcenter = 10, ycenter = -20;
+  for(int i = 0; i < n_elem; i++) {
+    double angle = i * angle_delta;
+    Conic conic(smajor, sminor, xcenter, ycenter, deg2rad(angle));
+    Eigen::Matrix3d locus = conic.getLocus();
+    Conic fromLocus(locus);
+    // std::cout << i << ": angle: " << angle << " | " << fromLocus << std::endl;
+  }
 }
 
 

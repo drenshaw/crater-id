@@ -82,8 +82,10 @@ class Camera {
     bool isInCameraFrame(const Eigen::Vector3d& pt) const ;
     bool isInCameraFrame(const Eigen::Vector3d& pt, Eigen::Vector2d& pt_pxl) const;
     bool isInCameraFrame(const Eigen::Vector2d& pt_pxl) const;
-    void world2Camera(const Eigen::Vector3d& pt, Eigen::Vector3d& pt_cam) const ;
-    void world2Pixel(const Eigen::Vector3d& pt, Eigen::Vector2d& pt_pxl) const ;
+    void world2Camera(const Eigen::Vector3d& pt, Eigen::Vector3d& pt_cam) const;
+    void world2Camera(const std::vector<Eigen::Vector3d>& pts, std::vector<Eigen::Vector3d>& pts_cam) const;
+    void world2Pixel(const std::vector<Eigen::Vector3d>& pts, std::vector<Eigen::Vector2d>& pts_pxl) const;
+    void world2Pixel(const Eigen::Vector3d& pt, Eigen::Vector2d& pt_pxl) const;
 
     void world2Pixel(const Eigen::Vector3d& pt, cv::Point2d& pt_pxl) const;
     Eigen::Vector3d world2Camera(const Eigen::Vector3d& pt) const;

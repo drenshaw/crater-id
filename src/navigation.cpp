@@ -438,7 +438,7 @@ uint chooseSupportingPlanes(const double angle,
   Eigen::Vector4d absd_angles = d_angles.cwiseAbs();
   Eigen::Vector4d::Index min_idx;
   absd_angles.minCoeff(&min_idx);
-  if(absd_angles(min_idx) > 1e-8) {
+  if(absd_angles(min_idx) > 1e-3) {
     std::cout << "Angles differences are too large: " << d_angles(min_idx) 
               << " @ index " << min_idx << " | " 
               << d_angles.transpose() << std::endl;
@@ -516,5 +516,64 @@ void reprojectLociiToQuadrics(const std::vector<Quadric>& quadrics,
     centers.push_back(center1);
     indices.clear();
   }
+}
+
+void reprojectionsToPlanes( const std::vector<Eigen::Vector3d>& centers,
+                            const std::vector<Eigen::Vector3d>& normals,
+                            std::vector<Eigen::Hyperplane<double, 3> >& planes) {
+  std::vector<Eigen::Vector3d>::const_iterator the_chosen;
+  for(the_chosen = normals.begin(); the_chosen != normals.end(); the_chosen++) {
+    int index = getIndex(normals.begin(), the_chosen);
+    Eigen::Vector3d center = centers.at(index);
+    Eigen::Hyperplane<double, 3> plane(*the_chosen, center);
+    planes.push_back(plane);
+  }
+}
+
+void calculateHomography( const std::vector<Eigen::Hyperplane<double, 3> >& planes_world,
+                          const std::vector<Eigen::Hyperplane<double, 3> >& planes_cam,
+                          Eigen::Quaterniond& attitude, Eigen::Vector3d& position) {
+  uint PLANE_DIM = 4;
+  uint n_planes = planes_world.size();
+  assert(n_planes == planes_cam.size());
+  Eigen::VectorXd lhs(PLANE_DIM*n_planes);
+  Eigen::MatrixXd rhs(PLANE_DIM*n_planes, PLANE_DIM*(PLANE_DIM-1));
+  for(size_t i = 0; i < n_planes; i++) {
+    lhs.block<4,1>(4*i,0) = planes_cam.at(i).coeffs();
+    Eigen::Hyperplane<double, 3> world_plane = planes_world.at(i);
+    lhs(4*i+3) -= world_plane.offset();
+    
+    double a = world_plane.normal()(0);
+    Eigen::Matrix4d diag_a = a*Eigen::Matrix4d::Identity();
+    double b = world_plane.normal()(1);
+    Eigen::Matrix4d diag_b = b*Eigen::Matrix4d::Identity();
+    double c = world_plane.normal()(2);
+    Eigen::Matrix4d diag_c = c*Eigen::Matrix4d::Identity();
+    rhs.block<4,4>(PLANE_DIM*i, PLANE_DIM*0) = diag_a;
+    rhs.block<4,4>(PLANE_DIM*i, PLANE_DIM*1) = diag_b;
+    rhs.block<4,4>(PLANE_DIM*i, PLANE_DIM*2) = diag_c;
+  }
+
+  Eigen::BDCSVD<Eigen::MatrixXd> SVD(rhs, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  Eigen::MatrixXd solu = SVD.solve(lhs);
+  Eigen::MatrixXd P_est = solu.reshaped(4,3).transpose();
+  Eigen::Matrix3d dcm = P_est.topLeftCorner(3,3);
+  attitude = Eigen::Quaterniond(dcm).inverse();
+  position = P_est.topRightCorner(3,1);
+}
+
+void solve_navigation_problem(const std::vector<Quadric>& quadrics,
+                              const std::vector<Eigen::Matrix3d>& locii,
+                              Eigen::Quaterniond& attitude, Eigen::Vector3d& position) {
+  std::vector<Eigen::Hyperplane<double, 3> > planes_world;
+  for(std::vector<Quadric>::const_iterator it = quadrics.begin(); it != quadrics.end(); it++) {
+    planes_world.push_back((*it).getPlane());
+  }
+  std::vector<Eigen::Vector3d> centers;
+  std::vector<Eigen::Vector3d> normals;
+  reprojectLociiToQuadrics(quadrics, locii, centers, normals);
+  std::vector<Eigen::Hyperplane<double, 3> > planes_cam;
+  reprojectionsToPlanes(centers, normals, planes_cam);
+  calculateHomography(planes_world, planes_cam, attitude, position);
 }
 

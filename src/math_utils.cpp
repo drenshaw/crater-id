@@ -24,6 +24,34 @@
 //   }
 // }
 
+double mod(const double a, const double N) {return a - N*floor(a/N);}
+
+double wrap2(double angle, const double wrapper, const double offset) {
+  double wrapped = mod(angle + offset, wrapper) - offset;
+  // std::cout << "Angle: " << angle << " => " << wrapped << std::endl;
+  return wrapped;
+}
+
+double wrap_2pi(double angle) {
+  return wrap2(angle, 2.*M_PI, 0);
+}
+
+double wrap_360(double angle) {
+  return wrap2(angle, 360, 0);
+}
+
+double wrap_npi_pi(double angle) {
+  return wrap2(angle, M_PI);
+}
+
+double wrap_npi2_pi2(double angle) {
+  return wrap2(angle, M_PI, M_PI_2);
+}
+
+double wrap_n90_90(double angle) {
+  return wrap2(angle, 180., 90.);
+}
+
 double getCofactor(const Eigen::MatrixXd& matrix, size_t cf_row, size_t cf_col) {
   size_t nrow = matrix.rows();
   size_t ncol = matrix.cols();

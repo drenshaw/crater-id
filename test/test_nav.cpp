@@ -1,8 +1,8 @@
 #include "gtest/gtest.h"
 #include <eigen3/Eigen/Geometry>
 #include <opencv2/imgproc.hpp> 
-#include <opencv2/highgui/highgui.hpp> 
-// #include <random>
+#include <opencv2/highgui/highgui.hpp>
+#include <random>
 
 #include "navigation.h"
 #include "camera.h"
@@ -150,51 +150,6 @@ TEST_F(NavigationTest, ChooseSupportingPlanes) {
   ASSERT_NEAR(angle, angle_calc, 1e-8);
 }
 
-void reprojectLociiToQuadrics(const Camera& camera, 
-                              const Quadric& q1, 
-                              const Quadric& q2, 
-                              const Quadric& q3) {
-  Eigen::MatrixXd extrinsic = camera.getExtrinsicMatrix();
-  Eigen::Matrix3d conic_locus1 = q1.projectToPlaneLocus(extrinsic);
-  Eigen::Matrix3d conic_locus2 = q2.projectToPlaneLocus(extrinsic);
-  Eigen::Matrix3d conic_locus3 = q3.projectToPlaneLocus(extrinsic);
-  std::array<Eigen::Vector3d, 2> centers1, normals1, centers2, normals2, centers3, normals3;
-  double radius1 = q1.getRadius();
-  double radius2 = q2.getRadius();
-  double radius3 = q3.getRadius();
-  double angle12 = q1.getAngleBetweenQuadrics(q2);
-  double angle23 = q2.getAngleBetweenQuadrics(q3);
-  double angle31 = q3.getAngleBetweenQuadrics(q1);
-
-  Christian::conicBackprojection(conic_locus1, radius1, centers1, normals1);
-  Christian::conicBackprojection(conic_locus2, radius2, centers2, normals2);
-  Christian::conicBackprojection(conic_locus3, radius3, centers3, normals3);
-
-  uint planes12_idx = chooseSupportingPlanes(angle12, normals1, normals2);
-  uint planes23_idx = chooseSupportingPlanes(angle23, normals2, normals3);
-  uint planes31_idx = chooseSupportingPlanes(angle31, normals3, normals1);
-
-  uint idx1_1 = planes12_idx / 2;
-  uint idx2_1 = planes12_idx % 2;
-  uint idx2_2 = planes23_idx / 2;
-  uint idx3_1 = planes23_idx % 2;
-  uint idx3_2 = planes31_idx / 2;
-  uint idx1_2 = planes31_idx % 2;
-  assert(idx1_1 == idx1_2);
-  assert(idx2_1 == idx2_2);
-  assert(idx3_1 == idx3_2);
-  Eigen::Vector3d normal1 = normals1.at(idx1_1);
-  Eigen::Vector3d normal2 = normals2.at(idx2_1);
-  Eigen::Vector3d normal3 = normals3.at(idx3_1);
-
-  double angle_calc12 = getAngleBetweenVectors(normal1, normal2);
-  double angle_calc23 = getAngleBetweenVectors(normal2, normal3);
-  double angle_calc31 = getAngleBetweenVectors(normal3, normal1);
-  assert(std::abs(angle12 - angle_calc12) < 1e-8);
-  assert(std::abs(angle23 - angle_calc23) < 1e-8);
-  assert(std::abs(angle31 - angle_calc31) < 1e-8);
-}
-
 TEST_F(NavigationTest, ChooseVectorOfCraters) {
   cam->moveX(1e4);
   // cam->moveY(-1e3);
@@ -241,65 +196,6 @@ TEST_F(NavigationTest, ChooseVectorOfCraters) {
   }
 }
 
-void reprojectionsToPlanes( const std::vector<Eigen::Vector3d>& centers,
-                            const std::vector<Eigen::Vector3d>& normals,
-                            std::vector<Eigen::Hyperplane<double, 3> >& planes) {
-  std::vector<Eigen::Vector3d>::const_iterator the_chosen;
-  for(the_chosen = normals.begin(); the_chosen != normals.end(); the_chosen++) {
-    int index = getIndex(normals.begin(), the_chosen);
-    Eigen::Vector3d center = centers.at(index);
-    Eigen::Hyperplane<double, 3> plane(*the_chosen, center);
-    planes.push_back(plane);
-  }
-}
-
-void calculateHomography( const std::vector<Eigen::Hyperplane<double, 3> >& planes_world,
-                          const std::vector<Eigen::Hyperplane<double, 3> >& planes_cam,
-                          Eigen::Quaterniond& attitude, Eigen::Vector3d& position) {
-  uint PLANE_DIM = 4;
-  uint n_planes = planes_world.size();
-  assert(n_planes == planes_cam.size());
-  Eigen::VectorXd lhs(PLANE_DIM*n_planes);
-  Eigen::MatrixXd rhs(PLANE_DIM*n_planes, PLANE_DIM*(PLANE_DIM-1));
-  for(size_t i = 0; i < n_planes; i++) {
-    lhs.block<4,1>(4*i,0) = planes_cam.at(i).coeffs();
-    Eigen::Hyperplane<double, 3> world_plane = planes_world.at(i);
-    lhs(4*i+3) -= world_plane.offset();
-    
-    double a = world_plane.normal()(0);
-    Eigen::Matrix4d diag_a = a*Eigen::Matrix4d::Identity();
-    double b = world_plane.normal()(1);
-    Eigen::Matrix4d diag_b = b*Eigen::Matrix4d::Identity();
-    double c = world_plane.normal()(2);
-    Eigen::Matrix4d diag_c = c*Eigen::Matrix4d::Identity();
-    rhs.block<4,4>(PLANE_DIM*i, PLANE_DIM*0) = diag_a;
-    rhs.block<4,4>(PLANE_DIM*i, PLANE_DIM*1) = diag_b;
-    rhs.block<4,4>(PLANE_DIM*i, PLANE_DIM*2) = diag_c;
-  }
-
-  Eigen::BDCSVD<Eigen::MatrixXd> SVD(rhs, Eigen::ComputeThinU | Eigen::ComputeThinV);
-  Eigen::MatrixXd solu = SVD.solve(lhs);
-  Eigen::MatrixXd P_est = solu.reshaped(4,3).transpose();
-  Eigen::Matrix3d dcm = P_est.topLeftCorner(3,3);
-  attitude = Eigen::Quaterniond(dcm).inverse();
-  position = P_est.topRightCorner(3,1);
-}
-
-void solve_navigation_problem(const std::vector<Quadric>& quadrics,
-                              const std::vector<Eigen::Matrix3d>& locii,
-                              Eigen::Quaterniond& attitude, Eigen::Vector3d& position) {
-  std::vector<Eigen::Hyperplane<double, 3> > planes_world;
-  for(std::vector<Quadric>::const_iterator it = quadrics.begin(); it != quadrics.end(); it++) {
-    planes_world.push_back((*it).getPlane());
-  }
-  std::vector<Eigen::Vector3d> centers;
-  std::vector<Eigen::Vector3d> normals;
-  reprojectLociiToQuadrics(quadrics, locii, centers, normals);
-  std::vector<Eigen::Hyperplane<double, 3> > planes_cam;
-  reprojectionsToPlanes(centers, normals, planes_cam);
-  calculateHomography(planes_world, planes_cam, attitude, position);
-}
-
 TEST_F(NavigationTest, CalculateHomography) {
   cam->resetCameraState();
   cam->moveX(2.5e3);
@@ -318,19 +214,20 @@ TEST_F(NavigationTest, CalculateHomography) {
   Quadric q5(  0,  -3, 150, "crater5");
   std::vector<Quadric> quadrics = {q1, q2, q3, q4, q5};
 
-  cv::Mat image = cam->getBlankCameraImage();
-  cv::Mat outImg;
-  double scaling = 0.4;
-  // Showing image inside a window 
-  viz::drawEllipses(image, *cam, quadrics, viz::CV_colors);
-  // viz::drawEllipses(image, conics, viz::CV_colors);
-  cv::resize(image, outImg, cv::Size(), scaling, scaling);
-  cv::imshow("Projecting Moon to Camera", outImg); 
-  cv::waitKey(0); 
+  // cv::Mat image = cam->getBlankCameraImage();
+  // cv::Mat outImg;
+  // double scaling = 0.4;
+  // // Showing image inside a window 
+  // viz::drawEllipses(image, *cam, quadrics, viz::CV_colors);
+  // // viz::drawEllipses(image, conics, viz::CV_colors);
+  // cv::resize(image, outImg, cv::Size(), scaling, scaling);
+  // cv::imshow("Projecting Moon to Camera", outImg); 
+  // cv::waitKey(0); 
 
   std::vector<Eigen::Matrix3d> locii;
   for(std::vector<Quadric>::iterator it = quadrics.begin(); it != quadrics.end(); it++) {
     locii.push_back((*it).projectToPlaneLocus(extrinsic));
+    std::cout << Conic((*it).projectToPlaneLocus(extrinsic)) << std::endl;
   }
 
   Eigen::Quaterniond attitude;
@@ -370,3 +267,161 @@ TEST_F(NavigationTest, ImageConic2PlaneConic) {
   // // ASSERT_TRUE(zeros.isApprox(plane_center, 1e-8));
   // ASSERT_LE((plane_center-zeros).norm(), 1e-9);
 }
+
+void addNoise(const double mean, const double st_dev, std::vector<Eigen::Vector2d>& points) {
+  if(mean == 0 && st_dev == 0) {
+    return;
+  }
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::normal_distribution<double> dist(mean, st_dev); // Mean 0, standard deviation 1
+
+  // Create an Eigen matrix and fill it with noise
+  Eigen::MatrixXd A(3, 3);
+  // for (int i = 0; i < A.rows(); ++i) {
+  for(std::vector<Eigen::Vector2d>::iterator it = points.begin(); it != points.end(); it++) {
+    // std::cout << "Points: " << (*it).transpose();
+    (*it)(0) += dist(gen);
+    (*it)(1) += dist(gen);
+    // std::cout << "\tAdded noise: " << (*it).transpose() << std::endl;
+  }
+}
+
+TEST_F(NavigationTest, QuadricPointsWNoise) {
+  int n_pts = 10;
+
+  cam->resetCameraState();
+  cam->moveX(2.5e3);
+  cam->moveY(-1e2);
+  cam->moveZ(-2e2);
+  Eigen::Vector3d look_here = -1e2*Eigen::Vector3d::UnitZ();
+  Eigen::Vector3d up_vector = Eigen::Vector3d::UnitZ();
+  cam->pointTo(look_here, up_vector);
+  // std::cout << *cam << std::endl;
+  Eigen::MatrixXd extrinsic = cam->getExtrinsicMatrix();
+
+  Quadric q1( 10, -10, 100, "crater1");
+  Quadric q2(-10,  10, 200, "crater2");
+  Quadric q3( 10,   0,  50, "crater3");
+  Quadric q4(-10,   0,  30, "crater4");
+  Quadric q5(  0,  -3, 150, "crater5");
+  std::vector<Quadric> quadrics = {q1, q2, q3, q4, q5};
+
+  double mean = 0, st_dev = 0.0;
+  std::vector<Eigen::Vector2d> all_pts_pxl;
+  all_pts_pxl.reserve(n_pts * quadrics.size());
+  std::vector<Eigen::Matrix3d> locii;
+  for(std::vector<Quadric>::const_iterator it = quadrics.begin(); it != quadrics.end(); it++) {
+    std::vector<Eigen::Vector3d> pts_world;
+    pts_world.reserve(n_pts);
+    (*it).getRimPoints(n_pts, pts_world);
+    std::vector<Eigen::Vector2d> pts_pxl;
+    cam->world2Pixel(pts_world, pts_pxl);
+
+    // Conic no_noise(pts_pxl);
+    // // std::cout << "====>No noise: " << no_noise << std::endl;
+    // addNoise(mean, st_dev, pts_pxl);
+    // Conic from_proj = (*it).projectToImage(cam->getExtrinsicMatrix());
+    // std::cout << "+++++From projection: " << from_proj << std::endl;
+    Conic noisy(pts_pxl);
+    // conics.push_back(noisy);
+    Eigen::Matrix3d plane_locus = cam->getImagePlaneLocus(noisy.getLocus());
+    Conic cc(plane_locus);
+    std::cout << "<====Noisy: " << cc << std::endl << std::endl;
+    std::cout << "Angle: " << cc.getAngle() << " (" << cc.getAngleDeg() << ") " << M_PI_2 << std::endl;
+    locii.push_back(plane_locus);
+    for(std::vector<Eigen::Vector2d>::iterator it2 = pts_pxl.begin(); it2 != pts_pxl.end(); it2++){
+      all_pts_pxl.push_back(*it2);
+    }
+  }
+
+  std::vector<Eigen::Matrix3d> locii2;
+  for(std::vector<Quadric>::iterator it = quadrics.begin(); it != quadrics.end(); it++) {
+    locii2.push_back((*it).projectToPlaneLocus(extrinsic));
+    std::cout << Conic((*it).projectToPlaneLocus(extrinsic)) << std::endl;
+  }
+
+  // cv::Mat image = cam->getBlankCameraImage();
+  // cv::Mat outImg;
+  // double scaling = 0.4;
+  // // Showing image inside a window 
+  // viz::drawEllipses(image, *cam, quadrics, viz::CV_colors);
+  // // viz::drawEllipses(image, conics, viz::CV_colors);
+  // cv::resize(image, outImg, cv::Size(), scaling, scaling);
+  // cv::imshow("Projecting Moon to Camera", outImg); 
+  // cv::waitKey(0); 
+
+  Eigen::Quaterniond attitude;
+  Eigen::Vector3d position;
+  solve_navigation_problem(quadrics, locii2, attitude, position);
+  ASSERT_TRUE(cam->getAttitude().isApprox(attitude, 1e-3));
+  ASSERT_TRUE(cam->getPosition().isApprox(position, 1e-3));
+  // int n_pts = 10;
+  // cam->resetCameraState();
+  // cam->moveX(2.5e3);
+  // cam->moveY(-1e2);
+  // cam->moveZ(-2e2);
+  // Eigen::Vector3d look_here = -1e2*Eigen::Vector3d::UnitZ();
+  // Eigen::Vector3d up_vector = Eigen::Vector3d::UnitZ();
+  // cam->pointTo(look_here, up_vector);
+  // Quadric q1( 10, -10, 100, "crater1");
+  // Quadric q2(-10,  10, 200, "crater2");
+  // Quadric q3( 10,   0,  50, "crater3");
+  // Quadric q4(-10,   0,  30, "crater4");
+  // Quadric q5(  0,  -3, 150, "crater5");
+  // const std::vector<Quadric> quadrics = {q1, q2, q3, q4, q5};
+  // std::vector<Conic> conics;
+
+  // double mean = 0, st_dev = 0.0;
+  // std::vector<Eigen::Vector2d> all_pts_pxl;
+  // all_pts_pxl.reserve(n_pts * quadrics.size());
+  // std::vector<Eigen::Matrix3d> locii;
+  // for(std::vector<Quadric>::const_iterator it = quadrics.begin(); it != quadrics.end(); it++) {
+  //   std::vector<Eigen::Vector3d> pts_world;
+  //   pts_world.reserve(n_pts);
+  //   (*it).getRimPoints(n_pts, pts_world);
+  //   std::vector<Eigen::Vector2d> pts_pxl;
+  //   cam->world2Pixel(pts_world, pts_pxl);
+
+  //   Conic no_noise(pts_pxl);
+  //   // std::cout << "====>No noise: " << no_noise << std::endl;
+  //   addNoise(mean, st_dev, pts_pxl);
+  //   // Conic from_proj = (*it).projectToImage(cam->getExtrinsicMatrix());
+  //   // std::cout << "+++++From projection: " << from_proj << std::endl;
+  //   Conic noisy(pts_pxl);
+  //   conics.push_back(noisy);
+  //   Eigen::Matrix3d plane_locus = cam->getImagePlaneLocus(noisy.getLocus());
+  //   std::cout << "<====Noisy: " << Conic(plane_locus) << std::endl << std::endl;
+  //   locii.push_back(plane_locus);
+  //   for(std::vector<Eigen::Vector2d>::iterator it2 = pts_pxl.begin(); it2 != pts_pxl.end(); it2++){
+  //     all_pts_pxl.push_back(*it2);
+  //   }
+  // }
+
+  // // Eigen::Quaterniond attitude;
+  // // Eigen::Vector3d position;
+  // // solve_navigation_problem(quadrics, locii, attitude, position);
+  // // EXPECT_TRUE(cam->getAttitude().isApprox(attitude, 1e-3));
+  // // EXPECT_TRUE(cam->getPosition().isApprox(position, 1e-3));
+  
+  // cv::Mat image = cam->getBlankCameraImage();
+  // // Add the moon
+  // Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
+  // Eigen::Matrix3d moon_locus = cam->projectQuadricToLocus(sphere);
+  // Conic moon(moon_locus);
+  // // std::cout << "Moon ellipse: " << moon << std::endl;
+  // if(cam->isInCameraFrame(moon.getCenter())) {
+  //   viz::drawEllipse(image, moon, cv::viz::Color::gray());
+  // }
+  // else {
+  //   std::cout << "The Moon center is not in the image: " << moon.getCenter().transpose() << std::endl;
+  // }
+  // viz::draw3dAxes(image, *cam);
+  // viz::drawPoints(image, all_pts_pxl, viz::CV_colors);
+  // // Showing image inside a window 
+  // double scaling = 0.5;
+  // cv::Mat outImg;
+  // cv::resize(image, outImg, cv::Size(), scaling, scaling);
+  // viz::interactiveZoom(outImg);
+}
+

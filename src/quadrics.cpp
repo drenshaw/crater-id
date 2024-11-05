@@ -201,7 +201,7 @@ Conic Quadric::projectToImagePlane(const Eigen::MatrixXd& extrinsic_mtx) const {
   return conic;
 }
 
-void Quadric::getRimPoints(const uint n_pts, std::vector<Eigen::Vector3d>& pts_cam) const {
+void Quadric::getRimPoints(const uint n_pts, std::vector<Eigen::Vector3d>& pts_world) const {
   double radius = this->getRadius();
   Eigen::Matrix3d T_e2m = this->getQuadricTransformationMatrix();
   double north_pole_lat = 90;
@@ -215,8 +215,8 @@ void Quadric::getRimPoints(const uint n_pts, std::vector<Eigen::Vector3d>& pts_c
     double lat = ll(0);
     double lon = ll(1);
     Eigen::Vector3d pt = latlonalt(lat, lon, 0);
-    Eigen::Vector3d pt_cam = T_e2m * pt;
-    pts_cam.push_back(pt_cam);
+    Eigen::Vector3d pt_world = T_e2m * pt;
+    pts_world.push_back(pt_world);
   }
 }
 
