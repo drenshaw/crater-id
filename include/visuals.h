@@ -77,6 +77,7 @@ void drawLines(cv::Mat& image, const std::vector<Eigen::Vector3d>& lines, const 
 void drawLines(const std::vector<Eigen::Vector3d>& lines, const std::string& text, const std::vector<cv::Scalar>& colors);
 void drawPoint(cv::Mat& image, const Eigen::Vector2d& point, const cv::Scalar& color);
 void drawPoints(cv::Mat& image, const std::vector<Eigen::Vector2d>& points, const std::vector<cv::Scalar>& colors);
+void drawPoints(cv::Mat& image, const std::vector<std::vector<Eigen::Vector2d> >& points, const std::vector<cv::Scalar>& colors);
 void getSlopeInterceptFromStandard(const Eigen::Vector3d& my_line, double& slope, double& intercept);
 bool getEndpointsFromLine(const cv::Mat& image, const Eigen::Vector3d& my_line, cv::Point2l& start_pt, cv::Point2l& end_pt);
 void get3dAxes( const Camera& cam, 

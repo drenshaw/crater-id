@@ -22,10 +22,10 @@ Eigen::MatrixXd adjugate(const Eigen::MatrixXd&);
 Eigen::Matrix3d symmetricAdjugate(const Eigen::Matrix3d&);
 
 // TODO: be careful using templates here: if an "int" is passed, we get an "int" back
-template <typename T>
-double deg2rad(const T deg);
-template <typename T>
-double rad2deg(const T rad);
+double deg2rad(const double deg);
+double rad2deg(const double rad);
+std::vector<double> deg2rad(const std::vector<double> deg);
+std::vector<double> rad2deg(const std::vector<double> rad);
 double mod(const double a, const double N);
 double wrap2(double angle, const double wrapper, const double offset=0.0);
 double wrap_2pi(double angle);
@@ -157,15 +157,6 @@ template <typename T, size_t SIZE>
 int arg_min(std::array<T, SIZE> const& arr) {
   return static_cast<int>(
     std::distance(arr.begin(), std::min_element(arr.begin(), arr.end())));
-}
-
-template <typename T>
-double deg2rad(const T deg) {
-  return static_cast<double>(deg) * M_PI/180.;
-}
-template <typename T>
-double rad2deg(const T rad) {
-  return static_cast<double>(rad) * 180. / M_PI;
 }
 template <typename T>
 T round_dec(const T val, const int prec) {

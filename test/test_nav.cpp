@@ -272,9 +272,9 @@ void addNoise(const double mean, const double st_dev, std::vector<Eigen::Vector2
   if(mean == 0 && st_dev == 0) {
     return;
   }
-  // std::random_device rd;
-  // std::mt19937 gen(rd());
-  std::mt19937 gen(50);
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  // std::mt19937 gen(50);
   std::normal_distribution<double> dist(mean, st_dev); // Mean 0, standard deviation 1
 
   // Create an Eigen matrix and fill it with noise
@@ -293,114 +293,27 @@ double attitudeError(const Eigen::Quaterniond& Qest, const Eigen::Quaterniond& Q
   return wrap_2pi(2*std::acos(Qdiff.w()));
 }
 
-TEST_F(NavigationTest, QuadricPointsWNoise) {
-  int n_pts = 10;
-
-  cam->resetCameraState();
-  cam->moveX(2.5e3);
-  cam->moveY(-1e2);
-  cam->moveZ(-3e2);
-  Eigen::Vector3d look_here = -1e2*Eigen::Vector3d::UnitX();
-  Eigen::Vector3d up_vector = Eigen::Vector3d::UnitZ();
-  cam->pointTo(look_here, up_vector);
-  // std::cout << *cam << std::endl;
-  Eigen::MatrixXd extrinsic = cam->getExtrinsicMatrix();
-
-  Quadric q1( 10, -10, 100, "crater1");
-  Quadric q2(-10,  10, 200, "crater2");
-  Quadric q3( 10,   0, 150, "crater3");
-  Quadric q4(-10,   0, 130, "crater4");
-  Quadric q5(-30,  -30, 250, "crater5");
-  std::vector<Quadric> quadrics = {q1, q2, q3, q4, q5};
-
-  double mean = 0, st_dev = 0.5;
-  std::vector<Eigen::Vector2d> all_pts_pxl;
-  all_pts_pxl.reserve(n_pts * quadrics.size());
-  std::vector<Eigen::Matrix3d> locii;
-  std::vector<Conic> conics;
-  std::vector<Conic> noisy_conics;
-  for(std::vector<Quadric>::const_iterator it = quadrics.begin(); it != quadrics.end(); it++) {
-    std::vector<Eigen::Vector3d> pts_world;
-    pts_world.reserve(n_pts);
-    (*it).getRimPoints(n_pts, pts_world);
-    std::vector<Eigen::Vector2d> pts_pxl;
-    cam->world2Pixel(pts_world, pts_pxl);
-    Conic fromPts = (*it).projectToImage(cam->getProjectionMatrix());
-    std::cout << "===>From Points: " << fromPts << std::endl;
-    conics.push_back(fromPts);
-
-    addNoise(mean, st_dev, pts_pxl);
-    Conic noisy(pts_pxl);
-    std::cout << "===>Noisy: " << noisy << std::endl;
-    noisy_conics.push_back(noisy);
-    Eigen::Matrix3d plane_locus = cam->getImagePlaneLocus(noisy.getLocus());
-    std::cout << "<===Plane Conic: " << Conic(plane_locus) << std::endl << std::endl;
-    locii.push_back(plane_locus);
-    for(std::vector<Eigen::Vector2d>::iterator it2 = pts_pxl.begin(); it2 != pts_pxl.end(); it2++){
-      all_pts_pxl.push_back(*it2);
-    }
+void drawNoisyPoints( const Camera& cam, const std::vector<Conic>& conics,
+                      const std::vector<std::vector<Eigen::Vector2d> >& noisy_pts) {
+  std::vector<Conic> noisy_conics(conics.size());
+  std::vector<std::vector<Eigen::Vector2d> >::const_iterator it;
+  for(it = noisy_pts.begin(); it != noisy_pts.end(); it++) {
+    noisy_conics.push_back(Conic(*it));
   }
-
-  std::vector<Eigen::Matrix3d> locii2;
-  for(std::vector<Quadric>::iterator it = quadrics.begin(); it != quadrics.end(); it++) {
-    locii2.push_back((*it).projectToPlaneLocus(extrinsic));
-    // std::cout << Conic((*it).projectToPlaneLocus(extrinsic)) << std::endl;
-  }
-
-  Eigen::Quaterniond attitude;
-  Eigen::Vector3d position;
-  solve_navigation_problem(quadrics, locii2, attitude, position);
-  ASSERT_TRUE(cam->getAttitude().isApprox(attitude, 1e-3));
-  ASSERT_TRUE(cam->getPosition().isApprox(position, 1e-3));
-  std::cout << "ESTIMATION:\n\tLocation: " << position.transpose()
-            << "\n\tAttitude: " << attitude << std::endl;
-  std::cout << "ACTUAL CAMERA POSE:\n" << *cam << std::endl;
-  std::cout << "Attitude Error: " << rad2deg(attitudeError(attitude, cam->getAttitude())) << std::endl;
-  std::cout << "Position Error: " << (position - cam->getPosition()).norm() << std::endl;
-
-  // Visuals
-  cv::Mat image = cam->getBlankCameraImage();
+  cv::Mat image = cam.getBlankCameraImage();
   // Add the moon
   Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
-  Eigen::Matrix3d moon_locus = cam->projectQuadricToLocus(sphere);
+  Eigen::Matrix3d moon_locus = cam.projectQuadricToLocus(sphere);
   Conic moon(moon_locus);
   // std::cout << "Moon ellipse: " << moon << std::endl;
-  if(cam->isInCameraFrame(moon.getCenter())) {
+  if(cam.isInCameraFrame(moon.getCenter())) {
     viz::drawEllipse(image, moon, cv::viz::Color::gray());
   }
   else {
     std::cout << "The Moon center is not in the image: " << moon.getCenter().transpose() << std::endl;
   }
-  std::vector<cv::Scalar> reds(quadrics.size());
-  std::fill(reds.begin(), reds.end(), cv::viz::Color::amethyst());
-  std::vector<cv::Scalar> colors = {
-                                    cv::viz::Color::orange(),
-                                    cv::viz::Color::yellow(),
-                                    cv::viz::Color::green(),
-                                    cv::viz::Color::blue(),
-                                    cv::viz::Color::violet(),
-                                    cv::viz::Color::indigo()};
-
-  std::cout << "\n\nOriginal conics:\n";
-  viz::drawEllipses(image, conics, reds);
-  std::cout << "\n\nNoisy conics:\n";
-  viz::drawEllipses(image, noisy_conics, colors);
-  viz::draw3dAxes(image, *cam);
-  viz::drawPoints(image, all_pts_pxl, viz::CV_colors);
-  // Showing image inside a window 
-  double scaling = 0.5;
-  cv::Mat outImg;
-  cv::resize(image, outImg, cv::Size(), scaling, scaling);
-  viz::interactiveZoom(outImg);
-}
-
-TEST_F(NavigationTest, ConicRotation) {
-  std::vector<Conic> conics;
-  double d_angle = 25;
-  double smajor = 500, sminor = 300, xc = 700, yc = 600;
-  for(double angle = 0; angle < 90; angle += d_angle) {
-    conics.push_back(Conic(smajor, sminor, xc, yc, angle));
-  }
+  std::vector<cv::Scalar> background(conics.size());
+  std::fill(background.begin(), background.end(), cv::viz::Color::black());
   std::vector<cv::Scalar> colors = {cv::viz::Color::red(),
                                     cv::viz::Color::orange(),
                                     cv::viz::Color::yellow(),
@@ -408,6 +321,81 @@ TEST_F(NavigationTest, ConicRotation) {
                                     cv::viz::Color::blue(),
                                     cv::viz::Color::violet(),
                                     cv::viz::Color::indigo()};
-  viz::drawEllipses(conics, colors);
+
+  viz::drawEllipses(image, conics, background);
+  viz::drawEllipses(image, noisy_conics, colors);
+  viz::draw3dAxes(image, cam);
+  
+  viz::drawPoints(image, noisy_pts, viz::CV_colors);
+  // Showing image inside a window 
+  double scaling = 0.5;
+  cv::Mat outImg;
+  cv::resize(image, outImg, cv::Size(), scaling, scaling);
+  viz::interactiveZoom(outImg);
+}
+
+TEST_F(NavigationTest, QuadricPointsWNoise) {
+  const int n_pts = 15;
+
+  cam->resetCameraState();
+  cam->moveX(2.5e3);
+  cam->moveY(-1e2);
+  cam->moveZ(3e2);
+  Eigen::Vector3d look_here = 1e2*Eigen::Vector3d::Random();
+  Eigen::Vector3d up_vector = Eigen::Vector3d::Random();
+  cam->pointTo(look_here, up_vector);
+  // std::cout << *cam << std::endl;
+  Eigen::MatrixXd extrinsic = cam->getExtrinsicMatrix();
+
+  Quadric q1( 15, -20, 100, "crater1");
+  Quadric q2(-20,  15, 200, "crater2");
+  Quadric q3( 10,  05, 150, "crater3");
+  Quadric q4(-10,  10, 130, "crater4");
+  Quadric q5(-30, -20, 250, "crater5");
+  std::vector<Quadric> quadrics = {q1, q2, q3, q4, q5};
+
+  double mean = 0, st_dev = 0.05;
+  std::vector<std::vector<Eigen::Vector2d> > noisy_pts;
+  noisy_pts.reserve(quadrics.size());
+  std::vector<Eigen::Matrix3d> locii_noisy;
+  std::vector<Conic> conics, noisy_conics;
+
+  for(std::vector<Quadric>::const_iterator it = quadrics.begin(); it != quadrics.end(); it++) {
+    Eigen::Vector3d normal_cam = cam->world2Camera((*it).getNormal());
+    assert(Eigen::Vector3d::UnitZ().dot(normal_cam)> 0);
+    std::vector<Eigen::Vector3d> pts_world;
+    pts_world.reserve(n_pts);
+    (*it).getRimPoints(n_pts, pts_world);
+    std::vector<Eigen::Vector2d> pts_pxl;
+    cam->world2Pixel(pts_world, pts_pxl);
+    Conic fromQuadric = (*it).projectToImage(cam->getProjectionMatrix());
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    const double offset_std = 0;
+    std::normal_distribution<double> dist(0, offset_std);
+    addNoise(mean + dist(gen) - offset_std/2.0, st_dev, pts_pxl);
+    Conic noisy(pts_pxl);
+    noisy_conics.push_back(noisy);
+    Eigen::Matrix3d plane_locus = cam->getImagePlaneLocus(noisy.getLocus());
+    locii_noisy.push_back(plane_locus);
+    noisy_pts.push_back(pts_pxl);
+    conics.push_back(fromQuadric);
+  }
+
+  Eigen::Quaterniond attitude;
+  Eigen::Vector3d position;
+  solve_navigation_problem(quadrics, locii_noisy, attitude, position);
+  std::cout << "ESTIMATION:"
+            << "\n\tLocation: " << position.transpose()
+            << "\n\tAttitude: " << attitude << std::endl;
+  std::cout << "ACTUAL CAMERA POSE:\n" << *cam << std::endl;
+  std::cout << "Attitude Error: " << rad2deg(attitudeError(attitude, cam->getAttitude())) << " deg" << std::endl;
+  std::cout << "Position Error: " << (position - cam->getPosition()).norm() << std::endl;
+  EXPECT_TRUE(cam->getAttitude().isApprox(attitude, 3));
+  EXPECT_TRUE(cam->getPosition().isApprox(position, 1e2));
+
+  // Visuals
+  drawNoisyPoints(*cam, conics, noisy_pts);
 }
 

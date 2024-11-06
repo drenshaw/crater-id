@@ -24,9 +24,10 @@ void drawEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
   cv::Size2i img_size(image.rows, image.cols);
   cv::Point ellipse_center;
   conic.getCenter(ellipse_center);
-  std::cout << __func__ << ": " << conic << std::endl;
+  // std::cout << __func__ << ": " << conic << std::endl;
+    std::cerr << __func__ << ": Ellipse: " << conic << std::endl;
   if(!isInImage(ellipse_center, image.size)) {
-    std::cout << "Ellipse is not in the image: " << ellipse_center << std::endl;
+    std::cerr << __func__ << ": Ellipse is not in the image: " << ellipse_center << std::endl;
     return;
   }
   // Drawing the ellipse 
@@ -156,6 +157,12 @@ void drawPoints(cv::Mat& image, const std::vector<Eigen::Vector2d>& points, cons
   for (auto pt_it = points.begin(); pt_it != points.end(); ++pt_it) {
     int index = std::distance(points.begin(), pt_it);
     drawPoint(image, *pt_it, colors.at(index%colors.size()));
+  }
+}
+
+void drawPoints(cv::Mat& image, const std::vector<std::vector<Eigen::Vector2d> >& points, const std::vector<cv::Scalar>& colors) {
+  for (auto pt_it = points.begin(); pt_it != points.end(); ++pt_it) {
+    drawPoints(image, *pt_it, colors);
   }
 }
 

@@ -317,7 +317,7 @@ TEST_F(QuadricTest, ProjectQuadric) {
   cam->moveTo(pos);
   cam->pointTo(origin, -Eigen::Vector3d::UnitY());
   Eigen::MatrixXd proj_mtx = cam->getProjectionMatrix();
-  // plotCraters(*cam, quadrics);
+  plotCraters(*cam, quadrics);
 }
 
 TEST_F(QuadricTest, MakeSphere) {
@@ -337,7 +337,7 @@ TEST_F(QuadricTest, MakeSphere) {
     Quadric quad(lat , lon, radius, "");
     craters.push_back(quad);
   }
-  // plotCraters(*cam, craters);
+  plotCraters(*cam, craters);
 }
 
 TEST_F(QuadricTest, ProjectMoonCenter) {
