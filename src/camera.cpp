@@ -187,8 +187,8 @@ void Camera::getIntrinsicParams(std::array<double, CAMERA_INTRINSIC_PARAM>& para
 
 cv::Mat Camera::getBlankCameraImage() const {
   cv::Mat image(this->getImageHeight(), this->getImageWidth(), 
-            CV_8UC3, 
-              cv::Scalar(50, 50, 50));
+                CV_8UC3, 
+                cv::Scalar(50, 50, 50));
   return image;
 }
 

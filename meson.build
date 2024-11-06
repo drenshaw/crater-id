@@ -25,6 +25,7 @@ cpp = meson.get_compiler('cpp')
 subdir('include')
 subdir('src')
 subdir('test')
+subdir('examples')
 
 
 pkg_mod = import('pkgconfig')

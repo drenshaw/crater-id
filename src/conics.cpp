@@ -88,11 +88,11 @@ std::ostream& operator<<(std::ostream& os, const Conic& conic) {
     return os 
         << "Conic-> \tID: '" << conic.id_ << "'"
         << "\n\tSemi axes: " 
-        << conic.semimajor_axis_ << " | "
-        << conic.semiminor_axis_
-        << "\n\tCenter: (" << conic.x_center_ << " , "
-        << conic.y_center_ << ") "
-        << "\n\tAngle (deg): " << rad2deg(conic.angle_) << " ";
+        << conic.getSemiMajorAxis() << " | "
+        << conic.getSemiMinorAxis()
+        << "\n\tCenter: (" << conic.getCenterX() << " , "
+        << conic.getCenterY() << ") "
+        << "\n\tAngle (deg): " << rad2deg(conic.getAngle()) << " ";
 }
 
 void Conic::setGeometricParameters(const std::array<double, GEOMETRIC_PARAM>& geom_vec) {
@@ -120,7 +120,7 @@ void Conic::setGeometricParameters( const double semimajor_axis,
   semiminor_axis_ = semiminor_axis;
   x_center_ = x_center;
   y_center_ = y_center;
-  angle_ = angle;
+  angle_ = wrap_npi2_pi2(angle);
 }
 
 void Conic::setSemimajorAxis(const double semimajor_axis) {
@@ -154,7 +154,7 @@ void Conic::setLocus(const Eigen::Matrix3d& locus) {
     geom_params = fromLocus(locus);
   }
   catch (const std::runtime_error& e) {
-    std::cout << __func__ << "--> " << e.what() << std::endl;
+    std::cerr << __func__ << "--> " << e.what() << std::endl;
     throw std::runtime_error("Locus is singular when attempting to make a conic.");
   }
   setGeometricParameters(geom_params);
@@ -185,7 +185,7 @@ Eigen::Matrix3d Conic::toLocus() const {
     return locus2Geom(locus);
   }
   catch (const std::runtime_error& e) {
-    std::cout << __func__ << "--> " << e.what() << std::endl;
+    std::cerr << __func__ << "--> " << e.what() << std::endl;
     throw std::runtime_error("Locus is singular.");
   }
 }
@@ -403,7 +403,9 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
   double num;
   num = 2*((A*E*E + C*D*D - B*D*E)/(4*A*C - B*B) - F);
   double den = std::sqrt(std::pow(A-C,2) + std::pow(B,2));
-  assert(den != 0 && !std::isnan(den));
+  assert(!std::isnan(den));
+  std::cout << "Denominator is " << (den > 0 ? "positive\n" : "negative\n");
+  // assert(den != 0 && !std::isnan(den));
   semimajor_axis = std::sqrt(num/(A+C-den));
   semiminor_axis = std::sqrt(num/(A+C+den));
 
@@ -414,18 +416,21 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
   if(A > C)
     phi += M_PI_2;
   if(semimajor_axis < semiminor_axis) {
+    std::cout << "Swappin' axes\n";
     std::swap(semimajor_axis, semiminor_axis);
     phi += M_PI_2;
   }
+  // TODO: figure out why the negative angle is visually correct
+  phi = wrap_npi2_pi2(phi);
   std::array<double, GEOMETRIC_PARAM> geom;
   // auto roundd = [](double val) {return std::round(val*1e3)/1e3;};
-  auto roundd = [](double val) {return val;};
+  // auto roundd = [](double val) {return val;};
   geom = {
-    roundd(semimajor_axis), 
-    roundd(semiminor_axis), 
-    roundd(xc), 
-    roundd(yc), 
-    roundd(phi)};
+    round_dec(semimajor_axis, 3), 
+    round_dec(semiminor_axis, 3), 
+    round_dec(xc, 3), 
+    round_dec(yc, 3), 
+    round_dec(rad2deg(phi), 5)};
   if(vectorContainsNaN(geom)) {
     std::cerr 
       << __func__ << "-->\n"
@@ -525,13 +530,12 @@ std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vect
   Eigen::ArrayXd Y = pts_cam.col(1);
   Eigen::MatrixXd Ax(n_pts, 5);
   Ax << X.array().pow(2), X.array()*Y.array(), Y.array().pow(2), X, Y;
-  // std::cout << "Here is the Ax array:\n" << Ax << std::endl;
   Eigen::MatrixXd bx = Eigen::MatrixXd::Ones(n_pts, 1);
   // Ax.template Eigen::BDCSVD<Eigen::ComputeThinU | Eigen::ComputeThinV>().solve(bx);
   Eigen::BDCSVD<Eigen::MatrixXd> SVD(Ax, Eigen::ComputeThinU | Eigen::ComputeThinV);
   Eigen::MatrixXd solu = SVD.solve(bx);
   impl = {solu(0), solu(1), solu(2), solu(3), solu(4), -1.0};
-  Conic conic(impl);
+  // Conic conic(impl);
   // // auto sol = Ax.colPivHouseholderQr().solve(bx);
   // Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(Ax.rows(), Ax.cols());
   // cod.setThreshold(Eigen::Default);
@@ -601,11 +605,11 @@ bool IntersectConics(const Eigen::Matrix3d& Ai,
   Eigen::Vector3d h = D.row(maxRow);
   
   if ( vectorContainsNaN(g) ) {
-      std::cout << "g vector contains NaN's: " << g << std::endl;
+      std::cerr << "g vector contains NaN's: " << g << std::endl;
       return false;
   }
   if ( vectorContainsNaN(h) ) {
-      std::cout << "h vector contains NaN's: " << h << std::endl;
+      std::cerr << "h vector contains NaN's: " << h << std::endl;
       return false;
   }
   gh = {g, h};

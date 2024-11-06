@@ -227,7 +227,7 @@ TEST_F(NavigationTest, CalculateHomography) {
   std::vector<Eigen::Matrix3d> locii;
   for(std::vector<Quadric>::iterator it = quadrics.begin(); it != quadrics.end(); it++) {
     locii.push_back((*it).projectToPlaneLocus(extrinsic));
-    std::cout << Conic((*it).projectToPlaneLocus(extrinsic)) << std::endl;
+    // std::cout << Conic((*it).projectToPlaneLocus(extrinsic)) << std::endl;
   }
 
   Eigen::Quaterniond attitude;
@@ -272,8 +272,9 @@ void addNoise(const double mean, const double st_dev, std::vector<Eigen::Vector2
   if(mean == 0 && st_dev == 0) {
     return;
   }
-  std::random_device rd;
-  std::mt19937 gen(rd());
+  // std::random_device rd;
+  // std::mt19937 gen(rd());
+  std::mt19937 gen(50);
   std::normal_distribution<double> dist(mean, st_dev); // Mean 0, standard deviation 1
 
   // Create an Eigen matrix and fill it with noise
@@ -287,14 +288,19 @@ void addNoise(const double mean, const double st_dev, std::vector<Eigen::Vector2
   }
 }
 
+double attitudeError(const Eigen::Quaterniond& Qest, const Eigen::Quaterniond& Qtrue) {
+  Eigen::Quaterniond Qdiff = Qest.normalized().inverse() * Qtrue.normalized();
+  return wrap_2pi(2*std::acos(Qdiff.w()));
+}
+
 TEST_F(NavigationTest, QuadricPointsWNoise) {
   int n_pts = 10;
 
   cam->resetCameraState();
   cam->moveX(2.5e3);
   cam->moveY(-1e2);
-  cam->moveZ(-2e2);
-  Eigen::Vector3d look_here = -1e2*Eigen::Vector3d::UnitZ();
+  cam->moveZ(-3e2);
+  Eigen::Vector3d look_here = -1e2*Eigen::Vector3d::UnitX();
   Eigen::Vector3d up_vector = Eigen::Vector3d::UnitZ();
   cam->pointTo(look_here, up_vector);
   // std::cout << *cam << std::endl;
@@ -302,33 +308,33 @@ TEST_F(NavigationTest, QuadricPointsWNoise) {
 
   Quadric q1( 10, -10, 100, "crater1");
   Quadric q2(-10,  10, 200, "crater2");
-  Quadric q3( 10,   0,  50, "crater3");
-  Quadric q4(-10,   0,  30, "crater4");
-  Quadric q5(  0,  -3, 150, "crater5");
+  Quadric q3( 10,   0, 150, "crater3");
+  Quadric q4(-10,   0, 130, "crater4");
+  Quadric q5(-30,  -30, 250, "crater5");
   std::vector<Quadric> quadrics = {q1, q2, q3, q4, q5};
 
-  double mean = 0, st_dev = 0.0;
+  double mean = 0, st_dev = 0.5;
   std::vector<Eigen::Vector2d> all_pts_pxl;
   all_pts_pxl.reserve(n_pts * quadrics.size());
   std::vector<Eigen::Matrix3d> locii;
+  std::vector<Conic> conics;
+  std::vector<Conic> noisy_conics;
   for(std::vector<Quadric>::const_iterator it = quadrics.begin(); it != quadrics.end(); it++) {
     std::vector<Eigen::Vector3d> pts_world;
     pts_world.reserve(n_pts);
     (*it).getRimPoints(n_pts, pts_world);
     std::vector<Eigen::Vector2d> pts_pxl;
     cam->world2Pixel(pts_world, pts_pxl);
+    Conic fromPts = (*it).projectToImage(cam->getProjectionMatrix());
+    std::cout << "===>From Points: " << fromPts << std::endl;
+    conics.push_back(fromPts);
 
-    // Conic no_noise(pts_pxl);
-    // // std::cout << "====>No noise: " << no_noise << std::endl;
-    // addNoise(mean, st_dev, pts_pxl);
-    // Conic from_proj = (*it).projectToImage(cam->getExtrinsicMatrix());
-    // std::cout << "+++++From projection: " << from_proj << std::endl;
+    addNoise(mean, st_dev, pts_pxl);
     Conic noisy(pts_pxl);
-    // conics.push_back(noisy);
+    std::cout << "===>Noisy: " << noisy << std::endl;
+    noisy_conics.push_back(noisy);
     Eigen::Matrix3d plane_locus = cam->getImagePlaneLocus(noisy.getLocus());
-    Conic cc(plane_locus);
-    std::cout << "<====Noisy: " << cc << std::endl << std::endl;
-    std::cout << "Angle: " << cc.getAngle() << " (" << cc.getAngleDeg() << ") " << M_PI_2 << std::endl;
+    std::cout << "<===Plane Conic: " << Conic(plane_locus) << std::endl << std::endl;
     locii.push_back(plane_locus);
     for(std::vector<Eigen::Vector2d>::iterator it2 = pts_pxl.begin(); it2 != pts_pxl.end(); it2++){
       all_pts_pxl.push_back(*it2);
@@ -338,90 +344,70 @@ TEST_F(NavigationTest, QuadricPointsWNoise) {
   std::vector<Eigen::Matrix3d> locii2;
   for(std::vector<Quadric>::iterator it = quadrics.begin(); it != quadrics.end(); it++) {
     locii2.push_back((*it).projectToPlaneLocus(extrinsic));
-    std::cout << Conic((*it).projectToPlaneLocus(extrinsic)) << std::endl;
+    // std::cout << Conic((*it).projectToPlaneLocus(extrinsic)) << std::endl;
   }
-
-  // cv::Mat image = cam->getBlankCameraImage();
-  // cv::Mat outImg;
-  // double scaling = 0.4;
-  // // Showing image inside a window 
-  // viz::drawEllipses(image, *cam, quadrics, viz::CV_colors);
-  // // viz::drawEllipses(image, conics, viz::CV_colors);
-  // cv::resize(image, outImg, cv::Size(), scaling, scaling);
-  // cv::imshow("Projecting Moon to Camera", outImg); 
-  // cv::waitKey(0); 
 
   Eigen::Quaterniond attitude;
   Eigen::Vector3d position;
   solve_navigation_problem(quadrics, locii2, attitude, position);
   ASSERT_TRUE(cam->getAttitude().isApprox(attitude, 1e-3));
   ASSERT_TRUE(cam->getPosition().isApprox(position, 1e-3));
-  // int n_pts = 10;
-  // cam->resetCameraState();
-  // cam->moveX(2.5e3);
-  // cam->moveY(-1e2);
-  // cam->moveZ(-2e2);
-  // Eigen::Vector3d look_here = -1e2*Eigen::Vector3d::UnitZ();
-  // Eigen::Vector3d up_vector = Eigen::Vector3d::UnitZ();
-  // cam->pointTo(look_here, up_vector);
-  // Quadric q1( 10, -10, 100, "crater1");
-  // Quadric q2(-10,  10, 200, "crater2");
-  // Quadric q3( 10,   0,  50, "crater3");
-  // Quadric q4(-10,   0,  30, "crater4");
-  // Quadric q5(  0,  -3, 150, "crater5");
-  // const std::vector<Quadric> quadrics = {q1, q2, q3, q4, q5};
-  // std::vector<Conic> conics;
+  std::cout << "ESTIMATION:\n\tLocation: " << position.transpose()
+            << "\n\tAttitude: " << attitude << std::endl;
+  std::cout << "ACTUAL CAMERA POSE:\n" << *cam << std::endl;
+  std::cout << "Attitude Error: " << rad2deg(attitudeError(attitude, cam->getAttitude())) << std::endl;
+  std::cout << "Position Error: " << (position - cam->getPosition()).norm() << std::endl;
 
-  // double mean = 0, st_dev = 0.0;
-  // std::vector<Eigen::Vector2d> all_pts_pxl;
-  // all_pts_pxl.reserve(n_pts * quadrics.size());
-  // std::vector<Eigen::Matrix3d> locii;
-  // for(std::vector<Quadric>::const_iterator it = quadrics.begin(); it != quadrics.end(); it++) {
-  //   std::vector<Eigen::Vector3d> pts_world;
-  //   pts_world.reserve(n_pts);
-  //   (*it).getRimPoints(n_pts, pts_world);
-  //   std::vector<Eigen::Vector2d> pts_pxl;
-  //   cam->world2Pixel(pts_world, pts_pxl);
+  // Visuals
+  cv::Mat image = cam->getBlankCameraImage();
+  // Add the moon
+  Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
+  Eigen::Matrix3d moon_locus = cam->projectQuadricToLocus(sphere);
+  Conic moon(moon_locus);
+  // std::cout << "Moon ellipse: " << moon << std::endl;
+  if(cam->isInCameraFrame(moon.getCenter())) {
+    viz::drawEllipse(image, moon, cv::viz::Color::gray());
+  }
+  else {
+    std::cout << "The Moon center is not in the image: " << moon.getCenter().transpose() << std::endl;
+  }
+  std::vector<cv::Scalar> reds(quadrics.size());
+  std::fill(reds.begin(), reds.end(), cv::viz::Color::amethyst());
+  std::vector<cv::Scalar> colors = {
+                                    cv::viz::Color::orange(),
+                                    cv::viz::Color::yellow(),
+                                    cv::viz::Color::green(),
+                                    cv::viz::Color::blue(),
+                                    cv::viz::Color::violet(),
+                                    cv::viz::Color::indigo()};
 
-  //   Conic no_noise(pts_pxl);
-  //   // std::cout << "====>No noise: " << no_noise << std::endl;
-  //   addNoise(mean, st_dev, pts_pxl);
-  //   // Conic from_proj = (*it).projectToImage(cam->getExtrinsicMatrix());
-  //   // std::cout << "+++++From projection: " << from_proj << std::endl;
-  //   Conic noisy(pts_pxl);
-  //   conics.push_back(noisy);
-  //   Eigen::Matrix3d plane_locus = cam->getImagePlaneLocus(noisy.getLocus());
-  //   std::cout << "<====Noisy: " << Conic(plane_locus) << std::endl << std::endl;
-  //   locii.push_back(plane_locus);
-  //   for(std::vector<Eigen::Vector2d>::iterator it2 = pts_pxl.begin(); it2 != pts_pxl.end(); it2++){
-  //     all_pts_pxl.push_back(*it2);
-  //   }
-  // }
+  std::cout << "\n\nOriginal conics:\n";
+  viz::drawEllipses(image, conics, reds);
+  std::cout << "\n\nNoisy conics:\n";
+  viz::drawEllipses(image, noisy_conics, colors);
+  viz::draw3dAxes(image, *cam);
+  viz::drawPoints(image, all_pts_pxl, viz::CV_colors);
+  // Showing image inside a window 
+  double scaling = 0.5;
+  cv::Mat outImg;
+  cv::resize(image, outImg, cv::Size(), scaling, scaling);
+  viz::interactiveZoom(outImg);
+}
 
-  // // Eigen::Quaterniond attitude;
-  // // Eigen::Vector3d position;
-  // // solve_navigation_problem(quadrics, locii, attitude, position);
-  // // EXPECT_TRUE(cam->getAttitude().isApprox(attitude, 1e-3));
-  // // EXPECT_TRUE(cam->getPosition().isApprox(position, 1e-3));
-  
-  // cv::Mat image = cam->getBlankCameraImage();
-  // // Add the moon
-  // Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
-  // Eigen::Matrix3d moon_locus = cam->projectQuadricToLocus(sphere);
-  // Conic moon(moon_locus);
-  // // std::cout << "Moon ellipse: " << moon << std::endl;
-  // if(cam->isInCameraFrame(moon.getCenter())) {
-  //   viz::drawEllipse(image, moon, cv::viz::Color::gray());
-  // }
-  // else {
-  //   std::cout << "The Moon center is not in the image: " << moon.getCenter().transpose() << std::endl;
-  // }
-  // viz::draw3dAxes(image, *cam);
-  // viz::drawPoints(image, all_pts_pxl, viz::CV_colors);
-  // // Showing image inside a window 
-  // double scaling = 0.5;
-  // cv::Mat outImg;
-  // cv::resize(image, outImg, cv::Size(), scaling, scaling);
-  // viz::interactiveZoom(outImg);
+TEST_F(NavigationTest, ConicRotation) {
+  std::vector<Conic> conics;
+  double d_angle = 25;
+  double smajor = 500, sminor = 300, xc = 700, yc = 600;
+  for(double angle = 0; angle < 90; angle += d_angle) {
+    conics.push_back(Conic(smajor, sminor, xc, yc, angle));
+  }
+  std::vector<cv::Scalar> colors = {cv::viz::Color::red(),
+                                    cv::viz::Color::orange(),
+                                    cv::viz::Color::yellow(),
+                                    cv::viz::Color::green(),
+                                    cv::viz::Color::blue(),
+                                    cv::viz::Color::violet(),
+                                    cv::viz::Color::indigo()};
+  viz::drawEllipses(conics, colors);
 }
 

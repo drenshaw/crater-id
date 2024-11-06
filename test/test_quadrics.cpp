@@ -341,39 +341,39 @@ TEST_F(QuadricTest, MakeSphere) {
 }
 
 TEST_F(QuadricTest, ProjectMoonCenter) {
-  // Eigen::Vector3d pos(2.5e3, 0, 0);
-  // // cam->moveCamera(pos);
-  // cam->moveTo(pos);
-  // cam->pointTo(origin, Eigen::Vector3d::UnitZ());
-  // std::cout << "Origin: " << origin.transpose() << std::endl;
+  Eigen::Vector3d pos(2.5e3, 0, 0);
+  // cam->moveCamera(pos);
+  cam->moveTo(pos);
+  cam->pointTo(origin, Eigen::Vector3d::UnitZ());
+  std::cout << "Origin: " << origin.transpose() << std::endl;
   
-  // // Add the moon
-  // Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
-  // Eigen::Vector2d pixel;
-  // cv::Mat image = cam->getBlankCameraImage();
-  // cv::Mat outImg;
-  // double scaling = 0.4;
-  // double semiMajor, semiMinor, angle;
-  // Eigen::Vector2d center;
-  // Eigen::AngleAxisd rot = Eigen::AngleAxisd(-M_PI / 24, Eigen::Vector3d::UnitX());
-  // for(int i = 0; i < 10; i++) {
-  //   cam->resetImage(image);
-  //   Eigen::Matrix3d moon_locus = cam->projectQuadricToLocus(sphere);
-  //   extractEllipseParameters(moon_locus, semiMajor, semiMinor, center, angle);
-  //   Conic moon(moon_locus);
-  //   std::cout << moon << std::endl;
-  //   std::cout << "New params: " << semiMajor << ", " << semiMinor << ", " << center.transpose() << ", " << angle << std::endl;
-  //   cam->world2Pixel(Eigen::Vector3d::Zero(), pixel);
-  //   std::cout << "Moon center: " << pixel.transpose() << std::endl;
+  // Add the moon
+  Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
+  Eigen::Vector2d pixel;
+  cv::Mat image = cam->getBlankCameraImage();
+  cv::Mat outImg;
+  double scaling = 0.4;
+  double semiMajor, semiMinor, angle;
+  Eigen::Vector2d center;
+  Eigen::AngleAxisd rot = Eigen::AngleAxisd(-M_PI / 24, Eigen::Vector3d::UnitX());
+  for(int i = 0; i < 10; i++) {
+    cam->resetImage(image);
+    Eigen::Matrix3d moon_locus = cam->projectQuadricToLocus(sphere);
+    extractEllipseParameters(moon_locus, semiMajor, semiMinor, center, angle);
+    Conic moon(moon_locus);
+    std::cout << moon << std::endl;
+    std::cout << "New params: " << semiMajor << ", " << semiMinor << ", " << center.transpose() << ", " << angle << std::endl;
+    cam->world2Pixel(Eigen::Vector3d::Zero(), pixel);
+    std::cout << "Moon center: " << pixel.transpose() << std::endl;
 
-  //   // viz::drawEllipse(image, moon, cv::viz::Color::gray());
-  //   // // Showing image inside a window 
-  //   // cv::resize(image, outImg, cv::Size(), scaling, scaling);
-  //   // cv::imshow("Projecting Moon to Camera", outImg); 
-  //   // cv::waitKey(0); 
+    // viz::drawEllipse(image, moon, cv::viz::Color::gray());
+    // // Showing image inside a window 
+    // cv::resize(image, outImg, cv::Size(), scaling, scaling);
+    // cv::imshow("Projecting Moon to Camera", outImg); 
+    // cv::waitKey(0); 
 
-  //   cam->rotate(rot);
-  // }
+    cam->rotate(rot);
+  }
 }
 
 TEST_F(QuadricTest, QuadricPoints) {
@@ -458,7 +458,7 @@ TEST_F(QuadricTest, ProjectCrater) {
   Eigen::Vector2d pixel;
   cv::Mat image = cam->getBlankCameraImage();
   cv::Mat outImg;
-  // double scaling = 0.5;
+  double scaling = 0.5;
   Eigen::AngleAxisd rot = Eigen::AngleAxisd(-M_PI / 36, Eigen::Vector3d::UnitX());
   for(int i = 0; i < 10; i++) {
     cam->resetImage(image);
@@ -481,12 +481,12 @@ TEST_F(QuadricTest, ProjectCrater) {
     cv::drawMarker(image, cv::Point(pixel_e[0], pixel_e[1]), cv::viz::Color::orange());
     cv::drawMarker(image, cv::Point(pixel_w[0], pixel_w[1]), cv::viz::Color::blue());
     // Showing image inside a window 
-    // cv::resize(image, outImg, cv::Size(), scaling, scaling);
+    cv::resize(image, outImg, cv::Size(), scaling, scaling);
     // COpenCVWindowExt window ("Src"); 
     // // window.ImShow (outImg);
     // window.ImRead("/home/ndvr/Pictures/IMG_20230904_121221.jpg");
-    // cv::imshow("Projecting Moon to Camera", outImg); 
-    // cv::waitKey(0); 
+    cv::imshow("Projecting Moon to Camera", outImg); 
+    cv::waitKey(0); 
 
     cam->rotate(rot);
   }

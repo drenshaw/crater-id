@@ -24,13 +24,14 @@ void drawEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
   cv::Size2i img_size(image.rows, image.cols);
   cv::Point ellipse_center;
   conic.getCenter(ellipse_center);
+  std::cout << __func__ << ": " << conic << std::endl;
   if(!isInImage(ellipse_center, image.size)) {
     std::cout << "Ellipse is not in the image: " << ellipse_center << std::endl;
     return;
   }
   // Drawing the ellipse 
   cv::ellipse(image, ellipse_center, 
-              conic.getSize(), conic.getAngleDeg(), 
+              conic.getSize(), -conic.getAngleDeg(), 
               0, 360, 
               color, -1, cv::LINE_AA); 
 

@@ -96,3 +96,16 @@ void reprojectLociiToQuadrics(const std::vector<Quadric>& quadrics,
                               const std::vector<Eigen::Matrix3d>& locii,
                               std::vector<Eigen::Vector3d>& centers,
                               std::vector<Eigen::Vector3d>& normals);
+
+
+void reprojectionsToPlanes( const std::vector<Eigen::Vector3d>& centers,
+                            const std::vector<Eigen::Vector3d>& normals,
+                            std::vector<Eigen::Hyperplane<double, 3> >& planes);
+
+void calculateHomography( const std::vector<Eigen::Hyperplane<double, 3> >& planes_world,
+                          const std::vector<Eigen::Hyperplane<double, 3> >& planes_cam,
+                          Eigen::Quaterniond& attitude, Eigen::Vector3d& position);
+
+void solve_navigation_problem(const std::vector<Quadric>& quadrics,
+                              const std::vector<Eigen::Matrix3d>& locii,
+                              Eigen::Quaterniond& attitude, Eigen::Vector3d& position);

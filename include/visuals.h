@@ -84,39 +84,10 @@ void get3dAxes( const Camera& cam,
                 Eigen::Vector2d& y_axis, Eigen::Vector2d& z_axis);
 void draw3dAxes(cv::Mat& image, const Camera& cam);
 void interactiveZoom(cv::Mat& image);
-/* VTK */
-// #include <cstdlib>
-// #include <vtkActor.h>
-// #include <vtkCamera.h>
-// #include <vtkContourFilter.h>
-// #include <vtkImageData.h>
-// #include <vtkNamedColors.h>
-// #include <vtkNew.h>
-// #include <vtkOutlineFilter.h>
-// #include <vtkPolyDataMapper.h>
-// #include <vtkProperty.h>
-// #include <vtkQuadric.h>
-// #include <vtkRenderWindow.h>
-// #include <vtkRenderWindowInteractor.h>
-// #include <vtkRenderer.h>
-// #include <vtkSampleFunction.h>
-// #include <cstdlib>
-// #include <vtkActor.h>
-// #include <vtkCamera.h>
-// #include <vtkContourFilter.h>
-// #include <vtkImageData.h>
-// #include <vtkNamedColors.h>
-// #include <vtkNew.h>
-// #include <vtkOutlineFilter.h>
-// #include <vtkPolyDataMapper.h>
-// #include <vtkProperty.h>
-// #include <vtkQuadric.h>
-// #include <vtkRenderWindow.h>
-// #include <vtkRenderWindowInteractor.h>
-// #include <vtkRenderer.h>
-// #include <vtkSampleFunction.h>
 
 
+// /* VTK */
+// #include <vtk-9.1/vtkActor.h>
 // void Other();
 // void Sphere();
 // void Cone();
