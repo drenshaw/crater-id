@@ -1,12 +1,13 @@
+#include "conics.h"
+#include "math_utils.h"
+
 #include <iostream>
 // #include <stdexcept>
 #include <tuple>
 #include <array>
 #include <cmath>
+#include <random>
 #include <eigen3/Eigen/Dense>
-
-#include "conics.h"
-#include "math_utils.h"
 
 int Conic::next_id = 0;
 
@@ -92,7 +93,7 @@ std::ostream& operator<<(std::ostream& os, const Conic& conic) {
         << conic.getSemiMinorAxis()
         << "\n\tCenter: (" << conic.getCenterX() << " , "
         << conic.getCenterY() << ") "
-        << "\n\tAngle (deg): " << rad2deg(conic.getAngle()) << " ";
+        << "\n\tAngle (deg): " << conic.getAngleDeg() << " ";
 }
 
 void Conic::setGeometricParameters(const std::array<double, GEOMETRIC_PARAM>& geom_vec) {
@@ -404,8 +405,8 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
   num = 2*((A*E*E + C*D*D - B*D*E)/(4*A*C - B*B) - F);
   double den = std::sqrt(std::pow(A-C,2) + std::pow(B,2));
   assert(!std::isnan(den));
-  std::cout << "Denominator is " << (den > 0 ? "positive\n" : "negative\n");
   // assert(den != 0 && !std::isnan(den));
+  // TODO: I think this departs from Christian 2010; find source
   semimajor_axis = std::sqrt(num/(A+C-den));
   semiminor_axis = std::sqrt(num/(A+C+den));
 
@@ -416,8 +417,9 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
   if(A > C)
     phi += M_PI_2;
   if(semimajor_axis < semiminor_axis) {
-    std::cout << "Swappin' axes\n";
+    // std::cout << "Swappin' axes\n";
     std::swap(semimajor_axis, semiminor_axis);
+    assert(semimajor_axis>=semiminor_axis);
     phi += M_PI_2;
   }
   // TODO: figure out why the negative angle is visually correct
@@ -425,12 +427,13 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
   std::array<double, GEOMETRIC_PARAM> geom;
   // auto roundd = [](double val) {return std::round(val*1e3)/1e3;};
   // auto roundd = [](double val) {return val;};
+  assert(!std::isnan(semimajor_axis) && !std::isnan(semiminor_axis));
   geom = {
-    round_dec(semimajor_axis, 3), 
-    round_dec(semiminor_axis, 3), 
-    round_dec(xc, 3), 
-    round_dec(yc, 3), 
-    round_dec(rad2deg(phi), 5)};
+    semimajor_axis, 
+    semiminor_axis, 
+    xc, 
+    yc, 
+    phi};
   if(vectorContainsNaN(geom)) {
     std::cerr 
       << __func__ << "-->\n"
@@ -459,8 +462,8 @@ std::array<double, IMPLICIT_PARAM> geom2Implicit( const double semimajor_axis,
   // perform some computations beforehand
   double a2 = pow(a, 2);
   double b2 = pow(b, 2);
-  double sin_phi = sin(deg2rad(phi));
-  double cos_phi = cos(deg2rad(phi));
+  double sin_phi = sin(phi);
+  double cos_phi = cos(phi);
   double xc_2 = pow(xc, 2);
   double yc_2 = pow(yc, 2);
   double sin_phi_2 = pow(sin_phi, 2);
@@ -541,6 +544,26 @@ std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vect
   // cod.setThreshold(Eigen::Default);
   // auto se = cod.compute(bx);
   return impl;
+}
+
+void addNoise(const double mean, const double st_dev, std::vector<Eigen::Vector2d>& points) {
+  if(mean == 0 && st_dev == 0) {
+    return;
+  }
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  // std::mt19937 gen(50);
+  std::normal_distribution<double> dist(mean, st_dev); // Mean 0, standard deviation 1
+
+  // Create an Eigen matrix and fill it with noise
+  Eigen::MatrixXd A(3, 3);
+  // for (int i = 0; i < A.rows(); ++i) {
+  for(std::vector<Eigen::Vector2d>::iterator it = points.begin(); it != points.end(); it++) {
+    // std::cout << "Points: " << (*it).transpose();
+    (*it)(0) += dist(gen);
+    (*it)(1) += dist(gen);
+    // std::cout << "\tAdded noise: " << (*it).transpose() << std::endl;
+  }
 }
 
 /*********************************************************/

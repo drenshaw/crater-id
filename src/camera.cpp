@@ -186,6 +186,7 @@ void Camera::getIntrinsicParams(std::array<double, CAMERA_INTRINSIC_PARAM>& para
 }
 
 cv::Mat Camera::getBlankCameraImage() const {
+  // cv::Mat uses [rows, cols]
   cv::Mat image(this->getImageHeight(), this->getImageWidth(), 
                 CV_8UC3, 
                 cv::Scalar(50, 50, 50));
@@ -561,16 +562,19 @@ Eigen::Matrix3d lookAt( const Eigen::Isometry3d& transform,
 }
 
 bool isInImage(const Eigen::Vector2d& pt_uv, const cv::Size2i image_size) {
-  return  pt_uv(0) >= 0 && pt_uv(0) <= image_size.width &&
-          pt_uv(1) >= 0 && pt_uv(1) <= image_size.height;
-}
-
-bool isInImage(const cv::Point& pt_uv, const cv::Size2i image_size) {
-  Eigen::Vector2d uv(pt_uv.x, pt_uv.y);
+  cv::Point uv(pt_uv(1), pt_uv(0));
   return isInImage(uv, image_size);
 }
 
+bool isInImage(const cv::Point& pt_uv, const cv::Size2i image_size) {
+  return  pt_uv.x >= 0 && pt_uv.x <= image_size.width &&
+          pt_uv.y >= 0 && pt_uv.y <= image_size.height;
+}
+
 bool isInImage(const cv::Point& pt_uv, const cv::MatSize image_size) {
-  cv::Size2i img_size(image_size[0], image_size[1]);
+  // MatSize is [col, row]
+  cv::Size2i img_size;
+  img_size.width = image_size[0];
+  img_size.height = image_size[1];
   return isInImage(pt_uv, img_size);
 }

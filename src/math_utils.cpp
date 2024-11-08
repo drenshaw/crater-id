@@ -24,7 +24,32 @@
 //   }
 // }
 
-double mod(const double a, const double N) {return a - N*floor(a/N);}
+double deg2rad(const double deg) {
+  return deg * M_PI/180.;
+}
+
+double rad2deg(const double rad) {
+  return rad * 180. / M_PI;
+}
+
+std::vector<double> deg2rad(const std::vector<double> deg) {
+  std::vector<double> rad(deg.size());
+  std::transform(deg.begin(), deg.end(), rad.begin(),
+                   [](double n) { return deg2rad(n); });
+  return rad;
+}
+
+std::vector<double> rad2deg(const std::vector<double> rad) {
+  std::vector<double> deg(deg.size());
+  std::transform(rad.begin(), rad.end(), deg.begin(),
+                   [](double n) { return rad2deg(n); });
+  return deg;
+}
+
+
+double mod(const double a, const double N) {
+  return a - N*floor(a/N);
+}
 
 double wrap2(double angle, const double wrapper, const double offset) {
   double wrapped = mod(angle + offset, wrapper) - offset;

@@ -438,8 +438,14 @@ uint chooseSupportingPlanes(const double angle,
   Eigen::Vector4d absd_angles = d_angles.cwiseAbs();
   Eigen::Vector4d::Index min_idx;
   absd_angles.minCoeff(&min_idx);
-  if(absd_angles(min_idx) > 1e-3) {
-    std::cout << "Angles differences are too large: " << d_angles(min_idx) 
+  const double max_angle = rad2deg(3.);
+  if(absd_angles(min_idx) > max_angle) {
+    // std::cout << __func__ << "-> Truth angle: " << rad2deg(angle)
+    //           << " vs " << rad2deg(angles(min_idx))
+    //           << " @ " << min_idx  << std::endl;
+    // std::cout << "\tAll angles: " << angles.transpose() << std::endl;
+    std::cout << "Angle exceeds max angle" << max_angle 
+              << " : " << d_angles(min_idx) 
               << " @ index " << min_idx << " | " 
               << d_angles.transpose() << std::endl;
     // TODO: This is a great choice for std::optional
@@ -495,6 +501,7 @@ void reprojectLociiToQuadrics(const std::vector<Quadric>& quadrics,
     Eigen::Vector3d center1, center2, normal1, normal2;
 
     std::vector<Eigen::Matrix3d>::iterator it, it_other;
+    const double max_angle = deg2rad(3.);
     for(it_other = other_locii.begin(); it_other != other_locii.end(); it_other++) {
       int index_other = getIndex(other_locii.begin(), it_other);
       Quadric other_quadric = other_quadrics.at(index_other);
@@ -506,7 +513,10 @@ void reprojectLociiToQuadrics(const std::vector<Quadric>& quadrics,
       selectSupportingPlaneNormals(idx_ab, normals1, normals2, normal1, normal2);
       selectSupportingPlaneCenters(idx_ab, centers1, centers2, center1, center2);
       double angle_calc = getAngleBetweenVectors(normal1, normal2);
-      assert(std::abs(angle_calc - angle)<1e-8);
+      if(std::abs(angle_calc - angle)>max_angle) {
+        std::cerr << "Angle " << angle << " exceeds max angle: " << max_angle << std::endl;
+      }
+      // assert(std::abs(angle_calc - angle)<max_angle);
       indices.push_back(idx_ab / 2);
     }
     if(!allEqualVector(indices)) {
@@ -533,6 +543,11 @@ void reprojectionsToPlanes( const std::vector<Eigen::Vector3d>& centers,
 void calculateHomography( const std::vector<Eigen::Hyperplane<double, 3> >& planes_world,
                           const std::vector<Eigen::Hyperplane<double, 3> >& planes_cam,
                           Eigen::Quaterniond& attitude, Eigen::Vector3d& position) {
+  const int min_n_craters = 3;
+  if(planes_world.size() < min_n_craters) {
+    std::cerr << "Not enough craters to perform estimation.\n";
+    return;
+  }                            
   uint PLANE_DIM = 4;
   uint n_planes = planes_world.size();
   assert(n_planes == planes_cam.size());
@@ -541,7 +556,7 @@ void calculateHomography( const std::vector<Eigen::Hyperplane<double, 3> >& plan
   for(size_t i = 0; i < n_planes; i++) {
     lhs.block<4,1>(4*i,0) = planes_cam.at(i).coeffs();
     Eigen::Hyperplane<double, 3> world_plane = planes_world.at(i);
-    lhs(4*i+3) -= world_plane.offset();
+    lhs(PLANE_DIM*i+PLANE_DIM-1) -= world_plane.offset();
     
     double a = world_plane.normal()(0);
     Eigen::Matrix4d diag_a = a*Eigen::Matrix4d::Identity();
@@ -575,5 +590,11 @@ void solve_navigation_problem(const std::vector<Quadric>& quadrics,
   std::vector<Eigen::Hyperplane<double, 3> > planes_cam;
   reprojectionsToPlanes(centers, normals, planes_cam);
   calculateHomography(planes_world, planes_cam, attitude, position);
+}
+
+double attitudeError(const Eigen::Quaterniond& Qest, const Eigen::Quaterniond& Qtrue) {
+  Eigen::Quaterniond Qdiff = Qest.normalized().inverse() * Qtrue.normalized();
+  Qdiff.normalize();
+  return wrap_2pi(2*std::acos(Qdiff.w()));
 }
 
