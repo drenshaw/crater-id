@@ -85,6 +85,8 @@ void get3dAxes( const Camera& cam,
                 Eigen::Vector2d& y_axis, Eigen::Vector2d& z_axis);
 void draw3dAxes(cv::Mat& image, const Camera& cam);
 void interactiveZoom(cv::Mat& image);
+void drawNoisyPoints( const Camera& cam, const std::vector<Conic>& conics,
+                      const std::vector<std::vector<Eigen::Vector2d> >& noisy_pts);
 
 
 // /* VTK */

@@ -301,6 +301,41 @@ void interactiveZoom(cv::Mat& image) {
     cv::destroyAllWindows();
 }
 
+void drawNoisyPoints( const Camera& cam, const std::vector<Conic>& conics,
+                      const std::vector<std::vector<Eigen::Vector2d> >& noisy_pts) {
+  std::vector<Conic> noisy_conics;
+  std::vector<std::vector<Eigen::Vector2d> >::const_iterator it;
+  for(it = noisy_pts.begin(); it != noisy_pts.end(); it++) {
+    Conic noisy(*it);
+    noisy_conics.push_back(noisy);
+  }
+  cv::Mat image = cam.getBlankCameraImage();
+  // Add the moon
+  Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
+  Eigen::Matrix3d moon_locus = cam.projectQuadricToLocus(sphere);
+  Conic moon(moon_locus);
+  drawEllipse(image, moon, cv::viz::Color::gray());
+  std::vector<cv::Scalar> background(conics.size());
+  std::fill(background.begin(), background.end(), cv::viz::Color::black());
+  std::vector<cv::Scalar> colors = {cv::viz::Color::red(),
+                                    cv::viz::Color::orange(),
+                                    cv::viz::Color::yellow(),
+                                    cv::viz::Color::green(),
+                                    cv::viz::Color::blue(),
+                                    cv::viz::Color::violet(),
+                                    cv::viz::Color::indigo()};
+  drawEllipses(image, conics, background);
+  drawEllipses(image, noisy_conics, colors);
+  draw3dAxes(image, cam);
+  
+  drawPoints(image, noisy_pts, CV_colors);
+  // Showing image inside a window 
+  double scaling = 0.5;
+  cv::Mat outImg;
+  cv::resize(image, outImg, cv::Size(), scaling, scaling);
+  interactiveZoom(outImg);
+}
+
 
 
 // #include <cstdlib>

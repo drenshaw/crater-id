@@ -198,12 +198,6 @@ TEST_F(NavigationTest, ChooseVectorOfCraters) {
 }
 
 TEST_F(NavigationTest, CalculateHomography) {
-  cv::Size2i im_sz(2592, 2048);
-  std::cout << "Image width: " << im_sz.width << std::endl;
-  std::cout << "Image height: " << im_sz.height << std::endl;
-
-  std::cout << "Image width: " << cam->getImageWidth() << std::endl;
-  std::cout << "Image height: " << cam->getImageHeight() << std::endl;
   cam->resetCameraState();
   cam->moveX(2.5e3);
   cam->moveY(-1e2);
@@ -300,45 +294,6 @@ double attitudeError(const Eigen::Quaterniond& Qest, const Eigen::Quaterniond& Q
   return wrap_2pi(2*std::acos(Qdiff.w()));
 }
 
-void drawNoisyPoints( const Camera& cam, const std::vector<Conic>& conics,
-                      const std::vector<std::vector<Eigen::Vector2d> >& noisy_pts) {
-  std::vector<Conic> noisy_conics;
-  std::vector<std::vector<Eigen::Vector2d> >::const_iterator it;
-  for(it = noisy_pts.begin(); it != noisy_pts.end(); it++) {
-    Conic noisy(*it);
-    noisy_conics.push_back(noisy);
-  }
-  cv::Mat image = cam.getBlankCameraImage();
-  std::cout << __func__ << "-> Image size: " << image.size << std::endl;
-  // Add the moon
-  Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
-  Eigen::Matrix3d moon_locus = cam.projectQuadricToLocus(sphere);
-  Conic moon(moon_locus);
-  std::cout << "Moon ellipse: " << moon << std::endl;
-  viz::drawEllipse(image, moon, cv::viz::Color::gray());
-  std::vector<cv::Scalar> background(conics.size());
-  std::fill(background.begin(), background.end(), cv::viz::Color::black());
-  std::vector<cv::Scalar> colors = {cv::viz::Color::red(),
-                                    cv::viz::Color::orange(),
-                                    cv::viz::Color::yellow(),
-                                    cv::viz::Color::green(),
-                                    cv::viz::Color::blue(),
-                                    cv::viz::Color::violet(),
-                                    cv::viz::Color::indigo()};
-  std::cout << "Conics:\n";
-  viz::drawEllipses(image, conics, background);
-  std::cout << "Noisy:\n";
-  viz::drawEllipses(image, noisy_conics, colors);
-  viz::draw3dAxes(image, cam);
-  
-  viz::drawPoints(image, noisy_pts, viz::CV_colors);
-  // Showing image inside a window 
-  double scaling = 0.5;
-  cv::Mat outImg;
-  cv::resize(image, outImg, cv::Size(), scaling, scaling);
-  viz::interactiveZoom(outImg);
-}
-
 TEST_F(NavigationTest, QuadricPointsWNoise) {
   const int n_pts = 15;
 
@@ -355,7 +310,7 @@ TEST_F(NavigationTest, QuadricPointsWNoise) {
   Quadric q1( 15, -20, 100, "crater1");
   Quadric q2(-20,  15, 200, "crater2");
   Quadric q3( 10,  05, 150, "crater3");
-  Quadric q4(-10,  210, 130, "crater4");
+  Quadric q4(-10,  10, 130, "crater4");
   Quadric q5(-30, -20, 250, "crater5");
   std::vector<Quadric> quadrics = {q1, q2, q3, q4, q5};
 
@@ -406,6 +361,6 @@ TEST_F(NavigationTest, QuadricPointsWNoise) {
   EXPECT_TRUE(cam->getPosition().isApprox(position, 1e2));
 
   // Visuals
-  drawNoisyPoints(*cam, conics, noisy_pts);
+  viz::drawNoisyPoints(*cam, conics, noisy_pts);
 }
 
