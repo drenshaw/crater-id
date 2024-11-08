@@ -30,7 +30,7 @@ void drawEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
   }
   // Drawing the ellipse 
   cv::ellipse(image, ellipse_center, 
-              conic.getSize(), -conic.getAngleDeg(), 
+              conic.getSize(), conic.getAngleDeg(), 
               0, 360, 
               color, -1, cv::LINE_AA); 
 

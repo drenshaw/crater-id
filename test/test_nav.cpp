@@ -269,7 +269,6 @@ TEST_F(NavigationTest, ImageConic2PlaneConic) {
   // ASSERT_LE((plane_center-zeros).norm(), 1e-9);
 }
 
-
 TEST_F(NavigationTest, QuadricPointsWNoise) {
   const int n_pts = 15;
 
@@ -290,10 +289,10 @@ TEST_F(NavigationTest, QuadricPointsWNoise) {
   Quadric q5(-30, -20, 250, "crater5");
   std::vector<Quadric> quadrics = {q1, q2, q3, q4, q5};
 
-  double mean = 0, st_dev = 0.0;
+  double mean = 0, st_dev = 1.5;
   std::vector<std::vector<Eigen::Vector2d> > noisy_pts;
   noisy_pts.reserve(quadrics.size());
-  std::vector<Eigen::Matrix3d> locii_noisy;
+  std::vector<Eigen::Matrix3d> locii_noisy, locii_points, locii_truth;
   std::vector<Conic> conics, noisy_conics;
   Eigen::Matrix3d T_e2m = cam->getAttitudeMatrix();
 
@@ -310,6 +309,8 @@ TEST_F(NavigationTest, QuadricPointsWNoise) {
     std::vector<Eigen::Vector2d> pts_pxl;
     cam->world2Pixel(pts_world, pts_pxl);
     Conic fromQuadric = (*it).projectToImage(cam->getProjectionMatrix());
+    Eigen::Matrix3d plane_points = cam->getImagePlaneLocus(fromQuadric.getLocus());
+    locii_points.push_back(plane_points);
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -318,10 +319,16 @@ TEST_F(NavigationTest, QuadricPointsWNoise) {
     addNoise(mean + dist(gen) - offset_std/2.0, st_dev, pts_pxl);
     Conic noisy(pts_pxl);
     noisy_conics.push_back(noisy);
-    Eigen::Matrix3d plane_locus = cam->getImagePlaneLocus(noisy.getLocus());
-    locii_noisy.push_back(plane_locus);
+    Eigen::Matrix3d locus_noisy = cam->getImagePlaneLocus(noisy.getLocus());
+    locii_noisy.push_back(locus_noisy);
     noisy_pts.push_back(pts_pxl);
     conics.push_back(fromQuadric);
+
+    Eigen::Matrix3d plane_truth = (*it).projectToPlaneLocus(extrinsic);
+    locii_truth.push_back(plane_truth);
+    std::cout << "Truth: \n"        << Conic(plane_truth/plane_truth(2,2)) << std::endl;
+    std::cout << "From points: \n"  << Conic(plane_points/plane_points(2,2)) << std::endl;
+    std::cout << "Noisy: \n"        << Conic(locus_noisy/locus_noisy(2,2)) << std::endl << std::endl;
   }
 
   Eigen::Quaterniond attitude;

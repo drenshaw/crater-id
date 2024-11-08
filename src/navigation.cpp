@@ -594,6 +594,7 @@ void solve_navigation_problem(const std::vector<Quadric>& quadrics,
 
 double attitudeError(const Eigen::Quaterniond& Qest, const Eigen::Quaterniond& Qtrue) {
   Eigen::Quaterniond Qdiff = Qest.normalized().inverse() * Qtrue.normalized();
+  Qdiff.normalize();
   return wrap_2pi(2*std::acos(Qdiff.w()));
 }
 

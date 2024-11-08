@@ -429,11 +429,11 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
   // auto roundd = [](double val) {return val;};
   assert(!std::isnan(semimajor_axis) && !std::isnan(semiminor_axis));
   geom = {
-    round_dec(semimajor_axis, 3), 
-    round_dec(semiminor_axis, 3), 
-    round_dec(xc, 3), 
-    round_dec(yc, 3), 
-    round_dec(-phi, 5)};
+    semimajor_axis, 
+    semiminor_axis, 
+    xc, 
+    yc, 
+    phi};
   if(vectorContainsNaN(geom)) {
     std::cerr 
       << __func__ << "-->\n"
