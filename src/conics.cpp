@@ -1,12 +1,13 @@
+#include "conics.h"
+#include "math_utils.h"
+
 #include <iostream>
 // #include <stdexcept>
 #include <tuple>
 #include <array>
 #include <cmath>
+#include <random>
 #include <eigen3/Eigen/Dense>
-
-#include "conics.h"
-#include "math_utils.h"
 
 int Conic::next_id = 0;
 
@@ -543,6 +544,26 @@ std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vect
   // cod.setThreshold(Eigen::Default);
   // auto se = cod.compute(bx);
   return impl;
+}
+
+void addNoise(const double mean, const double st_dev, std::vector<Eigen::Vector2d>& points) {
+  if(mean == 0 && st_dev == 0) {
+    return;
+  }
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  // std::mt19937 gen(50);
+  std::normal_distribution<double> dist(mean, st_dev); // Mean 0, standard deviation 1
+
+  // Create an Eigen matrix and fill it with noise
+  Eigen::MatrixXd A(3, 3);
+  // for (int i = 0; i < A.rows(); ++i) {
+  for(std::vector<Eigen::Vector2d>::iterator it = points.begin(); it != points.end(); it++) {
+    // std::cout << "Points: " << (*it).transpose();
+    (*it)(0) += dist(gen);
+    (*it)(1) += dist(gen);
+    // std::cout << "\tAdded noise: " << (*it).transpose() << std::endl;
+  }
 }
 
 /*********************************************************/

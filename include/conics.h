@@ -116,6 +116,8 @@ Eigen::Matrix3d implicit2Locus(const std::array<double, IMPLICIT_PARAM>& impl_pa
 void normalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>& impl_params) ;
 void normalizeImplicitParameters(std::vector<double>& impl_params) ;
 bool isEllipse(const Eigen::Matrix3d& conic_locus);
+void addNoise(const double mean, const double st_dev, std::vector<Eigen::Vector2d>& points);
+
 // void extractEllipseParameters(const Eigen::Matrix3d& A, double& semiMajor, double& semiMinor, Eigen::Vector2d& center, double& angle);
 
 /*********************************************************/

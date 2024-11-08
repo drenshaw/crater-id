@@ -269,30 +269,6 @@ TEST_F(NavigationTest, ImageConic2PlaneConic) {
   // ASSERT_LE((plane_center-zeros).norm(), 1e-9);
 }
 
-void addNoise(const double mean, const double st_dev, std::vector<Eigen::Vector2d>& points) {
-  if(mean == 0 && st_dev == 0) {
-    return;
-  }
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  // std::mt19937 gen(50);
-  std::normal_distribution<double> dist(mean, st_dev); // Mean 0, standard deviation 1
-
-  // Create an Eigen matrix and fill it with noise
-  Eigen::MatrixXd A(3, 3);
-  // for (int i = 0; i < A.rows(); ++i) {
-  for(std::vector<Eigen::Vector2d>::iterator it = points.begin(); it != points.end(); it++) {
-    // std::cout << "Points: " << (*it).transpose();
-    (*it)(0) += dist(gen);
-    (*it)(1) += dist(gen);
-    // std::cout << "\tAdded noise: " << (*it).transpose() << std::endl;
-  }
-}
-
-double attitudeError(const Eigen::Quaterniond& Qest, const Eigen::Quaterniond& Qtrue) {
-  Eigen::Quaterniond Qdiff = Qest.normalized().inverse() * Qtrue.normalized();
-  return wrap_2pi(2*std::acos(Qdiff.w()));
-}
 
 TEST_F(NavigationTest, QuadricPointsWNoise) {
   const int n_pts = 15;

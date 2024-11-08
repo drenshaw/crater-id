@@ -592,3 +592,8 @@ void solve_navigation_problem(const std::vector<Quadric>& quadrics,
   calculateHomography(planes_world, planes_cam, attitude, position);
 }
 
+double attitudeError(const Eigen::Quaterniond& Qest, const Eigen::Quaterniond& Qtrue) {
+  Eigen::Quaterniond Qdiff = Qest.normalized().inverse() * Qtrue.normalized();
+  return wrap_2pi(2*std::acos(Qdiff.w()));
+}
+

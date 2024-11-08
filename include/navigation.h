@@ -109,3 +109,4 @@ void calculateHomography( const std::vector<Eigen::Hyperplane<double, 3> >& plan
 void solve_navigation_problem(const std::vector<Quadric>& quadrics,
                               const std::vector<Eigen::Matrix3d>& locii,
                               Eigen::Quaterniond& attitude, Eigen::Vector3d& position);
+double attitudeError(const Eigen::Quaterniond& Qest, const Eigen::Quaterniond& Qtrue);
