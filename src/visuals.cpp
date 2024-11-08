@@ -21,12 +21,10 @@ void drawEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
               << "find the image\n"; 
     return; 
   }
-  cv::Size2i img_size(image.rows, image.cols);
+  cv::Size2i img_size(image.cols, image.rows);
   cv::Point ellipse_center;
   conic.getCenter(ellipse_center);
-  // std::cout << __func__ << ": " << conic << std::endl;
-    std::cerr << __func__ << ": Ellipse: " << conic << std::endl;
-  if(!isInImage(ellipse_center, image.size)) {
+  if(!isInImage(ellipse_center, img_size)) {
     std::cerr << __func__ << ": Ellipse is not in the image: " << ellipse_center << std::endl;
     return;
   }

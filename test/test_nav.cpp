@@ -19,7 +19,8 @@ protected:
     dx = 1000, dy = 1000, skew = 0, im_height = 2048, im_width = 2592;
     up = (im_width+1)/2;
     vp = (im_height+1)/2;
-    image_size = cv::Size(im_width, im_height);
+    image_size.width  = im_width;
+    image_size.height = im_height;
     cam = new Camera(dx, dy, up, vp, skew, image_size, quat, position);
     cv_cam = new cv::viz::Camera(dx, dy, up, vp, image_size);
   }
@@ -197,6 +198,12 @@ TEST_F(NavigationTest, ChooseVectorOfCraters) {
 }
 
 TEST_F(NavigationTest, CalculateHomography) {
+  cv::Size2i im_sz(2592, 2048);
+  std::cout << "Image width: " << im_sz.width << std::endl;
+  std::cout << "Image height: " << im_sz.height << std::endl;
+
+  std::cout << "Image width: " << cam->getImageWidth() << std::endl;
+  std::cout << "Image height: " << cam->getImageHeight() << std::endl;
   cam->resetCameraState();
   cam->moveX(2.5e3);
   cam->moveY(-1e2);
@@ -295,23 +302,20 @@ double attitudeError(const Eigen::Quaterniond& Qest, const Eigen::Quaterniond& Q
 
 void drawNoisyPoints( const Camera& cam, const std::vector<Conic>& conics,
                       const std::vector<std::vector<Eigen::Vector2d> >& noisy_pts) {
-  std::vector<Conic> noisy_conics(conics.size());
+  std::vector<Conic> noisy_conics;
   std::vector<std::vector<Eigen::Vector2d> >::const_iterator it;
   for(it = noisy_pts.begin(); it != noisy_pts.end(); it++) {
-    noisy_conics.push_back(Conic(*it));
+    Conic noisy(*it);
+    noisy_conics.push_back(noisy);
   }
   cv::Mat image = cam.getBlankCameraImage();
+  std::cout << __func__ << "-> Image size: " << image.size << std::endl;
   // Add the moon
   Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
   Eigen::Matrix3d moon_locus = cam.projectQuadricToLocus(sphere);
   Conic moon(moon_locus);
-  // std::cout << "Moon ellipse: " << moon << std::endl;
-  if(cam.isInCameraFrame(moon.getCenter())) {
-    viz::drawEllipse(image, moon, cv::viz::Color::gray());
-  }
-  else {
-    std::cout << "The Moon center is not in the image: " << moon.getCenter().transpose() << std::endl;
-  }
+  std::cout << "Moon ellipse: " << moon << std::endl;
+  viz::drawEllipse(image, moon, cv::viz::Color::gray());
   std::vector<cv::Scalar> background(conics.size());
   std::fill(background.begin(), background.end(), cv::viz::Color::black());
   std::vector<cv::Scalar> colors = {cv::viz::Color::red(),
@@ -321,8 +325,9 @@ void drawNoisyPoints( const Camera& cam, const std::vector<Conic>& conics,
                                     cv::viz::Color::blue(),
                                     cv::viz::Color::violet(),
                                     cv::viz::Color::indigo()};
-
+  std::cout << "Conics:\n";
   viz::drawEllipses(image, conics, background);
+  std::cout << "Noisy:\n";
   viz::drawEllipses(image, noisy_conics, colors);
   viz::draw3dAxes(image, cam);
   
@@ -350,19 +355,24 @@ TEST_F(NavigationTest, QuadricPointsWNoise) {
   Quadric q1( 15, -20, 100, "crater1");
   Quadric q2(-20,  15, 200, "crater2");
   Quadric q3( 10,  05, 150, "crater3");
-  Quadric q4(-10,  10, 130, "crater4");
+  Quadric q4(-10,  210, 130, "crater4");
   Quadric q5(-30, -20, 250, "crater5");
   std::vector<Quadric> quadrics = {q1, q2, q3, q4, q5};
 
-  double mean = 0, st_dev = 0.05;
+  double mean = 0, st_dev = 0.0;
   std::vector<std::vector<Eigen::Vector2d> > noisy_pts;
   noisy_pts.reserve(quadrics.size());
   std::vector<Eigen::Matrix3d> locii_noisy;
   std::vector<Conic> conics, noisy_conics;
+  Eigen::Matrix3d T_e2m = cam->getAttitudeMatrix();
 
   for(std::vector<Quadric>::const_iterator it = quadrics.begin(); it != quadrics.end(); it++) {
-    Eigen::Vector3d normal_cam = cam->world2Camera((*it).getNormal());
-    assert(Eigen::Vector3d::UnitZ().dot(normal_cam)> 0);
+    Eigen::Vector3d normal_cam = T_e2m * (*it).getNormal();
+    // std::cout << "Normal dot: " << normal_cam.normalized() << std::endl;
+    if(Eigen::Vector3d::UnitZ().dot(normal_cam.normalized()) > 0) {
+      std::cout << "Normal is pointing in the wrong direction: " << normal_cam.normalized().transpose() << std::endl;
+      continue;
+    }
     std::vector<Eigen::Vector3d> pts_world;
     pts_world.reserve(n_pts);
     (*it).getRimPoints(n_pts, pts_world);
