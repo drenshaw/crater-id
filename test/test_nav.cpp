@@ -1,14 +1,18 @@
-#include "gtest/gtest.h"
-#include <eigen3/Eigen/Geometry>
-#include <opencv2/imgproc.hpp> 
-#include <opencv2/highgui/highgui.hpp>
-#include <random>
-
 #include "navigation.h"
 #include "camera.h"
 #include "quadrics.h"
 #include "conics.h"
 #include "visuals.h"
+
+#include "gtest/gtest.h"
+#include <eigen3/Eigen/Geometry>
+#include <eigen3/Eigen/Core>
+#include <opencv2/imgproc.hpp> 
+#include <opencv2/highgui/highgui.hpp>
+#include "opencv2/calib3d/calib3d.hpp"
+#include <opencv2/core/eigen.hpp>
+#include <random>
+
 
 class NavigationTest : public testing::Test {
 protected:
@@ -33,7 +37,8 @@ protected:
   double latitude, longitude, radius;
   std::string id;
   Quadric* quadric_default;
-    double dx, dy, skew, im_height, im_width, up, vp;
+    double dx, dy, skew, up, vp;
+    uint im_height, im_width;
     cv::Size2i image_size;
     Eigen::Quaterniond quat = Eigen::Quaterniond::Identity();
     Eigen::Vector3d position{1e4, 0, 0};
@@ -238,10 +243,10 @@ TEST_F(NavigationTest, CalculateHomography) {
   ASSERT_TRUE(cam->getPosition().isApprox(position, 1e-3));
 }
 
-TEST_F(NavigationTest, KanataniEllipseCheck) {
-  // double semimajor = 100, semiminor = 40, xc = 40, yc = 120, phi = deg2rad(10);
-  // Conic conic(semimajor, semiminor, xc, yc, phi);
-}
+// TEST_F(NavigationTest, KanataniEllipseCheck) {
+//   // double semimajor = 100, semiminor = 40, xc = 40, yc = 120, phi = deg2rad(10);
+//   // Conic conic(semimajor, semiminor, xc, yc, phi);
+// }
 
 TEST_F(NavigationTest, ImageConic2PlaneConic) {
   // Quadric quad0( 0,  0, 100, "Crater 1");
@@ -326,24 +331,409 @@ TEST_F(NavigationTest, QuadricPointsWNoise) {
 
     Eigen::Matrix3d plane_truth = (*it).projectToPlaneLocus(extrinsic);
     locii_truth.push_back(plane_truth);
-    std::cout << "Truth: \n"        << Conic(plane_truth/plane_truth(2,2)) << std::endl;
-    std::cout << "From points: \n"  << Conic(plane_points/plane_points(2,2)) << std::endl;
-    std::cout << "Noisy: \n"        << Conic(locus_noisy/locus_noisy(2,2)) << std::endl << std::endl;
   }
 
   Eigen::Quaterniond attitude;
   Eigen::Vector3d position;
   solve_navigation_problem(quadrics, locii_noisy, attitude, position);
-  std::cout << "ESTIMATION:"
-            << "\n\tLocation: " << position.transpose()
-            << "\n\tAttitude: " << attitude << std::endl;
-  std::cout << "ACTUAL CAMERA POSE:\n" << *cam << std::endl;
-  std::cout << "Attitude Error: " << rad2deg(attitudeError(attitude, cam->getAttitude())) << " deg" << std::endl;
-  std::cout << "Position Error: " << (position - cam->getPosition()).norm() << std::endl;
+  // std::cout << "ESTIMATION:"
+  //           << "\n\tLocation: " << position.transpose()
+  //           << "\n\tAttitude: " << attitude << std::endl;
+  // std::cout << "ACTUAL CAMERA POSE:\n" << *cam << std::endl;
+  // std::cout << "Attitude Error: " << rad2deg(attitudeError(attitude, cam->getAttitude())) << " deg" << std::endl;
+  // std::cout << "Position Error: " << (position - cam->getPosition()).norm() << std::endl;
   EXPECT_TRUE(cam->getAttitude().isApprox(attitude, 3));
   EXPECT_TRUE(cam->getPosition().isApprox(position, 1e2));
 
-  // Visuals
-  viz::drawNoisyPoints(*cam, conics, noisy_pts);
+  // // Visuals
+  // viz::drawNoisyPoints(*cam, conics, noisy_pts);
 }
+
+void drawLabels(cv::Mat& image, const Camera& camera, const std::vector<Quadric>& craters) {
+  Eigen::MatrixXd proj_mtx = camera.getProjectionMatrix();
+
+  int font = cv::FONT_HERSHEY_SIMPLEX;
+  float font_scale = 0.2; // scale factor from base size
+  int thickness = 1; //in pixels
+
+  for(const Quadric& crater : craters) {
+    Eigen::Matrix3d conic_envelope = proj_mtx * crater.getEnvelope() * proj_mtx.transpose();
+    Eigen::Matrix3d locus = adjugate(conic_envelope);
+    Conic conic(locus);
+    cv::Size2i img_size(image.cols, image.rows);
+    cv::Point2d ellipse_center;
+    conic.getCenter(ellipse_center);
+    if(!isInImage(ellipse_center, img_size)) {
+      std::cerr << __func__ << ": Ellipse is not in the image: " << ellipse_center << std::endl;
+      return;
+    }
+    cv::Scalar rect_color = cv::viz::Color::orange();
+    cv::Scalar text_color = cv::viz::Color::azure();
+    cv::Point2d ll_offset(-5, -10);
+    cv::Point2d ur_offset( 5*crater.getID().length(),  30);
+    cv::rectangle (image, ellipse_center+ll_offset, ellipse_center+ur_offset, rect_color, cv::FILLED, cv::LINE_8, 0);
+    cv::putText(image, crater.getID(), ellipse_center, font, font_scale,
+                text_color, thickness, cv::LINE_AA, false);
+  }
+}
+
+// Using https://planetarynames.wr.usgs.gov/Feature/___ to get locations of craters
+// E.g., for Beaumont, use https://planetarynames.wr.usgs.gov/Feature/653
+std::vector<std::array<double, 2> > theophilus = {{627, 473}, {633, 468}, {650, 465}, {661, 472}, {665, 484}, {663, 493}, {656, 504}, {644, 508}, {632, 505}, {625, 499}};
+std::vector<std::array<double, 2> > catharina = {{665, 388}, {672, 383}, {684, 378}, {697, 382}, {704, 392}, {705, 404}, {697, 414}, {668, 413}, {663, 407}};
+std::vector<std::array<double, 2> > beaumont = {{609, 393}, {613, 388}, {622, 388}, {628, 394}, {627, 401}, {622, 406}, {616, 407}, {608, 404}};
+std::vector<std::array<double, 2> > madler = {{594, 489}, {596, 486}, {599, 485}, {604, 488}, {604, 492}, {601, 495}, {596, 495}, {594, 493}};
+std::vector<std::array<double, 2> > tacitus = {{739, 417}, {746, 417}, {750, 423}, {747, 429}, {742, 433}, {737, 432}, {733, 428}};
+std::vector<std::array<double, 2> > alfraganus = {{735, 567}, {739, 566}, {743, 568}, {742, 572}, {739, 574}, {736, 574}, {734, 572}, {733, 570}};
+std::vector<std::array<double, 2> > polybius = {{655, 336}, {658, 333}, {665, 334}, {670, 338}, {669, 344}, {666, 348}, {659, 349}, {655, 347}, {653, 344}};
+std::vector<std::array<double, 2> > kant = {{719, 494}, {723, 493}, {727, 495}, {730, 499}, {728, 504}, {724, 507}, {717, 505}, {715, 502}};
+std::vector<std::array<double, 2> > bohnemberger = {{475, 412}, {479, 409}, {483, 408}, {486, 411}, {486, 417}, {483, 420}, {477, 421}, {474, 418}};
+std::vector<std::array<double, 2> > plinius = {{671, 836}, {676, 833}, {683, 833}, {688, 839}, {687, 844}, {684, 848}, {676, 850}, {672, 848}, {670, 844}};
+std::vector<std::array<double, 2> > macrobius = {{412, 891}, {418, 888}, {427, 891}, {433, 899}, {434, 907}, {429, 912}, {422, 911}, {413, 906}, {409, 901}};
+std::vector<std::array<double, 2> > taruntius = {{382, 691}, {391, 688}, {398, 692}, {401, 700}, {399, 709}, {391, 712}, {384, 710}, {379, 703}};
+std::vector<std::array<double, 2> > cook = {{378, 385}, {384, 381}, {389, 381}, {393, 389}, {391, 395}, {386, 400}, {378, 398}, {375, 394}};
+
+Quadric Theophilus(-11.45, 26.28, 98.59/2., "Theophilus");
+Quadric Catharina(-17.98, 23.55, 98.77/2., "Catharina");
+Quadric Beaumont(-18.08, 28.82, 50.69/2., "Beaumont");
+Quadric Madler(-11.04, 29.76, 27.58/2., "Madler");
+Quadric Tacitus(-16.20, 18.95, 39.81/2., "Tacitus");
+Quadric Alfraganus(-5.42, 18.97, 20.52/2., "Alfraganus");
+Quadric Polybius(-22.46, 25.63, 40.81/2., "Polybius");
+Quadric Kant(-10.62, 20.20, 30.85/2., "Kant");
+Quadric Bohnemberger(-16.24, 40.06, 31.74/2., "Plinius");
+Quadric Plinius(15.36, 23.61, 41.31/2., "Macrobius");
+Quadric Macrobius(21.26, 45.97, 62.79/2., "Polybius");
+Quadric Taruntius(5.50, 46.54, 57.32/2., "Taruntius");
+Quadric Cook(-17.50, 48.81, 45.16/2., "Cook");
+
+const std::vector<std::vector<std::array<double, 2> > > craters = {
+  theophilus, 
+  catharina, 
+  beaumont, 
+  madler, 
+  tacitus, 
+  alfraganus, 
+  polybius, 
+  kant, 
+  bohnemberger, 
+  plinius, 
+  macrobius, 
+  taruntius, 
+  cook
+};
+const std::vector<Quadric> quadrics = {
+  Theophilus, 
+  Catharina, 
+  Beaumont, 
+  Madler, 
+  Tacitus, 
+  Alfraganus, 
+  Polybius, 
+  Kant, 
+  Bohnemberger, 
+  Plinius, 
+  Macrobius, 
+  Taruntius, 
+  Cook
+};
+
+std::vector<cv::Point2d> Generate2DPoints() {
+  std::vector<cv::Point2d> points;
+  for(const std::vector<std::array<double, 2> >& crater : craters) {
+    
+    Eigen::MatrixXd crater_pts = toEigenArray(crater);
+    std::array<double, IMPLICIT_PARAM> impl = ellipseFitLstSq(crater_pts);
+    Conic conic(impl);
+    cv::Point2d point;
+    conic.getCenter(point);
+    points.push_back(point);
+    std::cout << "Conic center: " << point << std::endl;
+  }
+  return points;
+}
+
+std::vector<cv::Point3d> Generate3DPoints() {
+  std::vector<cv::Point3d> points;
+  for(const Quadric& crater : quadrics) {
+    Eigen::Vector3d location = crater.getLocation();
+    points.push_back(cv::Point3d(location(0), location(1), location(2)));
+  }
+  return points;
+}
+
+ template<typename _Tp, int _rows, int _cols, int _options, int _maxRows, int _maxCols> static inline 
+ void eigen2cv( const Eigen::Matrix<_Tp, _rows, _cols, _options, _maxRows, _maxCols>& src, 
+                cv::Matx<_Tp, _rows, _cols>& dst ) 
+ { 
+     if( !(src.Flags & Eigen::RowMajorBit) ) 
+     { 
+         dst = cv::Matx<_Tp, _cols, _rows>(static_cast<const _Tp*>(src.data())).t(); 
+     } 
+     else 
+     { 
+         dst = cv::Matx<_Tp, _rows, _cols>(static_cast<const _Tp*>(src.data())); 
+     } 
+ } 
+
+cv::Mat getCvCameraMatrix(const Eigen::Matrix3d& K) {
+  cv::Mat cameraMatrix(3,3,cv::DataType<double>::type);
+  cv::eigen2cv(K, cameraMatrix);
+  return cameraMatrix;
+}
+
+TEST_F(NavigationTest, Triangulation) {
+
+  double dx = 7291.6666, dy = 7291.6666, skew = 0;
+  uint im_height, im_width;
+  im_height = 1024, im_width = 1024;
+  cv::Size2i image_size(im_height, im_width);
+  up = (double(im_width )+1)/2;
+  vp = (double(im_height)+1)/2;
+  image_size.width  = im_width;
+  image_size.height = im_height;
+  Camera camera(dx, dy, up, vp, skew, image_size);
+  // Read points
+  std::vector<cv::Point2d> imagePoints = Generate2DPoints();
+  std::vector<cv::Point3d> objectPoints = Generate3DPoints();
+ 
+  std::cout << "There are " << imagePoints.size() << " imagePoints and " << objectPoints.size() << " objectPoints." << std::endl;
+  cv::Mat cameraMatrix(3,3,cv::DataType<double>::type);
+  // cv::setIdentity(cameraMatrix);
+  cameraMatrix = getCvCameraMatrix(camera.getIntrinsicMatrix());
+ 
+  std::cout << "Initial cameraMatrix: " << cameraMatrix << std::endl;
+ 
+  cv::Mat distCoeffs(4,1,cv::DataType<double>::type);
+  distCoeffs.at<double>(0) = 0;
+  distCoeffs.at<double>(1) = 0;
+  distCoeffs.at<double>(2) = 0;
+  distCoeffs.at<double>(3) = 0;
+ 
+  cv::Mat rvec(3,1,cv::DataType<double>::type);
+  cv::Mat tvec(3,1,cv::DataType<double>::type);
+ 
+  cv::solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs, rvec, tvec);
+ 
+  std::cout << "rvec: " << rvec << std::endl;
+  cv::Mat rotMtx(3,3,cv::DataType<double>::type);
+  cv::Rodrigues(rvec, rotMtx);
+  std::cout << "Rot matrix:\n" << rotMtx << std::endl;
+  Eigen::Matrix3d rMtx;
+  cv::cv2eigen(rotMtx, rMtx);
+  Eigen::Vector3d tVec;
+  cv::cv2eigen(tvec, tVec);
+  Eigen::Quaterniond q(rMtx.transpose());
+  std::cout << "tvec: " << tvec << std::endl;
+  std::cout << "Tnew:\n" << q * tVec << std::endl;
+  std::cout << "Quat: " << q << std::endl;
+ 
+  std::vector<cv::Point2d> projectedPoints;
+  cv::projectPoints(objectPoints, rvec, tvec, cameraMatrix, distCoeffs, projectedPoints);
+ 
+  for(unsigned int i = 0; i < projectedPoints.size(); ++i)
+    {
+    std::cout << "Image point: " << imagePoints[i] << " Projected to " << projectedPoints[i] << std::endl;
+    }
+}
+
+
+TEST_F(NavigationTest, RealImage) {
+
+  std::vector<Conic> conics;
+  std::vector<Eigen::Matrix3d> locii_noisy;
+  std::vector<std::vector<std::array<double, 2> > >::const_iterator crater;
+  for(crater = craters.begin(); crater != craters.end(); crater++) {
+    Eigen::MatrixXd crater_pts = toEigenArray(*crater);
+    std::array<double, IMPLICIT_PARAM> impl = ellipseFitLstSq(crater_pts);
+    conics.push_back(Conic(impl));
+    locii_noisy.push_back(Conic(impl).getLocus());
+  }
+
+  // Eigen::Quaterniond attitude;
+  // Eigen::Vector3d position;
+  // solve_navigation_problem(quadrics, locii_noisy, attitude, position);
+  // std::cout << "ESTIMATION:"
+  //           << "\n\tLocation: " << position.transpose()
+  //           << "\n\tAttitude: " << attitude << std::endl;
+
+  double dx = 7291.6666, dy = 7291.6666, skew = 0;
+  uint im_height, im_width;
+  im_height = 1024, im_width = 1024;
+  cv::Size2i image_size(im_height, im_width);
+  up = (double(im_width )+1)/2;
+  vp = (double(im_height)+1)/2;
+  image_size.width  = im_width;
+  image_size.height = im_height;
+  Camera camera(dx, dy, up, vp, skew, image_size);
+  camera.resetCameraState();
+  std::cout << camera << std::endl;
+  camera.moveX(17167.4);
+  camera.moveY(4831.86);
+  camera.moveZ(-1920.39);
+  Eigen::Matrix3d att;
+  att <<  0.2342060407733891, -0.9721684019135322, -0.006010722597369456,
+          0.09936144043346457, 0.01778604106378229, 0.9948924368484588,
+         -0.9670960834478861, -0.2336070526849872, 0.1007616510166092;
+  camera.setAttitude(att);
+  // Eigen::Vector3d pointToMe = latlonalt(-9.5, 35.0, 0.);
+  // Eigen::Vector3d pointToMe1(1500.0, 650.0, 0.0);
+  // std::cout << pointToMe.transpose() << std::endl;
+  // std::cout << pointToMe1.transpose() << std::endl;
+  // camera.pointTo(pointToMe, -Eigen::Vector3d::UnitZ());
+  // Eigen::AngleAxisd rot = Eigen::AngleAxisd(0.5*M_PI / 48, Eigen::Vector3d::UnitZ());
+  // camera.rotate(rot);
+  // camera.moveX(0.0e3);
+  // camera.moveY(0.0e3);
+  // camera.moveZ(0.0e3);
+  std::cout << camera << std::endl;
+
+  std::string filename = "/home/ndvr/data/pds/cassini/image.png";
+  cv::Mat image_gray = cv::imread(filename, 0);
+  cv::Mat image;
+  cv::cvtColor(image_gray, image, 1);
+  EXPECT_EQ(image.rows, im_height);
+  EXPECT_EQ(image.cols, im_width);
+  // Add the moon
+  // viz::drawMoon(image, camera);
+  viz::draw3dAxes(image, camera);
+  cv::Point center(774, 554);
+  cv::drawMarker(image, center, cv::viz::Color::yellow());
+
+  // viz::drawEllipses(image, conics, viz::CV_colors);
+  
+  viz::drawCraters(image, camera, quadrics);
+  for(uint i = 0; i < conics.size(); i++) {
+    Quadric crater = quadrics.at(i);
+    Conic conic = conics.at(i);
+    Conic projected = crater.projectToImage(camera.getProjectionMatrix());
+
+    cv::Point2d ellipse_center, projected_center;
+    conic.getCenter(ellipse_center);
+    projected.getCenter(projected_center);
+    cv::arrowedLine(image, projected_center, ellipse_center, cv::viz::Color::red());
+  }
+  // drawLabels(image, camera, quadrics);
+  cv::imshow("Cassini Image", image); 
+  cv::waitKey(0); 
+}
+
+// TEST_F(NavigationTest, FindCircles) {
+//     // Load image
+//     cv::Mat src = imread("/home/ndvr/data/pds/cassini/image.png", cv::IMREAD_COLOR);
+//     if (src.empty()) {
+//         std::cout << "Could not open or find the image!" << std::endl;
+//         return;
+//     }
+
+//     // Convert to grayscale
+//     cv::Mat gray;
+//     cvtColor(src, gray, cv::COLOR_BGR2GRAY);
+
+//     // Blur image to reduce noise 
+//     cv::GaussianBlur(gray, gray, cv::Size(9, 9), 2, 2);
+
+//     // Detect circles using HoughCircles
+//     std::vector<cv::Vec3f> circles;
+//     HoughCircles(gray, circles, cv::HOUGH_GRADIENT, 1, 
+//                  gray.rows / 8,  // Minimum distance between detected circles
+//                  100, 30, 1, 30); // Canny edge threshold, accumulator threshold, min/max radius
+
+//     // Draw detected circles on the original image
+//     for (size_t i = 0; i < circles.size(); i++) {
+//         cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+//         int radius = cvRound(circles[i][2]);
+
+//         // Draw the circle center
+//         circle(src, center, 3, cv::Scalar(0, 0, 255), -1, 8, 0);
+
+//         // Draw the circle outline
+//         circle(src, center, radius, cv::Scalar(0, 255, 0), 2, 8, 0);
+//     }
+
+//     // Show the image with detected circles
+//     cv::imshow("Detected Circles", src);
+//     cv::waitKey(0);
+// }
+
+// TEST_F(NavigationTest, Circles) {
+
+//     cv::Mat color = cv::imread("/home/ndvr/data/pds/cassini/image.png");
+//     cv::namedWindow("input"); cv::imshow("input", color);
+
+//     cv::Mat canny;
+
+//     cv::Mat gray;
+//     /// Convert it to gray
+//     cv::cvtColor( color, gray, cv::COLOR_BGR2GRAY );
+
+//     // compute canny (don't blur with that image quality!!)
+//     cv::Canny(gray, canny, 200,20);
+//     cv::namedWindow("canny2"); cv::imshow("canny2", canny>0);
+
+//     std::vector<cv::Vec3f> circles;
+
+//     /// Apply the Hough Transform to find the circles
+//     double min_radius = 700, max_radius = 750;
+//     cv::HoughCircles( gray, circles, cv::HOUGH_GRADIENT, 1, 60, 200, 20, min_radius, max_radius );
+
+//     // Eigen::Matrix3d moon_locus = camera.getMoonConic(R_MOON);
+//     // Conic moon(moon_locus);
+//     /// Draw the circles detected
+//     for( size_t i = 0; i < circles.size(); i++ ) 
+//     {
+//         cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+//         std::cout << "Center: " << center << std::endl;
+//         int radius = cvRound(circles[i][2]);
+//         // if(radius < min_radius || radius > max_radius) {continue;}
+//         cv::circle( color, center, 3, cv::Scalar(0,255,255), -1);
+//         cv::circle( color, center, radius, cv::Scalar(0,0,255), 1 );
+//     }
+
+//     //compute distance transform:
+//     cv::Mat dt;
+//     cv::distanceTransform(255-(canny>0), dt, cv::DIST_L2 ,3);
+//     cv::namedWindow("distance transform"); cv::imshow("distance transform", dt/255.0f);
+
+//     // test for semi-circles:
+//     float minInlierDist = 2.0f;
+//     for( size_t i = 0; i < circles.size(); i++ ) 
+//     {
+//       // test inlier percentage:
+//       // sample the circle and check for distance to the next edge
+//       unsigned int counter = 0;
+//       unsigned int inlier = 0;
+
+//       cv::Point2f center((circles[i][0]), (circles[i][1]));
+//       float radius = (circles[i][2]);
+      
+//       if(radius < min_radius || radius > max_radius) {continue;}
+
+//       // maximal distance of inlier might depend on the size of the circle
+//       float maxInlierDist = radius/25.0f;
+//       if(maxInlierDist<minInlierDist) maxInlierDist = minInlierDist;
+
+//       //TODO: maybe paramter incrementation might depend on circle size!
+//       for(float t =0; t<2*3.14159265359f; t+= 0.1f) 
+//       {
+//         counter++;
+//         float cX = radius*cos(t) + circles[i][0];
+//         float cY = radius*sin(t) + circles[i][1];
+
+//         if(dt.at<float>(cY,cX) < maxInlierDist) 
+//         {
+//           inlier++;
+//           cv::circle(color, cv::Point2i(cX,cY),3, cv::Scalar(0,255,0));
+//         } 
+//         else
+//           cv::circle(color, cv::Point2i(cX,cY),3, cv::Scalar(255,0,0));
+//       }
+//       std::cout << 100.0f*(float)inlier/(float)counter << " % of a circle with radius " << radius << " detected" << std::endl;
+//     }
+
+//     cv::namedWindow("output"); cv::imshow("output", color);
+//     cv::imwrite("houghLinesComputed.png", color);
+
+//     cv::waitKey(-1);
+// }
 

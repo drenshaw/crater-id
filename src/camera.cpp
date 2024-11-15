@@ -442,6 +442,11 @@ Eigen::Matrix3d Camera::getImagePlaneLocus(const Eigen::Matrix3d& image_locus) c
   return adjugate(Kinv * envelope * Kinv.transpose());
 }
 
+Eigen::Matrix3d Camera::getMoonConic(const double radius) const {
+  Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
+  return this->projectQuadricToLocus(sphere);
+}
+
 
 std::ostream& operator<<(std::ostream& os, const Camera& cam) {
   std::streamsize ss = std::cout.precision();

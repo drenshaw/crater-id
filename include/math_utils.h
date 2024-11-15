@@ -68,6 +68,11 @@ void eulerToDCM(const double roll,
                 const double yaw,
                 Eigen::Matrix3d& dcm);    
 
+
+Eigen::Matrix4d makeSphere(const double radius);
+Eigen::Matrix4d makeEllipsoid(const Eigen::Vector3d& radii);
+
+Eigen::MatrixXd toEigenArray(const std::vector<std::array<double, 2> >& points);
 bool vectorContainsNaN(const Eigen::Vector3d& eV);
 void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec);
 

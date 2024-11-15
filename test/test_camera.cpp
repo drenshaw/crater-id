@@ -474,6 +474,6 @@ TEST_F(CameraTest, ProjectionMatrix) {
   ext.topRightCorner(3,1) = -pos;
   ext = att.toRotationMatrix() * ext;
   // Eigen::AffineCompact3d proj;
-  std::cout << "Transformation matrix:\n" << att.toRotationMatrix() << std::endl;
-  std::cout << "Extrinsic matrix:\n" << ext << std::endl;
+  // std::cout << "Transformation matrix:\n" << att.toRotationMatrix() << std::endl;
+  // std::cout << "Extrinsic matrix:\n" << ext << std::endl;
 }

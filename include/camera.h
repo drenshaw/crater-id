@@ -1,5 +1,7 @@
 #pragma once
 
+#include "math_utils.h"
+
 #include <eigen3/Eigen/Dense>
 #include <opencv2/viz/types.hpp>
 
@@ -120,6 +122,7 @@ class Camera {
     Eigen::Matrix3d projectQuadric(const Eigen::Matrix4d& quadric) const;
     Eigen::Matrix3d projectQuadricToLocus(const Eigen::Matrix4d& quadric_locus) const;
     Eigen::Matrix3d getImagePlaneLocus(const Eigen::Matrix3d& image_locus) const;
+    Eigen::Matrix3d getMoonConic(const double radius=R_MOON) const;
 
   private:
     double dx_;

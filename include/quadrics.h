@@ -66,7 +66,4 @@ Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d&,
                                                     const Eigen::Matrix3d& T_e2m);
 Eigen::Matrix3d getAttitudeTransformBetweenPoints(const Eigen::Vector3d& camera_position, 
                                        const Eigen::Vector3d& desired_location);
-
-
-Eigen::Matrix4d makeSphere(const double radius);
-Eigen::Matrix4d makeEllipsoid(const Eigen::Vector3d& radii);                                       
+                                     

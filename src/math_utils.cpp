@@ -284,6 +284,22 @@ Eigen::Matrix3d getENUFrame(const double lat, const double lon) {
   return mtx;                
 }
 
+Eigen::Matrix4d makeSphere(const double radius) {
+  double recip_radius = 1/std::pow(radius,2.0);
+  Eigen::Matrix4d sphere = recip_radius * Eigen::Matrix4d::Identity();
+  sphere(3,3) = -1.0;
+  return sphere;
+}
+
+Eigen::Matrix4d makeEllipsoid(const Eigen::Vector3d& radii) {
+  Eigen::Vector3d recip_radii = radii.array().pow(-2);
+  Eigen::Vector4d diag;
+  diag << recip_radii, -1;
+  Eigen::Matrix4d sphere = Eigen::Matrix4d::Identity();
+  sphere.diagonal() << diag;
+  return sphere;
+}
+
 // Eigen::Matrix3d getENUFrame(const double lat, const double lon) {
 //   Eigen::Vector3d u_north_pole(3), ui(3), ei(3), ni(3);
 //   Eigen::Matrix3d enu_frame(3, 3);
@@ -332,6 +348,17 @@ void eulerToDCM(const double roll,
   Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
 
   dcm = yawAngle * pitchAngle * rollAngle;
+}
+
+Eigen::MatrixXd toEigenArray(const std::vector<std::array<double, 2> >& points) { 
+  const uint n = points.size();
+  Eigen::MatrixXd matrix(n, 2);
+  for(std::vector<std::array<double, 2> >::const_iterator it = points.begin(); it != points.end(); it++) {
+    int index = getIndex(points.begin(), it);
+    matrix(index, 0) = (*it).at(0);
+    matrix(index, 1) = (*it).at(1);
+  }
+  return matrix;
 }
 
 // Templated version is in header

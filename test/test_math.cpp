@@ -291,14 +291,14 @@ TEST(MathTest, AdjugateMatrix4x4RankDeficient) {
               0.9, -1.3, -2.0, 0.0;
   adj_4x4 = adjugate(mtx_4x4);
   adj_adj = adjugate(adj_4x4);
-  std::cout << "adj(A) (rank deficient):\n" << adj_4x4 << std::endl;
-  std::cout << "AA* (rank deficient):\n" << mtx_4x4 * adj_4x4 << std::endl;
+  // std::cout << "adj(A) (rank deficient):\n" << adj_4x4 << std::endl;
+  // std::cout << "AA* (rank deficient):\n" << mtx_4x4 * adj_4x4 << std::endl;
 
   double det = mtx_4x4.determinant();
   int n_dim = mtx_4x4.rows();
   double scalar = std::pow(det,n_dim-2);
-  std::cout << "det^(n-2)*mtx (rank deficient): " << det << std::endl
-            << scalar * mtx_4x4 << std::endl;
+  // std::cout << "det^(n-2)*mtx (rank deficient): " << det << std::endl
+  //           << scalar * mtx_4x4 << std::endl;
   ASSERT_TRUE((scalar * mtx_4x4).isApprox(adj_adj));
 }
 

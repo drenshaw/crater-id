@@ -227,7 +227,7 @@ Eigen::Vector2d Conic::getCenter() const {
   return center;
 }
 
-void Conic::getCenter(cv::Point& center) const {
+void Conic::getCenter(cv::Point2d& center) const {
   center.x = x_center_;
   center.y = y_center_;
 }
@@ -517,6 +517,29 @@ void normalizeImplicitParameters(std::vector<double>& impl_params) {
                std::bind(std::multiplies<double>(), std::placeholders::_1, vecNormRecip));
 }
 
+std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const Eigen::MatrixXd& points) {
+  std::array<double, IMPLICIT_PARAM> impl;
+  int n_pts = points.rows();
+  if(n_pts < 5) {
+    impl.fill({std::nan("")});
+  }
+  Eigen::ArrayXd X = points.col(0).array();
+  Eigen::ArrayXd Y = points.col(1).array();
+  Eigen::MatrixXd Ax(n_pts, 5);
+  Ax << X.pow(2), X*Y, Y.pow(2), X, Y;
+  Eigen::MatrixXd bx = Eigen::MatrixXd::Ones(n_pts, 1);
+  // Ax.template Eigen::BDCSVD<Eigen::ComputeThinU | Eigen::ComputeThinV>().solve(bx);
+  Eigen::BDCSVD<Eigen::MatrixXd> SVD(Ax, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  Eigen::MatrixXd solu = SVD.solve(bx);
+  impl = {solu(0), solu(1), solu(2), solu(3), solu(4), -1.0};
+  // Conic conic(impl);
+  // // auto sol = Ax.colPivHouseholderQr().solve(bx);
+  // Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(Ax.rows(), Ax.cols());
+  // cod.setThreshold(Eigen::Default);
+  // auto se = cod.compute(bx);
+  return impl;
+}
+
 std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vector2d>& points) {
   std::array<double, IMPLICIT_PARAM> impl;
   int n_pts = points.size();
@@ -529,21 +552,7 @@ std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vect
     int index = std::distance(points.begin(), it);
     pts_cam(index, Eigen::all) = *it;
   }
-  Eigen::ArrayXd X = pts_cam.col(0);
-  Eigen::ArrayXd Y = pts_cam.col(1);
-  Eigen::MatrixXd Ax(n_pts, 5);
-  Ax << X.array().pow(2), X.array()*Y.array(), Y.array().pow(2), X, Y;
-  Eigen::MatrixXd bx = Eigen::MatrixXd::Ones(n_pts, 1);
-  // Ax.template Eigen::BDCSVD<Eigen::ComputeThinU | Eigen::ComputeThinV>().solve(bx);
-  Eigen::BDCSVD<Eigen::MatrixXd> SVD(Ax, Eigen::ComputeThinU | Eigen::ComputeThinV);
-  Eigen::MatrixXd solu = SVD.solve(bx);
-  impl = {solu(0), solu(1), solu(2), solu(3), solu(4), -1.0};
-  // Conic conic(impl);
-  // // auto sol = Ax.colPivHouseholderQr().solve(bx);
-  // Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(Ax.rows(), Ax.cols());
-  // cod.setThreshold(Eigen::Default);
-  // auto se = cod.compute(bx);
-  return impl;
+  return ellipseFitLstSq(pts_cam);
 }
 
 void addNoise(const double mean, const double st_dev, std::vector<Eigen::Vector2d>& points) {

@@ -53,7 +53,7 @@ class Conic {
     double getCenterX() const;
     double getCenterY() const;
     void getCenter(Eigen::Vector2d& center) const;
-    void getCenter(cv::Point& center) const;
+    void getCenter(cv::Point2d& center) const;
     double getSemiMajorAxis() const;
     double getSemiMinorAxis() const;
     cv::Size getSemiAxes() const;
@@ -94,6 +94,7 @@ class Conic {
     friend std::ostream& operator<<(std::ostream& os, const Conic&);
 };
 
+std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const Eigen::MatrixXd& points);
 std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vector2d>& points);
 
 /*********************************************************/
