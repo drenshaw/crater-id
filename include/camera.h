@@ -63,6 +63,7 @@ class Camera {
     Eigen::Vector3d getAttitudeEuler(Eigen::Index a0, Eigen::Index a1, Eigen::Index a2) const ;
     Eigen::Matrix3d getIntrinsicMatrix() const ;
     Eigen::Matrix3d getInverseIntrinsicMatrix() const;
+    cv::Mat getCvIntrinsicMatrix();
     Eigen::Isometry3d getHomogeneousExtrinsicMatrix() const ;
     Eigen::MatrixXd getExtrinsicMatrix() const;
     Eigen::Affine3d getHomogeneousProjectionMatrix() const ;
@@ -163,3 +164,5 @@ Eigen::Matrix3d lookAt( const Eigen::Isometry3d& transform,
 bool isInImage(const Eigen::Vector2d& pt_uv, const cv::Size2i image_size);
 bool isInImage(const cv::Point& pt_uv, const cv::Size2i image_size);
 bool isInImage(const cv::Point& pt_uv, const cv::MatSize image_size);
+
+cv::Mat getCvCameraMatrix(const Eigen::Matrix3d& K);

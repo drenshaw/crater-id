@@ -297,19 +297,3 @@ Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d& posit
   h_k << h_m, u_north_pole.transpose();
   return h_k;
 }
-
-Eigen::Matrix4d makeSphere(const double radius) {
-  double recip_radius = 1/std::pow(radius,2.0);
-  Eigen::Matrix4d sphere = recip_radius * Eigen::Matrix4d::Identity();
-  sphere(3,3) = -1.0;
-  return sphere;
-}
-
-Eigen::Matrix4d makeEllipsoid(const Eigen::Vector3d& radii) {
-  Eigen::Vector3d recip_radii = radii.array().pow(-2);
-  Eigen::Vector4d diag;
-  diag << recip_radii, -1;
-  Eigen::Matrix4d sphere = Eigen::Matrix4d::Identity();
-  sphere.diagonal() << diag;
-  return sphere;
-}

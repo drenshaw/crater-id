@@ -206,39 +206,42 @@ TEST_F(CameraTest, MoveRelative) {
 }
 
 TEST_F(CameraTest, pointInDirection) {
+  cam->resetCameraState();
   Eigen::Vector3d cam_pos(2e3,0,0);
-  Eigen::Vector3d location(0,0,1e3);
+  Eigen::Vector3d look_at(0,0,0.0);
   Eigen::Vector2d pixel;
   Eigen::Vector2d cam_mid = Eigen::Vector2d(1296.5, 1024.5);
   double prec = 1e-3;
   // // TODO: is this backwards?
   cam->move(cam_pos);
-  cam->pointTo(location, Eigen::Vector3d::UnitZ());
-  cam->world2Pixel(location, pixel);
+  cam->pointTo(look_at, Eigen::Vector3d::UnitZ());
+  std::cout << *cam << std::endl;
+  cam->world2Pixel(look_at, pixel);
+  std::cout << "Pointing at ( " << look_at.transpose() << " ) which becomes: ( " << pixel.transpose() << " ) in the camera view\n";
   EXPECT_TRUE(pixel.isApprox(cam_mid, prec));
-  // std::cout << "Pointing at ( " << location.transpose() << " ) which becomes: ( " << pixel.transpose() << " ) in the camera view\n";
 
-  location = Eigen::Vector3d(0,0,0.5e3);
-  cam->world2Pixel(location, pixel);
-  EXPECT_TRUE(pixel.isApprox(Eigen::Vector2d(1296.5, 1064.15), prec));
-  // std::cout << "Pointing at ( " << location.transpose() << " ) which becomes: ( " << pixel.transpose() << " ) in the camera view\n";
+  Eigen::Vector3d new_location(0,0,0.5e3);
+  cam->world2Pixel(new_location, pixel);
+  std::cout << "Pointing at ( " << new_location.transpose() << " ) which becomes: ( " << pixel.transpose() << " ) in the camera view\n";
+  // EXPECT_TRUE(pixel.isApprox(Eigen::Vector2d(1296.5, 1064.15), prec));
+  EXPECT_TRUE(pixel.isApprox(Eigen::Vector2d(1296.5, 774.5), prec));
 
-  location = Eigen::Vector3d::Zero();
+  look_at = Eigen::Vector3d::Zero();
   cam->setPosition(Eigen::Vector3d(0,0,-1e4));
-  cam->pointTo(location, -Eigen::Vector3d::UnitY());
-  cam->world2Pixel(location, pixel);
-  EXPECT_TRUE(pixel.isApprox(cam_mid, prec));
+  cam->pointTo(look_at, -Eigen::Vector3d::UnitY());
+  cam->world2Pixel(look_at, pixel);
   // std::cout << "Pointing at ( " << location.transpose() << " ) which becomes: ( " << pixel.transpose() << " ) in the camera view\n";
+  EXPECT_TRUE(pixel.isApprox(cam_mid, prec));
   
-  location = -1e3*Eigen::Vector3d::UnitZ();
-  cam->world2Pixel(location, pixel);
+  look_at = -1e3*Eigen::Vector3d::UnitZ();
+  cam->world2Pixel(look_at, pixel);
+  // std::cout << "Pointing at ( " << location.transpose() << " ) which becomes: ( " << pixel.transpose() << " ) in the camera view\n";
   EXPECT_TRUE(pixel.isApprox(cam_mid, prec));
-  // std::cout << "Pointing at ( " << location.transpose() << " ) which becomes: ( " << pixel.transpose() << " ) in the camera view\n";
 
-  location = -1e3*Eigen::Vector3d::UnitX();
-  cam->world2Pixel(location, pixel);
-  EXPECT_TRUE(pixel.isApprox(Eigen::Vector2d(1196.5, 1024.5), prec));
+  look_at = -1e3*Eigen::Vector3d::UnitX();
+  cam->world2Pixel(look_at, pixel);
   // std::cout << "Pointing at ( " << location.transpose() << " ) which becomes: ( " << pixel.transpose() << " ) in the camera view\n";
+  EXPECT_TRUE(pixel.isApprox(Eigen::Vector2d(1196.5, 1024.5), prec));
 }
 
 TEST_F(CameraTest, ProjectQuadricAfterRotation) {

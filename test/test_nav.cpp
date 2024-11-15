@@ -21,17 +21,31 @@ protected:
     id = "defaultQuadric";
     quadric_default = new Quadric(latitude, longitude, radius, id);
     dx = 1000, dy = 1000, skew = 0, im_height = 2048, im_width = 2592;
-    up = (im_width+1)/2;
-    vp = (im_height+1)/2;
+    up = (im_width+1)/2.;
+    vp = (im_height+1)/2.;
     image_size.width  = im_width;
     image_size.height = im_height;
     cam = new Camera(dx, dy, up, vp, skew, image_size, quat, position);
+  
+    double cassini_f = 165714.2857142857;
+    Eigen::Vector3d cassini_pos;
+    cassini_pos << 360276.0,  90684.3, -44379.2;
+    Eigen::Quaterniond cassini_att(-0.58826, 0.524272, -0.407365, -0.461674);
+    c_dx = cassini_f, c_dy = cassini_f, c_skew = 0, c_im_height = 1024, c_im_width = 1024;
+    c_up = (c_im_width+1)/2.;
+    c_vp = (c_im_height+1)/2.;
+    c_image_size.width  = c_im_width;
+    c_image_size.height = c_im_height;
+    cassini_cam = new Camera(c_dx, c_dy, c_up, c_vp, c_skew, c_image_size, cassini_att, cassini_pos);
+    // cassini_cam->setAttitude(cassini_att);
+    // cassini_cam->setPosition(cassini_pos);
     cv_cam = new cv::viz::Camera(dx, dy, up, vp, image_size);
   }
   ~NavigationTest() override {
-    // delete quadric_default;
-      delete cam;
-      delete cv_cam;
+    delete quadric_default;
+    delete cam;
+    delete cv_cam;
+    delete cassini_cam;
   }
   public:
   double latitude, longitude, radius;
@@ -39,12 +53,16 @@ protected:
   Quadric* quadric_default;
     double dx, dy, skew, up, vp;
     uint im_height, im_width;
+    double c_dx, c_dy, c_skew, c_up, c_vp;
+    uint c_im_height, c_im_width;
     cv::Size2i image_size;
+    cv::Size2i c_image_size;
     Eigen::Quaterniond quat = Eigen::Quaterniond::Identity();
     Eigen::Vector3d position{1e4, 0, 0};
 
     Camera* cam;
     cv::viz::Camera* cv_cam;
+    Camera* cassini_cam;
 
 };
 
@@ -448,7 +466,7 @@ std::vector<cv::Point2d> Generate2DPoints() {
     cv::Point2d point;
     conic.getCenter(point);
     points.push_back(point);
-    std::cout << "Conic center: " << point << std::endl;
+    // std::cout << "Conic center: " << point << std::endl;
   }
   return points;
 }
@@ -462,29 +480,9 @@ std::vector<cv::Point3d> Generate3DPoints() {
   return points;
 }
 
- template<typename _Tp, int _rows, int _cols, int _options, int _maxRows, int _maxCols> static inline 
- void eigen2cv( const Eigen::Matrix<_Tp, _rows, _cols, _options, _maxRows, _maxCols>& src, 
-                cv::Matx<_Tp, _rows, _cols>& dst ) 
- { 
-     if( !(src.Flags & Eigen::RowMajorBit) ) 
-     { 
-         dst = cv::Matx<_Tp, _cols, _rows>(static_cast<const _Tp*>(src.data())).t(); 
-     } 
-     else 
-     { 
-         dst = cv::Matx<_Tp, _rows, _cols>(static_cast<const _Tp*>(src.data())); 
-     } 
- } 
-
-cv::Mat getCvCameraMatrix(const Eigen::Matrix3d& K) {
-  cv::Mat cameraMatrix(3,3,cv::DataType<double>::type);
-  cv::eigen2cv(K, cameraMatrix);
-  return cameraMatrix;
-}
-
 TEST_F(NavigationTest, Triangulation) {
-
-  double dx = 7291.6666, dy = 7291.6666, skew = 0;
+  double f = 165714.2857142857;
+  double dx = f, dy = f, skew = 0;
   uint im_height, im_width;
   im_height = 1024, im_width = 1024;
   cv::Size2i image_size(im_height, im_width);
@@ -493,16 +491,17 @@ TEST_F(NavigationTest, Triangulation) {
   image_size.width  = im_width;
   image_size.height = im_height;
   Camera camera(dx, dy, up, vp, skew, image_size);
+  // std::cout << camera << std::endl;
   // Read points
   std::vector<cv::Point2d> imagePoints = Generate2DPoints();
   std::vector<cv::Point3d> objectPoints = Generate3DPoints();
  
-  std::cout << "There are " << imagePoints.size() << " imagePoints and " << objectPoints.size() << " objectPoints." << std::endl;
+  // std::cout << "There are " << imagePoints.size() << " imagePoints and " << objectPoints.size() << " objectPoints." << std::endl;
   cv::Mat cameraMatrix(3,3,cv::DataType<double>::type);
   // cv::setIdentity(cameraMatrix);
-  cameraMatrix = getCvCameraMatrix(camera.getIntrinsicMatrix());
+  cameraMatrix = camera.getCvIntrinsicMatrix();
  
-  std::cout << "Initial cameraMatrix: " << cameraMatrix << std::endl;
+  // std::cout << "Initial cameraMatrix:\n" << cameraMatrix << std::endl;
  
   cv::Mat distCoeffs(4,1,cv::DataType<double>::type);
   distCoeffs.at<double>(0) = 0;
@@ -515,26 +514,28 @@ TEST_F(NavigationTest, Triangulation) {
  
   cv::solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs, rvec, tvec);
  
-  std::cout << "rvec: " << rvec << std::endl;
+  // std::cout << "rvec: " << rvec << std::endl;
   cv::Mat rotMtx(3,3,cv::DataType<double>::type);
   cv::Rodrigues(rvec, rotMtx);
-  std::cout << "Rot matrix:\n" << rotMtx << std::endl;
+  // std::cout << "Rot matrix:\n" << rotMtx << std::endl;
   Eigen::Matrix3d rMtx;
   cv::cv2eigen(rotMtx, rMtx);
   Eigen::Vector3d tVec;
   cv::cv2eigen(tvec, tVec);
   Eigen::Quaterniond q(rMtx.transpose());
-  std::cout << "tvec: " << tvec << std::endl;
-  std::cout << "Tnew:\n" << q * tVec << std::endl;
+  std::cout << "Camera wrt Moon in Camera Frame:\n " << tvec << std::endl;
+  std::cout << "Camera wrt Moon:\n" << q * tVec << std::endl;
+  std::cout << "Distance: " << (q * tVec).norm() << std::endl;
   std::cout << "Quat: " << q << std::endl;
+  std::cout << "Matrix: " << q.toRotationMatrix() << std::endl;
  
   std::vector<cv::Point2d> projectedPoints;
   cv::projectPoints(objectPoints, rvec, tvec, cameraMatrix, distCoeffs, projectedPoints);
  
-  for(unsigned int i = 0; i < projectedPoints.size(); ++i)
-    {
-    std::cout << "Image point: " << imagePoints[i] << " Projected to " << projectedPoints[i] << std::endl;
-    }
+  // for(unsigned int i = 0; i < projectedPoints.size(); ++i)
+  //   {
+  //   std::cout << "Image point: " << imagePoints[i] << " Projected to " << projectedPoints[i] << std::endl;
+  //   }
 }
 
 
@@ -557,7 +558,9 @@ TEST_F(NavigationTest, RealImage) {
   //           << "\n\tLocation: " << position.transpose()
   //           << "\n\tAttitude: " << attitude << std::endl;
 
-  double dx = 7291.6666, dy = 7291.6666, skew = 0;
+  double f = 165714.2857142857;
+  double dx = f, dy = f, skew = 0;
+  // double dx = 7291.6666, dy = 7291.6666, skew = 0;
   uint im_height, im_width;
   im_height = 1024, im_width = 1024;
   cv::Size2i image_size(im_height, im_width);
@@ -565,48 +568,46 @@ TEST_F(NavigationTest, RealImage) {
   vp = (double(im_height)+1)/2;
   image_size.width  = im_width;
   image_size.height = im_height;
+  // cassini_cam->resetCameraState();
+    Eigen::Vector3d cassini_pos;
+    cassini_pos << 360276.0,  90684.3, -44379.2;
+    Eigen::Quaterniond cassini_att(0.58826, 0.524272, -0.407365, -0.461674);
   Camera camera(dx, dy, up, vp, skew, image_size);
-  camera.resetCameraState();
-  std::cout << camera << std::endl;
-  camera.moveX(17167.4);
-  camera.moveY(4831.86);
-  camera.moveZ(-1920.39);
+  camera.moveX(360276.0);
+  camera.moveY( 90684.3);
+  camera.moveZ(-44379.2);
   Eigen::Matrix3d att;
-  att <<  0.2342060407733891, -0.9721684019135322, -0.006010722597369456,
-          0.09936144043346457, 0.01778604106378229, 0.9948924368484588,
-         -0.9670960834478861, -0.2336070526849872, 0.1007616510166092;
-  camera.setAttitude(att);
-  // Eigen::Vector3d pointToMe = latlonalt(-9.5, 35.0, 0.);
-  // Eigen::Vector3d pointToMe1(1500.0, 650.0, 0.0);
-  // std::cout << pointToMe.transpose() << std::endl;
-  // std::cout << pointToMe1.transpose() << std::endl;
-  // camera.pointTo(pointToMe, -Eigen::Vector3d::UnitZ());
-  // Eigen::AngleAxisd rot = Eigen::AngleAxisd(0.5*M_PI / 48, Eigen::Vector3d::UnitZ());
-  // camera.rotate(rot);
-  // camera.moveX(0.0e3);
-  // camera.moveY(0.0e3);
-  // camera.moveZ(0.0e3);
+  att << 0.241822,    0.116029,   -0.963358,
+        -0.970309,   0.0239921,   -0.240677,
+        -0.00481262,    0.992956,    0.118386;
+
+  // att <<  0.2342060407733891, -0.9721684019135322, -0.006010722597369456,
+  //         0.09936144043346457, 0.01778604106378229, 0.9948924368484588,
+  //        -0.9670960834478861, -0.2336070526849872, 0.1007616510166092;
+  camera.setAttitude(att.transpose());
   std::cout << camera << std::endl;
+  std::cout << "Cassini: " << *cassini_cam << std::endl;
 
   std::string filename = "/home/ndvr/data/pds/cassini/image.png";
   cv::Mat image_gray = cv::imread(filename, 0);
   cv::Mat image;
   cv::cvtColor(image_gray, image, 1);
-  EXPECT_EQ(image.rows, im_height);
-  EXPECT_EQ(image.cols, im_width);
+  EXPECT_EQ(image.rows, c_im_height);
+  EXPECT_EQ(image.cols, c_im_width);
   // Add the moon
   // viz::drawMoon(image, camera);
-  viz::draw3dAxes(image, camera);
+  viz::draw3dAxes(image, *cassini_cam);
   cv::Point center(774, 554);
   cv::drawMarker(image, center, cv::viz::Color::yellow());
 
   // viz::drawEllipses(image, conics, viz::CV_colors);
   
-  viz::drawCraters(image, camera, quadrics);
+  viz::drawCraters(image, *cassini_cam, quadrics);
+  Eigen::MatrixXd proj = cassini_cam->getProjectionMatrix();
   for(uint i = 0; i < conics.size(); i++) {
     Quadric crater = quadrics.at(i);
     Conic conic = conics.at(i);
-    Conic projected = crater.projectToImage(camera.getProjectionMatrix());
+    Conic projected = crater.projectToImage(proj);
 
     cv::Point2d ellipse_center, projected_center;
     conic.getCenter(ellipse_center);

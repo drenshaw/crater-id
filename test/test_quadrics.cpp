@@ -244,7 +244,7 @@ void extractEllipseParameters(const Eigen::Matrix3d& A, double& semiMajor, doubl
     Eigen::Matrix2d eigenvectors = eigensolver.eigenvectors();
     
     // Semi-major and semi-minor axes
-    std::cout << "Eigenvalues: " << eigenvalues.transpose() << std::endl;
+    // std::cout << "Eigenvalues: " << eigenvalues.transpose() << std::endl;
     semiMajor = 1.0 / std::sqrt(eigenvalues.minCoeff());
     semiMinor = 1.0 / std::sqrt(eigenvalues.maxCoeff());
     
@@ -268,7 +268,7 @@ TEST_F(QuadricTest, ProjectQuadric) {
   cam->moveTo(pos);
   cam->pointTo(origin, -Eigen::Vector3d::UnitY());
   // Eigen::MatrixXd proj_mtx = cam->getProjectionMatrix();
-  viz::drawCraters(*cam, quadrics);
+  // viz::drawCraters(*cam, quadrics);
 }
 
 TEST_F(QuadricTest, MakeSphere) {
@@ -288,7 +288,7 @@ TEST_F(QuadricTest, MakeSphere) {
     Quadric quad(lat , lon, radius, "");
     craters.push_back(quad);
   }
-  viz::drawCraters(*cam, craters);
+  // viz::drawCraters(*cam, craters);
 }
 
 TEST_F(QuadricTest, ProjectMoonCenter) {
@@ -306,7 +306,7 @@ TEST_F(QuadricTest, ProjectMoonCenter) {
   // double scaling = 0.4;
   double semiMajor, semiMinor, angle;
   Eigen::Vector2d center;
-  Eigen::AngleAxisd rot = Eigen::AngleAxisd(-M_PI / 24, Eigen::Vector3d::UnitX());
+  Eigen::AngleAxisd rot = Eigen::AngleAxisd(-M_PI / 48, Eigen::Vector3d::UnitX());
   for(int i = 0; i < 10; i++) {
     cam->resetImage(image);
     Eigen::Matrix3d moon_locus = cam->projectQuadricToLocus(sphere);
@@ -370,7 +370,7 @@ TEST_F(QuadricTest, QuadricPoints) {
   double scaling = 0.5;
   cv::Mat outImg;
   cv::resize(image, outImg, cv::Size(), scaling, scaling);
-  viz::interactiveZoom(outImg);
+  // viz::interactiveZoom(outImg);
   // // cv::imshow("Points", outImg); 
   // COpenCVWindowExt window ("Moon stuff"); 
   // window.ImShow (outImg);
@@ -434,8 +434,8 @@ TEST_F(QuadricTest, ProjectCrater) {
     // COpenCVWindowExt window ("Src"); 
     // // window.ImShow (outImg);
     // window.ImRead("/home/ndvr/Pictures/IMG_20230904_121221.jpg");
-    cv::imshow("Projecting Moon to Camera", outImg); 
-    cv::waitKey(0); 
+    // cv::imshow("Projecting Moon to Camera", outImg); 
+    // cv::waitKey(0); 
 
     cam->rotate(rot);
   }

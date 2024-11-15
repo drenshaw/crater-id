@@ -1,10 +1,11 @@
+#include "math_utils.h"
+#include "camera.h"
+
 #include <iostream>
 #include <iomanip>
 #include <vector>
 #include <opencv2/viz/types.hpp>
-
-#include "math_utils.h"
-#include "camera.h"
+#include <opencv2/core/eigen.hpp>
 // TODO: Ensure that the "rotation" matrix is a transformation matrix, or transpose it
 
 // This is the base constructor
@@ -18,8 +19,9 @@ Camera::Camera( const double dx,
                 const Eigen::Isometry3d& transform) :  
                   dx_(dx), dy_(dy), skew_(skew), up_(up), vp_(vp),
                   image_size_(image_size) {
-  // TODO: does this work? Or do we need to invert the whole transform?                        
-  state_.linear() = transform.rotation().inverse();
+  // TODO: does this work? Or do we need to invert the whole transform?
+  this->setPosition(transform.translation());
+  this->setAttitude(transform.rotation());
 }
 Camera::Camera( const double dx,
                 const double dy,
@@ -28,10 +30,12 @@ Camera::Camera( const double dx,
                 const double skew,
                 const cv::Size2i& image_size,
                 const Eigen::Quaterniond& attitude,
-                const Eigen::Vector3d& position) :  
-                Camera( dx, dy, up, vp, skew, 
-                        image_size, 
-                        attitude * Eigen::Translation3d(position)) {}
+                const Eigen::Vector3d& position) : 
+                  dx_(dx), dy_(dy), skew_(skew), up_(up), vp_(vp),
+                  image_size_(image_size) {
+  this->setPosition(position);
+  this->setAttitude(attitude);
+}
 
 Camera::Camera() : Camera(1000, 1000, 
                           1296.5, 1024.5, 
@@ -138,6 +142,10 @@ Eigen::Matrix3d Camera::getIntrinsicMatrix() const {
                         0,   dy_, vp_,
                         0,     0,   1;
   return intrinsic_matrix;
+}
+
+cv::Mat Camera::getCvIntrinsicMatrix() {
+  return getCvCameraMatrix(this->getIntrinsicMatrix());
 }
 
 Eigen::Matrix3d Camera::getInverseIntrinsicMatrix() const {
@@ -582,4 +590,10 @@ bool isInImage(const cv::Point& pt_uv, const cv::MatSize image_size) {
   img_size.width = image_size[0];
   img_size.height = image_size[1];
   return isInImage(pt_uv, img_size);
+}
+
+cv::Mat getCvCameraMatrix(const Eigen::Matrix3d& K) {
+  cv::Mat cameraMatrix(3,3,cv::DataType<double>::type);
+  cv::eigen2cv(K, cameraMatrix);
+  return cameraMatrix;
 }
