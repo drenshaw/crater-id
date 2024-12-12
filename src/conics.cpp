@@ -298,6 +298,12 @@ bool Conic::chooseIntersection(const Conic& other, Eigen::Vector3d& l) const {
   return true;
 }
 
+double Conic::getEccentricity() const {
+  double a = this->getSemiMajorAxis();
+  double b = this->getSemiMinorAxis();
+  return std::sqrt(1 - std::pow(b, 2)/std::pow(a, 2));
+}
+
 
 /*********************************************************/
 /***********************Conic Utils***********************/

@@ -66,18 +66,19 @@ class Conic {
     double getAngleDeg() const;
     int getID() const;
     void normalizeImplicitParams();
-    std::array<double, GEOMETRIC_PARAM> getGeom() const ;
-    std::array<double, IMPLICIT_PARAM> getImplicit() const ;
-    Eigen::Matrix3d getLocus() const ;
-    Eigen::Matrix3d getEnvelope() const ;
-    Eigen::Matrix3d toLocus() const ;
-    std::array<double, GEOMETRIC_PARAM> fromLocus(const Eigen::Matrix3d&) const ;
-    std::array<double, IMPLICIT_PARAM> toImplicit() const ;
+    std::array<double, GEOMETRIC_PARAM> getGeom() const;
+    std::array<double, IMPLICIT_PARAM> getImplicit() const;
+    Eigen::Matrix3d getLocus() const;
+    Eigen::Matrix3d getEnvelope() const;
+    Eigen::Matrix3d toLocus() const;
+    std::array<double, GEOMETRIC_PARAM> fromLocus(const Eigen::Matrix3d&) const;
+    std::array<double, IMPLICIT_PARAM> toImplicit() const;
     bool intersectsConic(const Eigen::Matrix3d&, 
-                                std::tuple<Eigen::Vector3d, Eigen::Vector3d>&) const ;
+                                std::tuple<Eigen::Vector3d, Eigen::Vector3d>&) const;
     bool intersectsConicLines(const Conic&,
-                                std::tuple<Eigen::Vector3d, Eigen::Vector3d>&) const ;
-    bool chooseIntersection(const Conic& other, Eigen::Vector3d&) const ;
+                                std::tuple<Eigen::Vector3d, Eigen::Vector3d>&) const;
+    bool chooseIntersection(const Conic& other, Eigen::Vector3d&) const;
+    double getEccentricity() const;
     
   protected:
     static int next_id;
@@ -114,8 +115,8 @@ std::array<double, GEOMETRIC_PARAM> locus2Geom(const Eigen::Matrix3d& locus);
 Eigen::Matrix3d implicit2Locus(const std::array<double, IMPLICIT_PARAM>& impl_params);
 
  // General Conic Utils
-void normalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>& impl_params) ;
-void normalizeImplicitParameters(std::vector<double>& impl_params) ;
+void normalizeImplicitParameters(std::array<double, IMPLICIT_PARAM>& impl_params);
+void normalizeImplicitParameters(std::vector<double>& impl_params);
 bool isEllipse(const Eigen::Matrix3d& conic_locus);
 void addNoise(const double mean, const double st_dev, std::vector<Eigen::Vector2d>& points);
 

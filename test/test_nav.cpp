@@ -614,9 +614,216 @@ TEST_F(NavigationTest, RealImage) {
     projected.getCenter(projected_center);
     cv::arrowedLine(image, projected_center, ellipse_center, cv::viz::Color::red());
   }
-  // drawLabels(image, camera, quadrics);
-  cv::imshow("Cassini Image", image); 
-  cv::waitKey(0); 
+  // // drawLabels(image, camera, quadrics);
+  // cv::imshow("Cassini Image", image); 
+  // cv::waitKey(0); 
+}
+
+TEST_F(NavigationTest, Eccentricity) {
+  double smajor = 6378137, sminor = 6356752, xc = 30, yc = 20, phi = 0;
+  Conic ellipse(smajor, sminor, xc, yc, phi);
+  ASSERT_NEAR(ellipse.getEccentricity(), 0.0818198, 1e-6);
+}
+
+TEST_F(NavigationTest, AngleOfEllipse) {
+  // Create quadric
+  Quadric quad(0,0,100,"Angle");
+  // Place camera
+  cam->setLocation(Eigen::Vector3d(4e3, 0e3, 3e3));
+  // Point camera to quadric
+  cam->pointTo(quad.getLocation(), Eigen::Vector3d::UnitZ());
+  cam->moveY(-2e3);
+
+  // Get distance to quadric
+  Eigen::Matrix3d conic = quad.projectToImageLocus(cam->getProjectionMatrix());
+  // std::cout << Conic(conic) << std::endl;
+  std::array<Eigen::Vector3d, 2> centers, normals;
+
+  Eigen::Matrix3d att = cam->getAttitudeMatrix();
+  Eigen::Vector3d centerWrtCamWorld = quad.getLocation() - cam->getLocation();
+  Eigen::Vector3d centerWrtCam = att * centerWrtCamWorld;
+  Eigen::Vector3d normal_test = att * quad.getNormal();
+  double dist2center = (centerWrtCamWorld).norm();
+  std::cout << "---\n---Truth Data---\n";
+  std::cout << "---DISTANCE TO QUADRIC CENTER: " << dist2center << std::endl;
+  std::cout << "---CAMERA TO QUADRIC CENTER: " << centerWrtCam.transpose() << std::endl;
+  std::cout << "---QUADRIC NORMAL WRT CAMERA: " << normal_test.transpose() << std::endl;
+  
+  Eigen::Vector3d center, normal;
+  // double dist;
+  Eigen::MatrixXd extrinsic = cam->getExtrinsicMatrix();
+  Eigen::Matrix3d conic_locus = quad.projectToPlaneLocus(extrinsic);
+  Christian::conicBackprojection(conic_locus, quad.getRadius(), centers, normals);
+
+  uint correct_index = 0;
+  center = centers.at(correct_index);
+  normal = normals.at(correct_index);
+  std::cout << "+++\n+++Calculations+++\n";
+  std::cout << "Center (cam): " << center.transpose() << std::endl;
+  std::cout << "Normal (cam): " << normal.transpose() << std::endl;
+  Eigen::Vector3d q_normal = Eigen::Vector3d::UnitZ();
+  std::cout << "Angle 1: " << rad2deg(std::acos(q_normal.dot(-normal))) << std::endl;
+  std::cout << "Correct angle: " << rad2deg(std::acos(q_normal.dot(-normal_test))) << std::endl;
+  
+  EXPECT_TRUE(centerWrtCam.isApprox(center, 1e-3));
+  EXPECT_TRUE( normal_test.isApprox(normal, 1e-3));
+
+  // Determine angle of supporting plane wrt camera plane
+  double eccentricity = Conic(conic).getEccentricity();
+  Conic plane_conic(conic_locus);
+  double theta = std::asin(eccentricity / std::sqrt(1+std::pow(quad.getRadius(),2)));
+  std::cout << "eccentricity: " << eccentricity << std::endl;
+  std::cout << "Angle calc: " << theta << " (" << rad2deg(theta) << ")" << std::endl;
+
+  double target_theta_deg = 52.9414;
+  double target_theta = deg2rad(target_theta_deg);
+  double r = std::sqrt(std::pow(eccentricity, 2)/std::pow(std::sin(target_theta), 2) - 1);
+  std::cout << "Expected radius: " << r << std::endl;
+
+  // Eigen::Vector3d k_normal;
+  // double dist;
+  // Kanatani::conicBackprojection(conic_locus, quad.getRadius(), k_normal, dist);
+  // std::cout << "Distance: " << dist << std::endl;
+  // std::cout << "Normal: " << k_normal.transpose() << std::endl;
+  // EXPECT_TRUE(k_normal.isApprox(normal,  1e-3) || k_normal.isApprox(-normal,  1e-3));
+
+  // double lambda1, lambda2, lambda3;
+  // Eigen::Vector3d u1, u2, u3;
+  // // We need to switch the 1 & 2 indices for Kanatani's method
+  // Preprocessing::getEigenParts(conic_locus, lambda2, lambda1, lambda3, u2, u1, u3);
+
+  // double scalar1 = std::sqrt((lambda2 - lambda1)/(lambda2 - lambda3));
+  // double scalar2 = std::sqrt((lambda1 - lambda3)/(lambda2 - lambda3));
+  // Eigen::Vector3d normal2 = -(scalar1*u2 + scalar2*u3);
+  // std::cout << "Alternative normal: " << normal2.transpose() << std::endl;
+
+}
+
+// TEST_F(NavigationTest, AngleToTheta) {
+//   // Create quadric
+//   Quadric quad(0,0,100,"Angle");
+//   // Place camera
+//   double offset = 0.5e3;
+//   uint n_steps = 360;
+//   double d_angle = 2*M_PI / (double)n_steps;
+//   uint scalar = 500;
+//   cv::Mat image(scalar, 2*360, 
+//                 CV_8UC3, 
+//                 cv::Scalar(50, 50, 50));
+//   for(uint i = 0; i <= n_steps; i++) {
+//     double angle = i * d_angle;
+//     cam->setLocation(Eigen::Vector3d(R_MOON + offset*std::sin(angle), offset*std::cos(angle), 0));
+//     cam->pointTo(quad.getLocation(), Eigen::Vector3d::UnitZ());
+//     Eigen::Matrix3d conic_locus = cam->projectQuadricToLocus(quad.getLocus());
+//     Conic conic(conic_locus);
+//     // std::cout << 1296.5 - conic.getCenterX() << std::endl;
+//     double smajor = conic.getSemiMajorAxis();
+//     double sminor = conic.getSemiMinorAxis();
+
+//     double center_off = 1296.5 - conic.getCenterX();
+//     double axis_ratio = sminor / smajor;
+//     cv::Point center(2*rad2deg(angle), 0.5*scalar+10*(center_off));
+//     cv::Point sine(2*rad2deg(angle), 0.5*scalar+10*(-1+std::abs(std::sin(angle))));
+//     cv::Point axes(2*rad2deg(angle), scalar*axis_ratio);
+//     cv::drawMarker(image, center, cv::viz::Color::red(), cv::MARKER_STAR, 5);
+//     cv::drawMarker(image, axes, cv::viz::Color::green(), cv::MARKER_CROSS, 5);
+//     cv::drawMarker(image, sine, cv::viz::Color::azure(), cv::MARKER_CROSS, 5);
+
+//     // std::cout << "Angle: " << rad2deg(angle) << std::endl;//<< " -> " << conic << std::endl;
+//     // std::cout << "\tRelative Position: " << (quad.getLocation() - cam->getLocation()).transpose() << std::endl;
+//     // std::cout << "\tCenter offset: " << center_off << std::endl;
+//     // std::cout << "\tAxis ratio: " << axis_ratio << std::endl;
+//   }
+//   // Show the image with detected circles
+//   cv::imshow("Axes and Offsets", image);
+//   cv::waitKey(0);
+  
+// }
+
+double getAngleFromBoresight(const Camera& camera, const Eigen::Vector2d& point) {
+  const Eigen::Matrix3d Kinv = camera.getInverseIntrinsicMatrix();
+  return 1.0;
+}
+
+TEST_F(NavigationTest, CalcAngle) {
+  // Create quadric
+  Quadric quad1(30,-5,100,"Angle");
+  Quadric quad2(5,30,200,"Angle");
+  Quadric quad3(-15,5,150,"Angle");
+
+  const double offset = 0.5e3;
+  Eigen::Vector3d crater_center = quad1.getLocation();
+  Eigen::Vector3d look_at = (quad1.getLocation() + quad2.getLocation())/2;
+  Eigen::Vector3d location(crater_center(0)+2*offset, 0, -1*offset);
+  cam->setPosition(location);
+  cam->pointTo(look_at, Eigen::Vector3d::UnitZ());
+
+  std::vector<Quadric> quads = {quad1, quad2, quad3};
+  const double eff_foc = 1e0;
+  const Eigen::MatrixXd extr_mtx = cam->getExtrinsicMatrix();
+  const Eigen::Quaterniond att = cam->getAttitude();
+  // std::cout << *cam << std::endl;
+  const Eigen::Vector3d cam_pos = cam->getLocation();
+
+  std::cout << "  cam_pos = np.array([" 
+            << cam_pos(0) << ", "
+            << cam_pos(1) << ", "
+            << cam_pos(2)
+            << "])/scale\n\n";
+
+  uint count = 0;
+  for(auto& quad : quads) {
+    count++;
+    // Eigen::Matrix3d conic_locus = cam->projectQuadricToLocus(quad.getLocus());
+    Eigen::Matrix3d conic_locus = quad.projectToPlaneLocus(extr_mtx);
+    // std::cout << quad << std::endl;
+    Conic conic(conic_locus);
+    const double q_radius = quad.getRadius();
+    const Eigen::Vector3d q_loc = quad.getLocation();
+    const Eigen::Vector3d q_nor = quad.getNormal();
+
+
+    const double Rmax = conic.getSemiMajorAxis();
+    const double Rmin = conic.getSemiMinorAxis();
+    const double angle = calcAngleFromEllipseAxes(Rmax, Rmin, eff_foc);
+
+    Eigen::Vector3d normal_test = att * q_nor;
+    Eigen::Vector3d r_q_cam_world = q_loc - cam_pos;
+    Eigen::Vector3d u_q_cam_world = r_q_cam_world.normalized();
+    const double expected_angle = std::acos(q_nor.dot(-u_q_cam_world));
+    // const double expected_angle = std::acos(normal_test.dot(-Eigen::Vector3d::UnitZ()));
+
+    const double distance = Shiu::getDistanceFromConicLocus(conic_locus, q_radius);
+
+    // distance up from the quadric to the locus of possible points for the cam
+    const double rho = distance * std::cos(angle);
+    Eigen::Vector3d circ_center = q_loc + rho * quad.getNormal();
+    const double ell = std::sqrt(std::pow(distance, 2) - std::pow(rho, 2));
+    
+    EXPECT_NEAR(angle, expected_angle, 1e-1);
+    EXPECT_NEAR(distance, r_q_cam_world.norm(), 1e1);
+
+    std::cout << "  crater_center" << count << " = np.array([" 
+              << q_loc(0) << ", "
+              << q_loc(1) << ", "
+              << q_loc(2)
+              << "])/scale\n";
+    std::cout << "  crater_radius" << count << " = " << q_radius << "/scale\n";
+
+    std::cout << "  crater_normal" << count << " = np.array([" 
+              << q_nor(0) << ", "
+              << q_nor(1) << ", "
+              << q_nor(2)
+              << "])/scale\n";
+
+    std::cout << "  circle_center" << count << " = np.array([" 
+              << circ_center(0) << ", "
+              << circ_center(1) << ", "
+              << circ_center(2)
+              << "])/scale\n";
+    std::cout << "  circle_radius" << count << " = " << ell << "/scale\n";
+    std::cout << std::endl;
+  }
 }
 
 // TEST_F(NavigationTest, FindCircles) {

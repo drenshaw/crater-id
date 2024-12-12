@@ -104,7 +104,7 @@ bool normalizeDeterminant(Eigen::MatrixBase<Derived>& mtx) {
   double det_mtx = mtx.determinant();
   if(det_mtx == 0) {
     // BOOST_LOG_TRIVIAL(warning) << "Matrix is singular.";
-    std::cerr << "Matrix is singular/nearly singular." << std::endl;
+    std::cerr << __func__ << "Matrix is singular/nearly singular." << std::endl;
     mtx *= maxVal;
     return false;
   }
