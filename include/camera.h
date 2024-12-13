@@ -72,6 +72,9 @@ class Camera {
     void resetImage(cv::Mat& image) const;
     std::array<double, CAMERA_INTRINSIC_PARAM> getIntrinsicParams() const ;
     void getIntrinsicParams(std::array<double, CAMERA_INTRINSIC_PARAM>& params) const;
+    double getFocalX() const;
+    double getFocalY() const;
+    Eigen::Vector2d getFocalPointUV() const;
     double getImageWidth() const;
     double getImageHeight() const;
     Eigen::Vector2d getImageMidpoint() const;
@@ -122,6 +125,8 @@ class Camera {
     // Eigen::Transform<double, 3, Eigen::Isometry>
     Eigen::Matrix3d projectQuadric(const Eigen::Matrix4d& quadric) const;
     Eigen::Matrix3d projectQuadricToLocus(const Eigen::Matrix4d& quadric_locus) const;
+    Eigen::Vector3d getPointWrtCameraWorld(const Eigen::Vector3d& point) const;
+    Eigen::Vector3d getPointWrtCamera(const Eigen::Vector3d& point) const;
     Eigen::Matrix3d getImagePlaneLocus(const Eigen::Matrix3d& image_locus) const;
     Eigen::Matrix3d getMoonConic(const double radius=R_MOON) const;
 

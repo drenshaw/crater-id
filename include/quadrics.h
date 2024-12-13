@@ -23,7 +23,9 @@ class Quadric {
     Eigen::Matrix3d getQuadricTransformationMatrix() const;
     Eigen::Matrix4d getLocus() const;
     Eigen::Matrix4d getEnvelope() const;
+    Eigen::Vector3d getCenter() const;
     Eigen::Vector3d getLocation() const;
+    void getCenter(Eigen::Vector3d& center) const;
     void getLocation(Eigen::Vector3d& location) const;
     Eigen::Vector3d getNormal() const;
     void getNormal(Eigen::Vector3d& surface_normal) const;

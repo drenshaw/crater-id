@@ -433,7 +433,9 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
   std::array<double, GEOMETRIC_PARAM> geom;
   // auto roundd = [](double val) {return std::round(val*1e3)/1e3;};
   // auto roundd = [](double val) {return val;};
-  assert(!std::isnan(semimajor_axis) && !std::isnan(semiminor_axis));
+  if(std::isnan(semimajor_axis) || std::isnan(semiminor_axis)) {
+    throw std::runtime_error("At least one axis is NaN");
+  }
   geom = {
     semimajor_axis, 
     semiminor_axis, 

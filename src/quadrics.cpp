@@ -119,12 +119,20 @@ Eigen::Matrix4d Quadric::getEnvelope() const {
   return this->generateQuadricEnvelopeFromPointRadius();
 }
 
-Eigen::Vector3d Quadric::getLocation() const {
+Eigen::Vector3d Quadric::getCenter() const {
   return this->center_;
 }
 
+Eigen::Vector3d Quadric::getLocation() const {
+  return this->getCenter();
+}
+
+void Quadric::getCenter(Eigen::Vector3d& center) const {
+  center = this->center_;
+}
+
 void Quadric::getLocation(Eigen::Vector3d& location) const {
-  location = this->center_;
+  this->getCenter(location);
 }
 
 Eigen::Vector3d Quadric::getNormal() const {
@@ -132,7 +140,7 @@ Eigen::Vector3d Quadric::getNormal() const {
 }
 
 void Quadric::getNormal(Eigen::Vector3d& surface_normal) const {
-  surface_normal = this->plane_.normal();
+  surface_normal = this->getNormal();
 }
 
 Eigen::Hyperplane<double, 3> Quadric::getPlane() const {
@@ -140,7 +148,7 @@ Eigen::Hyperplane<double, 3> Quadric::getPlane() const {
 }
 
 void Quadric::getPlane(Eigen::Hyperplane<double, 3>& hyperplane) const {
-  hyperplane = this->plane_;
+  hyperplane = this->getPlane();
 }
 
 double Quadric::getAngleBetweenQuadrics(const Quadric& other_quadric) const {

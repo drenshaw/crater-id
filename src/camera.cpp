@@ -205,6 +205,19 @@ void Camera::resetImage(cv::Mat& image) const {
   image = cv::Scalar(50, 50, 50);
 }
 
+double Camera::getFocalX() const {
+  return this->dx_;
+}
+
+double Camera::getFocalY() const {
+  return this->dy_;
+}
+
+Eigen::Vector2d Camera::getFocalPointUV() const {
+  const Eigen::Vector2d focal_point(this->up_, this->vp_);
+  return focal_point;
+}
+
 double Camera::getImageWidth() const {
   return this->image_size_.width;
 }
@@ -442,6 +455,14 @@ Eigen::Matrix3d Camera::projectQuadricToLocus(const Eigen::Matrix4d& quadric_loc
   // Returns the envelope of the projected conic
   Eigen::MatrixXd proj = this->getProjectionMatrix();
   return adjugate(proj * adjugate(quadric_locus) * proj.transpose());
+}
+
+Eigen::Vector3d Camera::getPointWrtCameraWorld(const Eigen::Vector3d& point) const {
+  return point - this->getLocation();
+}
+
+Eigen::Vector3d Camera::getPointWrtCamera(const Eigen::Vector3d& point) const {
+  return this->getAttitude() * this->getPointWrtCameraWorld(point);
 }
 
 Eigen::Matrix3d Camera::getImagePlaneLocus(const Eigen::Matrix3d& image_locus) const {

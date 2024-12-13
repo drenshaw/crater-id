@@ -699,46 +699,56 @@ TEST_F(NavigationTest, AngleOfEllipse) {
 
 }
 
-// TEST_F(NavigationTest, AngleToTheta) {
-//   // Create quadric
-//   Quadric quad(0,0,100,"Angle");
-//   // Place camera
-//   double offset = 0.5e3;
-//   uint n_steps = 360;
-//   double d_angle = 2*M_PI / (double)n_steps;
-//   uint scalar = 500;
-//   cv::Mat image(scalar, 2*360, 
-//                 CV_8UC3, 
-//                 cv::Scalar(50, 50, 50));
-//   for(uint i = 0; i <= n_steps; i++) {
-//     double angle = i * d_angle;
-//     cam->setLocation(Eigen::Vector3d(R_MOON + offset*std::sin(angle), offset*std::cos(angle), 0));
-//     cam->pointTo(quad.getLocation(), Eigen::Vector3d::UnitZ());
-//     Eigen::Matrix3d conic_locus = cam->projectQuadricToLocus(quad.getLocus());
-//     Conic conic(conic_locus);
-//     // std::cout << 1296.5 - conic.getCenterX() << std::endl;
-//     double smajor = conic.getSemiMajorAxis();
-//     double sminor = conic.getSemiMinorAxis();
+TEST_F(NavigationTest, AngleToTheta) {
+  // Create quadric
+  Quadric quad(0,0,100,"Angle");
+  // Place camera
+  double offset = 0.5e3;
+  uint n_steps = 24;
+  double d_angle = 2*M_PI / (double)n_steps;
+  uint scalar = 500;
+  cv::Mat image(scalar, 2*360, 
+                CV_8UC3, 
+                cv::Scalar(50, 50, 50));
+  const double center_dist = quad.getCenter().norm();
+  std::cerr << "Distance: " << center_dist << std::endl;
+  for(uint i = 0; i <= n_steps; i++) {
+    double angle = i * d_angle;
+    cam->setLocation(Eigen::Vector3d(center_dist + offset*std::sin(angle), offset*std::cos(angle), 0));
+    cam->pointTo(quad.getLocation(), Eigen::Vector3d::UnitZ());
+    Eigen::Matrix3d conic_locus;
+    try {
+      conic_locus = cam->projectQuadricToLocus(quad.getLocus());
+    }
+    catch (const std::exception& e) {
+      std::cerr << "Error in conic locus\n";
+      continue;
+    }
+    std::cout << "Conic locus " << i << ":\n" << conic_locus << std::endl;
+    Conic conic(conic_locus);
+    // std::cout << 1296.5 - conic.getCenterX() << std::endl;
+    double smajor = conic.getSemiMajorAxis();
+    double sminor = conic.getSemiMinorAxis();
 
-//     double center_off = 1296.5 - conic.getCenterX();
-//     double axis_ratio = sminor / smajor;
-//     cv::Point center(2*rad2deg(angle), 0.5*scalar+10*(center_off));
-//     cv::Point sine(2*rad2deg(angle), 0.5*scalar+10*(-1+std::abs(std::sin(angle))));
-//     cv::Point axes(2*rad2deg(angle), scalar*axis_ratio);
-//     cv::drawMarker(image, center, cv::viz::Color::red(), cv::MARKER_STAR, 5);
-//     cv::drawMarker(image, axes, cv::viz::Color::green(), cv::MARKER_CROSS, 5);
-//     cv::drawMarker(image, sine, cv::viz::Color::azure(), cv::MARKER_CROSS, 5);
+    double center_off = 1296.5 - conic.getCenterX();
+    double axis_ratio = sminor / smajor;
+    cv::Point center(2*rad2deg(angle), 0.5*scalar+10*(center_off));
+    cv::Point sine(2*rad2deg(angle), 0.5*scalar+10*(-1+std::abs(std::sin(angle))));
+    cv::Point axes(2*rad2deg(angle), scalar*axis_ratio);
+    cv::drawMarker(image, center, cv::viz::Color::red(), cv::MARKER_STAR, 5);
+    cv::drawMarker(image, axes, cv::viz::Color::green(), cv::MARKER_CROSS, 5);
+    cv::drawMarker(image, sine, cv::viz::Color::azure(), cv::MARKER_CROSS, 5);
 
-//     // std::cout << "Angle: " << rad2deg(angle) << std::endl;//<< " -> " << conic << std::endl;
-//     // std::cout << "\tRelative Position: " << (quad.getLocation() - cam->getLocation()).transpose() << std::endl;
-//     // std::cout << "\tCenter offset: " << center_off << std::endl;
-//     // std::cout << "\tAxis ratio: " << axis_ratio << std::endl;
-//   }
-//   // Show the image with detected circles
-//   cv::imshow("Axes and Offsets", image);
-//   cv::waitKey(0);
+    std::cout << "Angle: " << rad2deg(angle) << std::endl;//<< " -> " << conic << std::endl;
+    std::cout << "\tRelative Position: " << (quad.getLocation() - cam->getLocation()).transpose() << std::endl;
+    std::cout << "\tCenter offset: " << center_off << std::endl;
+    std::cout << "\tAxis ratio: " << axis_ratio << std::endl << std::endl;
+  }
+  // Show the image with detected circles
+  cv::imshow("Axes and Offsets", image);
+  cv::waitKey(0);
   
-// }
+}
 
 double getAngleFromBoresight(const Camera& camera, const Eigen::Vector2d& point) {
   const Eigen::Matrix3d Kinv = camera.getInverseIntrinsicMatrix();
@@ -762,7 +772,6 @@ TEST_F(NavigationTest, CalcAngle) {
   const double eff_foc = 1e0;
   const Eigen::MatrixXd extr_mtx = cam->getExtrinsicMatrix();
   const Eigen::Quaterniond att = cam->getAttitude();
-  // std::cout << *cam << std::endl;
   const Eigen::Vector3d cam_pos = cam->getLocation();
 
   std::cout << "  cam_pos = np.array([" 
@@ -788,7 +797,7 @@ TEST_F(NavigationTest, CalcAngle) {
     const double angle = calcAngleFromEllipseAxes(Rmax, Rmin, eff_foc);
 
     Eigen::Vector3d normal_test = att * q_nor;
-    Eigen::Vector3d r_q_cam_world = q_loc - cam_pos;
+    Eigen::Vector3d r_q_cam_world = cam->getPointWrtCameraWorld(q_loc);
     Eigen::Vector3d u_q_cam_world = r_q_cam_world.normalized();
     const double expected_angle = std::acos(q_nor.dot(-u_q_cam_world));
     // const double expected_angle = std::acos(normal_test.dot(-Eigen::Vector3d::UnitZ()));
@@ -797,7 +806,7 @@ TEST_F(NavigationTest, CalcAngle) {
 
     // distance up from the quadric to the locus of possible points for the cam
     const double rho = distance * std::cos(angle);
-    Eigen::Vector3d circ_center = q_loc + rho * quad.getNormal();
+    Eigen::Vector3d circ_center = q_loc + rho * q_nor;
     const double ell = std::sqrt(std::pow(distance, 2) - std::pow(rho, 2));
     
     EXPECT_NEAR(angle, expected_angle, 1e-1);
