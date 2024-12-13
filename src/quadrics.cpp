@@ -155,18 +155,8 @@ double Quadric::getAngleBetweenQuadrics(const Quadric& other_quadric) const {
   return getAngleBetweenVectors(this->getNormal(), other_quadric.getNormal());
 }
 
-Eigen::Vector3d Quadric::getAxisNormalToQuadrics(const Quadric& other_quadric) const {
-  Eigen::Vector3d axis_ret(3);
-  try {
-    axis_ret = getAxisNormalToVectors(
-      this->getNormal(), 
-      other_quadric.getNormal());
-  }
-  catch (const std::exception& e) {
-    std::cerr << "Exception: " << e.what() << std::endl;
-    throw std::runtime_error("Quadric normals are nearly parallel.");
-  }
-  return axis_ret;
+std::optional<Eigen::Vector3d> Quadric::getAxisNormalToQuadrics(const Quadric& other_quadric) const {
+  return getAxisNormalToVectors(this->getNormal(), other_quadric.getNormal());
 }
 
 double Quadric::getRadius() const {
@@ -227,7 +217,6 @@ void Quadric::getRimPoints(const uint n_pts, std::vector<Eigen::Vector3d>& pts_w
     pts_world.push_back(pt_world);
   }
 }
-
 
 std::ostream& operator<<(std::ostream& os, const Quadric& quad) {
   std::streamsize ss = std::cout.precision();

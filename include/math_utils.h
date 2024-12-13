@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <numeric>
 #include <eigen3/Eigen/Dense>
+#include <optional>
 // #include <boost/log/core.hpp>
 // #include <boost/log/expressions.hpp>
 // #include <boost/log/trivial.hpp>
@@ -53,7 +54,7 @@ Eigen::Vector3d latlon2bearing(const T crater);
 double vdot(const Eigen::Vector3d& pt1, const Eigen::Vector3d& pt2);
 double getPseudoAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
 double getAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
-Eigen::Vector3d getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen::Vector3d& vec2);
+std::optional<Eigen::Vector3d> getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen::Vector3d& vec2);
 
 Eigen::Matrix3d crossMatrix(const Eigen::Vector3d&);
 template <typename T>

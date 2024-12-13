@@ -1,5 +1,7 @@
 #pragma once
 
+#include "math_utils.h"
+
 // #include <iostream>
 // // #include <stdexcept>
 // #include <tuple>
@@ -7,8 +9,7 @@
 // #include <math.h>
 // #include <eigen3/Eigen/Dense>
 #include <opencv2/core/core.hpp>
-
-#include "math_utils.h"
+#include <optional>
 
 #define GEOMETRIC_PARAM 5
 #define IMPLICIT_PARAM 6
@@ -71,7 +72,7 @@ class Conic {
     Eigen::Matrix3d getLocus() const;
     Eigen::Matrix3d getEnvelope() const;
     Eigen::Matrix3d toLocus() const;
-    std::array<double, GEOMETRIC_PARAM> fromLocus(const Eigen::Matrix3d&) const;
+    std::optional<std::array<double, GEOMETRIC_PARAM> > fromLocus(const Eigen::Matrix3d& locus) const;
     std::array<double, IMPLICIT_PARAM> toImplicit() const;
     bool intersectsConic(const Eigen::Matrix3d&, 
                                 std::tuple<Eigen::Vector3d, Eigen::Vector3d>&) const;
@@ -103,15 +104,17 @@ std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vect
 /*********************************************************/
 
 // Convert to/from representations
-std::array<double, IMPLICIT_PARAM> locus2Implicit(const Eigen::Matrix3d& locus);
-std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLICIT_PARAM>& impl_params);
+std::optional<std::array<double, IMPLICIT_PARAM> > 
+locus2Implicit(const Eigen::Matrix3d& locus);
+std::optional<std::array<double, GEOMETRIC_PARAM> > 
+implicit2Geom(const std::array<double, IMPLICIT_PARAM>& impl_params);
 std::array<double, IMPLICIT_PARAM> geom2Implicit( const double semimajor_axis, 
                                                   const double semiminor_axis, 
                                                   const double x_center, 
                                                   const double y_center, 
                                                   const double angle);
 
-std::array<double, GEOMETRIC_PARAM> locus2Geom(const Eigen::Matrix3d& locus);
+std::optional<std::array<double, GEOMETRIC_PARAM> > locus2Geom(const Eigen::Matrix3d& locus);
 Eigen::Matrix3d implicit2Locus(const std::array<double, IMPLICIT_PARAM>& impl_params);
 
  // General Conic Utils

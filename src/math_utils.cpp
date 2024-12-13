@@ -2,6 +2,7 @@
 #include "math_utils.h"
 #include <iostream>
 #include <vector>
+#include <optional>
 
 // template <typename T>
 // void operator /(Eigen::Vector3d& vec, T divisor) {
@@ -118,18 +119,17 @@ Eigen::MatrixXd cofactor(const Eigen::MatrixXd& matrix) {
 }
 
 Eigen::MatrixXd adjugate(const Eigen::MatrixXd& matrix) {
-  // TODO: ensure that row and column counts are equal
-  // std::cout << __func__ << " Matrix:\n" << matrix << std::endl;
+  // This should be an exception since the matrix must be square
   if(matrix.rows() != matrix.cols()) {
     throw std::runtime_error("Matrix is not square");
   }
-  if(matrix.rows() == 3 && matrix.cols() == 3 && matrix.isApprox(matrix.transpose())) {
+  if(matrix.rows() == 3 && matrix.isApprox(matrix.transpose())) {
     return symmetricAdjugate(matrix);
   }
-  Eigen::MatrixXd mtx_adj = cofactor(matrix);
+  Eigen::MatrixXd mtx_cofactor = cofactor(matrix);
 
   // std::cout << __func__ << " Adjugate:\n" << mtx_adj << std::endl;
-  if(mtx_adj.hasNaN()) {
+  if(mtx_cofactor.hasNaN()) {
     throw std::runtime_error("Matrix contains NaN values.");
   }
   // Just remember: 
@@ -142,9 +142,9 @@ Eigen::MatrixXd adjugate(const Eigen::MatrixXd& matrix) {
   // and this fun fact does not hold
   // Another check for adjugates is ensure that the matrix times its
   // adjugate is the identity matrix scaled by the det of the matrix
-  mtx_adj = (mtx_adj.cwiseAbs().array() < 1e-100).select(0, mtx_adj);
+  mtx_cofactor = (mtx_cofactor.cwiseAbs().array() < 1e-100).select(0, mtx_cofactor);
 
-  return mtx_adj.transpose();
+  return mtx_cofactor.transpose();
 }
 
 Eigen::Matrix3d symmetricAdjugate(const Eigen::Matrix3d& mtx) {
@@ -209,11 +209,14 @@ double calculateCraterRimFromRadius(const double radius) {
   return std::sqrt(std::pow(R_MOON, 2) - std::pow(radius, 2));
 }
 
-Eigen::Vector3d getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen::Vector3d& vec2) {
+std::optional<Eigen::Vector3d> getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen::Vector3d& vec2) {
+  std::optional<Eigen::Vector3d> angle;
   if(vec1.isApprox(vec2)) {
-    throw std::runtime_error("Vectors are nearly parallel; invalid axis");
+    std::cerr << "Vectors are nearly parallel; invalid axis\n";
+    return angle;
   }
-  return vec1.cross(vec2).normalized();
+  angle = vec1.cross(vec2).normalized();
+  return angle;
 }
 
 Eigen::Matrix3d crossMatrix(const Eigen::Vector3d& v) {

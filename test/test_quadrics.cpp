@@ -100,12 +100,13 @@ TEST_F(QuadricTest, AxisOfRotationQuadrics) {
   Quadric q1(lat1, lon1, radius1);
   Quadric q2(lat2, lon2, radius2);
   Quadric q1_copy(lat1, lon1, radius1);
-  Eigen::Vector3d axis_normal = q1.getAxisNormalToQuadrics(q2);
+  std::optional<Eigen::Vector3d> axis_normal = q1.getAxisNormalToQuadrics(q2);
   Eigen::Vector3d axis_check(3);
   // Moving from 0 degrees latitude up to 30 degrees latitude makes axis in -y direction
   axis_check << 0, -1, 0;
-  ASSERT_TRUE(axis_normal.isApprox(axis_check));
-  ASSERT_THROW(q1.getAxisNormalToQuadrics(q1_copy), std::runtime_error);
+  ASSERT_TRUE(axis_normal.has_value());
+  ASSERT_TRUE(axis_normal.value().isApprox(axis_check));
+  ASSERT_FALSE(q1.getAxisNormalToQuadrics(q1_copy).has_value());
 }
 
 TEST_F(QuadricTest, QuadricFrom3Points) {
@@ -357,7 +358,7 @@ TEST_F(QuadricTest, QuadricPoints) {
   Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
   Eigen::Matrix3d moon_locus = cam->projectQuadricToLocus(sphere);
   Conic moon(moon_locus);
-  std::cout << "Moon ellipse: " << moon << std::endl;
+  // std::cout << "Moon ellipse: " << moon << std::endl;
   if(cam->isInCameraFrame(moon.getCenter())) {
     viz::drawEllipse(image, moon, cv::viz::Color::gray());
   }
@@ -378,21 +379,6 @@ TEST_F(QuadricTest, QuadricPoints) {
   // cv::waitKey(0); 
 }
 
-void getQuadricNsewPts(const Quadric& quad, Eigen::Vector3d& n, Eigen::Vector3d& s, Eigen::Vector3d& e, Eigen::Vector3d& w) {
-  Eigen::Vector3d center = quad.getLocation();
-  double radius = quad.getRadius();
-  Eigen::Matrix3d T_e2m = getENUFrame(center);
-  Eigen::Vector3d n_off, s_off, e_off, w_off;
-  n_off =  radius*T_e2m.col(1);
-  s_off = -n_off;
-  e_off =  radius*T_e2m.col(0);
-  w_off = -e_off;
-  n = center + n_off;
-  s = center + s_off;
-  e = center + e_off;
-  w = center + w_off;
-}
-
 TEST_F(QuadricTest, ProjectCrater) {
 
   Eigen::Vector3d pos(2.4e3, 0, 0);
@@ -402,13 +388,12 @@ TEST_F(QuadricTest, ProjectCrater) {
   
   // Add the moon
   Quadric zero(0,0,300,"@zero");
-  Eigen::Vector3d n, s, e, w;
-  getQuadricNsewPts(zero, n, s, e, w);
   Eigen::Vector2d pixel;
   cv::Mat image = cam->getBlankCameraImage();
   cv::Mat outImg;
   double scaling = 0.5;
   Eigen::AngleAxisd rot = Eigen::AngleAxisd(-M_PI / 36, Eigen::Vector3d::UnitX());
+  const uint n_pts = 4;
   for(int i = 0; i < 10; i++) {
     cam->resetImage(image);
     Eigen::MatrixXd proj = cam->getProjectionMatrix();
@@ -418,40 +403,29 @@ TEST_F(QuadricTest, ProjectCrater) {
     // std::cout << "Locus:\n" << locus << std::endl;
     Conic crater(locus);
     Eigen::Vector2d pixel_n, pixel_s, pixel_e, pixel_w;
-    cam->world2Pixel(n, pixel_n);
-    cam->world2Pixel(s, pixel_s);
-    cam->world2Pixel(e, pixel_e);
-    cam->world2Pixel(w, pixel_w);
+
+    std::vector<Eigen::Vector3d> pts_world;
+    std::vector<Eigen::Vector2d> pts_pxl;
+    zero.getRimPoints(n_pts, pts_world);
+    cam->world2Pixel(pts_world, pts_pxl);
 
     viz::drawEllipse(image, crater, cv::viz::Color::gray());
-
-    cv::drawMarker(image, cv::Point(pixel_n[0], pixel_n[1]), cv::viz::Color::red());
-    cv::drawMarker(image, cv::Point(pixel_s[0], pixel_s[1]), cv::viz::Color::cyan());
-    cv::drawMarker(image, cv::Point(pixel_e[0], pixel_e[1]), cv::viz::Color::orange());
-    cv::drawMarker(image, cv::Point(pixel_w[0], pixel_w[1]), cv::viz::Color::blue());
+    std::vector<cv::viz::Color> colors = {cv::viz::Color::red(), cv::viz::Color::cyan(), cv::viz::Color::orange(), cv::viz::Color::blue()};
+    viz::drawPoints(image, pts_pxl, viz::CV_colors);
     // Showing image inside a window 
     cv::resize(image, outImg, cv::Size(), scaling, scaling);
     // COpenCVWindowExt window ("Src"); 
     // // window.ImShow (outImg);
     // window.ImRead("/home/ndvr/Pictures/IMG_20230904_121221.jpg");
-    // cv::imshow("Projecting Moon to Camera", outImg); 
-    // cv::waitKey(0); 
+    cv::imshow("Projecting Moon to Camera", outImg); 
+    cv::waitKey(0); 
 
     cam->rotate(rot);
   }
 }
 
 TEST_F(QuadricTest, Reprojection) {
-  double radius = 50;
-  Quadric zero(0,0,radius,"zero");
-  Quadric ten(30,0,radius,"ten");
-  Quadric twenty(45,0,radius,"twenty");
-  Quadric thirty(60,0,radius,"thirty");
-  Eigen::Vector3d n, s, e, w;
-  getQuadricNsewPts(zero, n, s, e, w);
-  getQuadricNsewPts(ten, n, s, e, w);
-  getQuadricNsewPts(twenty, n, s, e, w);
-  getQuadricNsewPts(thirty, n, s, e, w);
+
 }
 
 TEST_F(QuadricTest, ProjectionMatrix) {

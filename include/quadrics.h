@@ -3,6 +3,7 @@
 #include "conics.h"
 #include <iostream>
 #include <eigen3/Eigen/Geometry>
+#include <optional>
 
 class Quadric {
   public:
@@ -32,7 +33,7 @@ class Quadric {
     Eigen::Hyperplane<double, 3> getPlane() const;
     void getPlane(Eigen::Hyperplane<double, 3>& hyperplane) const;
     double getAngleBetweenQuadrics(const Quadric& other_quadric) const;
-    Eigen::Vector3d getAxisNormalToQuadrics(const Quadric& other_quadric) const;
+    std::optional<Eigen::Vector3d> getAxisNormalToQuadrics(const Quadric& other_quadric) const;
     double getRadius() const;
     std::string getID() const;
     Eigen::Matrix3d projectToImageEnvelope(const Eigen::MatrixXd& proj_mtx) const;
