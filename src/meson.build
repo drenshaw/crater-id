@@ -18,7 +18,7 @@ cv_dep = dependency('opencv4', required: true)
 #                    components: ['CommonCore', 'CommonColor', 'CommonExecutionModel', 'FiltersCore', 'RenderingCore', 'InteractionStyle', 'RenderingUI'],
 #                    modules: ['VTK::CommonCore', 'VTK::CommonColor', 'VTK::CommonExecutionModel', 'VTK::FiltersCore', 'VTK::RenderingCore', 'VTK::InteractionStyle', 'VTK::RenderingUI'])
 # -DVTK_DIR="<path to my vtk build>"
-vtk_dep = dependency('VTK', required: true)
+vtk_dep = dependency('VTK', required: false)
 cpp = meson.get_compiler('cpp')
 igl_dep = cpp.find_library('libigl', dirs: '/home/dqr0509/dev/libigl/lib', required: false)
 # igl_dep = dependency('igl', required: false)

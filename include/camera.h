@@ -1,5 +1,7 @@
 #pragma once
 
+#include "math_utils.h"
+
 #include <eigen3/Eigen/Dense>
 #include <opencv2/viz/types.hpp>
 
@@ -61,6 +63,7 @@ class Camera {
     Eigen::Vector3d getAttitudeEuler(Eigen::Index a0, Eigen::Index a1, Eigen::Index a2) const ;
     Eigen::Matrix3d getIntrinsicMatrix() const ;
     Eigen::Matrix3d getInverseIntrinsicMatrix() const;
+    cv::Mat getCvIntrinsicMatrix();
     Eigen::Isometry3d getHomogeneousExtrinsicMatrix() const ;
     Eigen::MatrixXd getExtrinsicMatrix() const;
     Eigen::Affine3d getHomogeneousProjectionMatrix() const ;
@@ -69,6 +72,9 @@ class Camera {
     void resetImage(cv::Mat& image) const;
     std::array<double, CAMERA_INTRINSIC_PARAM> getIntrinsicParams() const ;
     void getIntrinsicParams(std::array<double, CAMERA_INTRINSIC_PARAM>& params) const;
+    double getFocalX() const;
+    double getFocalY() const;
+    Eigen::Vector2d getFocalPointUV() const;
     double getImageWidth() const;
     double getImageHeight() const;
     Eigen::Vector2d getImageMidpoint() const;
@@ -119,7 +125,10 @@ class Camera {
     // Eigen::Transform<double, 3, Eigen::Isometry>
     Eigen::Matrix3d projectQuadric(const Eigen::Matrix4d& quadric) const;
     Eigen::Matrix3d projectQuadricToLocus(const Eigen::Matrix4d& quadric_locus) const;
+    Eigen::Vector3d getPointWrtCameraWorld(const Eigen::Vector3d& point) const;
+    Eigen::Vector3d getPointWrtCamera(const Eigen::Vector3d& point) const;
     Eigen::Matrix3d getImagePlaneLocus(const Eigen::Matrix3d& image_locus) const;
+    Eigen::Matrix3d getMoonConic(const double radius=R_MOON) const;
 
   private:
     double dx_;
@@ -160,3 +169,5 @@ Eigen::Matrix3d lookAt( const Eigen::Isometry3d& transform,
 bool isInImage(const Eigen::Vector2d& pt_uv, const cv::Size2i image_size);
 bool isInImage(const cv::Point& pt_uv, const cv::Size2i image_size);
 bool isInImage(const cv::Point& pt_uv, const cv::MatSize image_size);
+
+cv::Mat getCvCameraMatrix(const Eigen::Matrix3d& K);

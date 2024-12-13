@@ -3,6 +3,7 @@
 #include "conics.h"
 #include <iostream>
 #include <eigen3/Eigen/Geometry>
+#include <optional>
 
 class Quadric {
   public:
@@ -23,14 +24,16 @@ class Quadric {
     Eigen::Matrix3d getQuadricTransformationMatrix() const;
     Eigen::Matrix4d getLocus() const;
     Eigen::Matrix4d getEnvelope() const;
+    Eigen::Vector3d getCenter() const;
     Eigen::Vector3d getLocation() const;
+    void getCenter(Eigen::Vector3d& center) const;
     void getLocation(Eigen::Vector3d& location) const;
     Eigen::Vector3d getNormal() const;
     void getNormal(Eigen::Vector3d& surface_normal) const;
     Eigen::Hyperplane<double, 3> getPlane() const;
     void getPlane(Eigen::Hyperplane<double, 3>& hyperplane) const;
     double getAngleBetweenQuadrics(const Quadric& other_quadric) const;
-    Eigen::Vector3d getAxisNormalToQuadrics(const Quadric& other_quadric) const;
+    std::optional<Eigen::Vector3d> getAxisNormalToQuadrics(const Quadric& other_quadric) const;
     double getRadius() const;
     std::string getID() const;
     Eigen::Matrix3d projectToImageEnvelope(const Eigen::MatrixXd& proj_mtx) const;
@@ -66,7 +69,4 @@ Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d&,
                                                     const Eigen::Matrix3d& T_e2m);
 Eigen::Matrix3d getAttitudeTransformBetweenPoints(const Eigen::Vector3d& camera_position, 
                                        const Eigen::Vector3d& desired_location);
-
-
-Eigen::Matrix4d makeSphere(const double radius);
-Eigen::Matrix4d makeEllipsoid(const Eigen::Vector3d& radii);                                       
+                                     

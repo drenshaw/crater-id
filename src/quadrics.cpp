@@ -119,12 +119,20 @@ Eigen::Matrix4d Quadric::getEnvelope() const {
   return this->generateQuadricEnvelopeFromPointRadius();
 }
 
-Eigen::Vector3d Quadric::getLocation() const {
+Eigen::Vector3d Quadric::getCenter() const {
   return this->center_;
 }
 
+Eigen::Vector3d Quadric::getLocation() const {
+  return this->getCenter();
+}
+
+void Quadric::getCenter(Eigen::Vector3d& center) const {
+  center = this->center_;
+}
+
 void Quadric::getLocation(Eigen::Vector3d& location) const {
-  location = this->center_;
+  this->getCenter(location);
 }
 
 Eigen::Vector3d Quadric::getNormal() const {
@@ -132,7 +140,7 @@ Eigen::Vector3d Quadric::getNormal() const {
 }
 
 void Quadric::getNormal(Eigen::Vector3d& surface_normal) const {
-  surface_normal = this->plane_.normal();
+  surface_normal = this->getNormal();
 }
 
 Eigen::Hyperplane<double, 3> Quadric::getPlane() const {
@@ -140,25 +148,15 @@ Eigen::Hyperplane<double, 3> Quadric::getPlane() const {
 }
 
 void Quadric::getPlane(Eigen::Hyperplane<double, 3>& hyperplane) const {
-  hyperplane = this->plane_;
+  hyperplane = this->getPlane();
 }
 
 double Quadric::getAngleBetweenQuadrics(const Quadric& other_quadric) const {
   return getAngleBetweenVectors(this->getNormal(), other_quadric.getNormal());
 }
 
-Eigen::Vector3d Quadric::getAxisNormalToQuadrics(const Quadric& other_quadric) const {
-  Eigen::Vector3d axis_ret(3);
-  try {
-    axis_ret = getAxisNormalToVectors(
-      this->getNormal(), 
-      other_quadric.getNormal());
-  }
-  catch (const std::exception& e) {
-    std::cerr << "Exception: " << e.what() << std::endl;
-    throw std::runtime_error("Quadric normals are nearly parallel.");
-  }
-  return axis_ret;
+std::optional<Eigen::Vector3d> Quadric::getAxisNormalToQuadrics(const Quadric& other_quadric) const {
+  return getAxisNormalToVectors(this->getNormal(), other_quadric.getNormal());
 }
 
 double Quadric::getRadius() const {
@@ -219,7 +217,6 @@ void Quadric::getRimPoints(const uint n_pts, std::vector<Eigen::Vector3d>& pts_w
     pts_world.push_back(pt_world);
   }
 }
-
 
 std::ostream& operator<<(std::ostream& os, const Quadric& quad) {
   std::streamsize ss = std::cout.precision();
@@ -296,20 +293,4 @@ Eigen::MatrixXd transformSelenographicToCraterFrame(const Eigen::Vector3d& posit
   Eigen::MatrixXd h_k(4,3);
   h_k << h_m, u_north_pole.transpose();
   return h_k;
-}
-
-Eigen::Matrix4d makeSphere(const double radius) {
-  double recip_radius = 1/std::pow(radius,2.0);
-  Eigen::Matrix4d sphere = recip_radius * Eigen::Matrix4d::Identity();
-  sphere(3,3) = -1.0;
-  return sphere;
-}
-
-Eigen::Matrix4d makeEllipsoid(const Eigen::Vector3d& radii) {
-  Eigen::Vector3d recip_radii = radii.array().pow(-2);
-  Eigen::Vector4d diag;
-  diag << recip_radii, -1;
-  Eigen::Matrix4d sphere = Eigen::Matrix4d::Identity();
-  sphere.diagonal() << diag;
-  return sphere;
 }

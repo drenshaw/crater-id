@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <numeric>
 #include <eigen3/Eigen/Dense>
+#include <optional>
 // #include <boost/log/core.hpp>
 // #include <boost/log/expressions.hpp>
 // #include <boost/log/trivial.hpp>
@@ -53,7 +54,7 @@ Eigen::Vector3d latlon2bearing(const T crater);
 double vdot(const Eigen::Vector3d& pt1, const Eigen::Vector3d& pt2);
 double getPseudoAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
 double getAngleBetweenVectors(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2);
-Eigen::Vector3d getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen::Vector3d& vec2);
+std::optional<Eigen::Vector3d> getAxisNormalToVectors(const Eigen::Vector3d& vec1, const Eigen::Vector3d& vec2);
 
 Eigen::Matrix3d crossMatrix(const Eigen::Vector3d&);
 template <typename T>
@@ -68,6 +69,11 @@ void eulerToDCM(const double roll,
                 const double yaw,
                 Eigen::Matrix3d& dcm);    
 
+
+Eigen::Matrix4d makeSphere(const double radius);
+Eigen::Matrix4d makeEllipsoid(const Eigen::Vector3d& radii);
+
+Eigen::MatrixXd toEigenArray(const std::vector<std::array<double, 2> >& points);
 bool vectorContainsNaN(const Eigen::Vector3d& eV);
 void convertEigenVectorToVector(const Eigen::Vector3d& eig, std::vector<double>& vec);
 
@@ -99,7 +105,7 @@ bool normalizeDeterminant(Eigen::MatrixBase<Derived>& mtx) {
   double det_mtx = mtx.determinant();
   if(det_mtx == 0) {
     // BOOST_LOG_TRIVIAL(warning) << "Matrix is singular.";
-    std::cerr << "Matrix is singular/nearly singular." << std::endl;
+    std::cerr << __func__ << "Matrix is singular/nearly singular." << std::endl;
     mtx *= maxVal;
     return false;
   }

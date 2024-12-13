@@ -8,6 +8,7 @@
 #include <cmath>
 #include <random>
 #include <eigen3/Eigen/Dense>
+#include <optional>
 
 int Conic::next_id = 0;
 
@@ -117,6 +118,11 @@ void Conic::setGeometricParameters( const double semimajor_axis,
                                     const double x_center, 
                                     const double y_center, 
                                     const double angle) {
+  if(std::isnan(semimajor_axis) || std::isnan(semiminor_axis) || 
+     std::isnan(x_center)       || std::isnan(y_center) || 
+     std::isnan(angle)) {
+    throw std::runtime_error("One or more parameters is NaN");
+  }
   semimajor_axis_ = semimajor_axis;
   semiminor_axis_ = semiminor_axis;
   x_center_ = x_center;
@@ -146,19 +152,24 @@ void Conic::setAngle(const double angle) {
 
 
 void Conic::setImplicitParameters(const std::array<double, IMPLICIT_PARAM>& impl_params) {
-  setGeometricParameters(implicit2Geom(impl_params));
+  std::optional<std::array<double, GEOMETRIC_PARAM> > geom_params = implicit2Geom(impl_params);
+  if(geom_params.has_value()) {
+    setGeometricParameters(geom_params.value());
+  }
+  else {
+    throw std::runtime_error("Invalid implicit parameters");
+  }
 }
 
 void Conic::setLocus(const Eigen::Matrix3d& locus) {
-  std::array<double, GEOMETRIC_PARAM> geom_params;
-  try {
-    geom_params = fromLocus(locus);
+  std::optional<std::array<double, GEOMETRIC_PARAM> > geom_params;
+  geom_params = fromLocus(locus);
+  if(geom_params.has_value()) {
+    setGeometricParameters(geom_params.value());
   }
-  catch (const std::runtime_error& e) {
-    std::cerr << __func__ << "--> " << e.what() << std::endl;
-    throw std::runtime_error("Locus is singular when attempting to make a conic.");
+  else {
+    throw std::runtime_error("Provided locus is invalid");
   }
-  setGeometricParameters(geom_params);
 }
 
 std::array<double, GEOMETRIC_PARAM> Conic::getGeom() const {
@@ -179,16 +190,10 @@ Eigen::Matrix3d Conic::getEnvelope() const {
 
 Eigen::Matrix3d Conic::toLocus() const {
   return implicit2Locus(this->getImplicit());
- }
+}
 
- std::array<double, GEOMETRIC_PARAM> Conic::fromLocus(const Eigen::Matrix3d& locus) const {
-  try {
-    return locus2Geom(locus);
-  }
-  catch (const std::runtime_error& e) {
-    std::cerr << __func__ << "--> " << e.what() << std::endl;
-    throw std::runtime_error("Locus is singular.");
-  }
+std::optional<std::array<double, GEOMETRIC_PARAM> > Conic::fromLocus(const Eigen::Matrix3d& locus) const {
+  return locus2Geom(locus);
 }
 
 
@@ -227,7 +232,7 @@ Eigen::Vector2d Conic::getCenter() const {
   return center;
 }
 
-void Conic::getCenter(cv::Point& center) const {
+void Conic::getCenter(cv::Point2d& center) const {
   center.x = x_center_;
   center.y = y_center_;
 }
@@ -298,19 +303,26 @@ bool Conic::chooseIntersection(const Conic& other, Eigen::Vector3d& l) const {
   return true;
 }
 
+double Conic::getEccentricity() const {
+  double a = this->getSemiMajorAxis();
+  double b = this->getSemiMinorAxis();
+  return std::sqrt(1 - std::pow(b, 2)/std::pow(a, 2));
+}
+
 
 /*********************************************************/
 /***********************Conic Utils***********************/
 /*********************************************************/
 
-std::array<double, IMPLICIT_PARAM> locus2Implicit(const Eigen::Matrix3d& locus) {
+std::optional<std::array<double, IMPLICIT_PARAM> > locus2Implicit(const Eigen::Matrix3d& locus) {
   Eigen::Matrix3d loc = locus;
+  std::optional<std::array<double, IMPLICIT_PARAM> > params;
   normalizeDeterminant(loc);
   // loc = locus(2,2) == 0 ? locus : locus/locus(2,2);
   
   if(loc.determinant() == 0) {
     std::cerr << __func__ << "--> Locus is singular:\n" << loc << std::endl;
-    throw std::runtime_error("Matrix for locus is singular.");
+    return params;
   }
   /*
       |  a   b/2  d/2 |
@@ -332,17 +344,16 @@ std::array<double, IMPLICIT_PARAM> locus2Implicit(const Eigen::Matrix3d& locus) 
   D =  2*loc.coeff(0,2);
   E =  2*loc.coeff(1,2);
   F =    loc.coeff(2,2); 
-  return {A, B, C, D, E, F};
+  params = {A, B, C, D, E, F};
+  return params;
 }
 
-std::array<double, GEOMETRIC_PARAM> locus2Geom(const Eigen::Matrix3d& locus) {
-  try {
-    const std::array<double, IMPLICIT_PARAM> impl_params = locus2Implicit(locus);
-    return implicit2Geom(impl_params);
-  }
-  catch (const std::runtime_error& e) {
-    std::cerr << __func__ << "--> " << e.what() << std::endl << locus << std::endl;
-    throw std::runtime_error("Matrix is singular.");
+std::optional<std::array<double, GEOMETRIC_PARAM> > locus2Geom(const Eigen::Matrix3d& locus) {
+  const std::optional<std::array<double, IMPLICIT_PARAM> > impl_params = locus2Implicit(locus);
+  if(impl_params.has_value())
+    return implicit2Geom(impl_params.value());
+  else {
+    return std::nullopt;
   }
 }
 
@@ -378,8 +389,9 @@ bool isEllipse(const Eigen::Matrix3d& conic_locus) {
 //     angle = std::atan2(eigenvectors(1, 0), eigenvectors(0, 0));
 // }
 
-std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLICIT_PARAM>& impl_params) {
+std::optional<std::array<double, GEOMETRIC_PARAM> > implicit2Geom(const std::array<double, IMPLICIT_PARAM>& impl_params) {
   // double numerator, denominator_a, denominator_b;
+  std::optional<std::array<double, GEOMETRIC_PARAM> > geom;
   double B2_minus_4AC, xc, yc, phi;
   double semimajor_axis, semiminor_axis;//, amc2, b2;
   /*
@@ -387,6 +399,15 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
   C = | B/2   C   E/2 |
       | D/2  E/2   F  |
   */
+  if(std::any_of(impl_params.begin(), impl_params.end(), 
+                                   [](double x) { return std::isnan(x); })) {
+    std::cout << __func__ << " -- NaN value found\n\t";
+    for(const auto& elem : impl_params) {
+      std::cout << elem << ", ";
+    }
+    std::cout << std::endl;
+    return geom;
+  }
   double A = impl_params.at(0);
   double B = impl_params.at(1);
   double C = impl_params.at(2);
@@ -424,17 +445,18 @@ std::array<double, GEOMETRIC_PARAM> implicit2Geom(const std::array<double, IMPLI
   }
   // TODO: figure out why the negative angle is visually correct
   phi = wrap_npi2_pi2(phi);
-  std::array<double, GEOMETRIC_PARAM> geom;
   // auto roundd = [](double val) {return std::round(val*1e3)/1e3;};
   // auto roundd = [](double val) {return val;};
-  assert(!std::isnan(semimajor_axis) && !std::isnan(semiminor_axis));
+  if(std::isnan(semimajor_axis) || std::isnan(semiminor_axis)) {
+    throw std::runtime_error("At least one axis is NaN");
+  }
   geom = {
     semimajor_axis, 
     semiminor_axis, 
     xc, 
     yc, 
     phi};
-  if(vectorContainsNaN(geom)) {
+  if(vectorContainsNaN(geom.value())) {
     std::cerr 
       << __func__ << "-->\n"
       << "Semimajor axis : " << semimajor_axis << std::endl
@@ -517,6 +539,29 @@ void normalizeImplicitParameters(std::vector<double>& impl_params) {
                std::bind(std::multiplies<double>(), std::placeholders::_1, vecNormRecip));
 }
 
+std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const Eigen::MatrixXd& points) {
+  std::array<double, IMPLICIT_PARAM> impl;
+  int n_pts = points.rows();
+  if(n_pts < 5) {
+    impl.fill({std::nan("")});
+  }
+  Eigen::ArrayXd X = points.col(0).array();
+  Eigen::ArrayXd Y = points.col(1).array();
+  Eigen::MatrixXd Ax(n_pts, 5);
+  Ax << X.pow(2), X*Y, Y.pow(2), X, Y;
+  Eigen::MatrixXd bx = Eigen::MatrixXd::Ones(n_pts, 1);
+  // Ax.template Eigen::BDCSVD<Eigen::ComputeThinU | Eigen::ComputeThinV>().solve(bx);
+  Eigen::BDCSVD<Eigen::MatrixXd> SVD(Ax, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  Eigen::MatrixXd solu = SVD.solve(bx);
+  impl = {solu(0), solu(1), solu(2), solu(3), solu(4), -1.0};
+  // Conic conic(impl);
+  // // auto sol = Ax.colPivHouseholderQr().solve(bx);
+  // Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(Ax.rows(), Ax.cols());
+  // cod.setThreshold(Eigen::Default);
+  // auto se = cod.compute(bx);
+  return impl;
+}
+
 std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vector2d>& points) {
   std::array<double, IMPLICIT_PARAM> impl;
   int n_pts = points.size();
@@ -529,21 +574,7 @@ std::array<double, IMPLICIT_PARAM> ellipseFitLstSq(const std::vector<Eigen::Vect
     int index = std::distance(points.begin(), it);
     pts_cam(index, Eigen::all) = *it;
   }
-  Eigen::ArrayXd X = pts_cam.col(0);
-  Eigen::ArrayXd Y = pts_cam.col(1);
-  Eigen::MatrixXd Ax(n_pts, 5);
-  Ax << X.array().pow(2), X.array()*Y.array(), Y.array().pow(2), X, Y;
-  Eigen::MatrixXd bx = Eigen::MatrixXd::Ones(n_pts, 1);
-  // Ax.template Eigen::BDCSVD<Eigen::ComputeThinU | Eigen::ComputeThinV>().solve(bx);
-  Eigen::BDCSVD<Eigen::MatrixXd> SVD(Ax, Eigen::ComputeThinU | Eigen::ComputeThinV);
-  Eigen::MatrixXd solu = SVD.solve(bx);
-  impl = {solu(0), solu(1), solu(2), solu(3), solu(4), -1.0};
-  // Conic conic(impl);
-  // // auto sol = Ax.colPivHouseholderQr().solve(bx);
-  // Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(Ax.rows(), Ax.cols());
-  // cod.setThreshold(Eigen::Default);
-  // auto se = cod.compute(bx);
-  return impl;
+  return ellipseFitLstSq(pts_cam);
 }
 
 void addNoise(const double mean, const double st_dev, std::vector<Eigen::Vector2d>& points) {

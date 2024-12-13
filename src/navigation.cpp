@@ -10,6 +10,8 @@
 /*********************************************************/
 /***************  Single Crater Functions  ***************/
 /*********************************************************/
+namespace Preprocessing {
+
 int findOppositeSignedValueIndex(const std::vector<double>& vec) {
   double sign_val = std::accumulate(
     begin(vec), end(vec), 1.0, std::multiplies<double>());
@@ -32,64 +34,10 @@ bool getEigenstuffConic(const Eigen::Matrix3d& conic, Eigen::Vector3d& eigenval,
   return true;
 }
 
-namespace Christian {
+void getEigenParts( const Eigen::Matrix3d& conic, 
+                    double& lambda1, double& lambda2, double& lambda3, 
+                    Eigen::Vector3d& u1, Eigen::Vector3d& u2, Eigen::Vector3d& u3) {
 
-void getBackprojectedCenter(const double radius, const std::array<double, 3>& lambdas,
-                            const Eigen::Matrix3d& canonizing, 
-                            std::array<Eigen::Vector3d, 2>& centers) {
-
-  double lambda1 = lambdas.at(0);
-  double lambda2 = lambdas.at(1);
-  double lambda3 = lambdas.at(2);
-  double kx2 = 1/std::abs(lambda1);
-  double ky2 = 1/std::abs(lambda2);
-  double kz2 = 1/std::abs(lambda3);
-  double alpha = (ky2 - kx2) / (ky2 + kz2);
-  double kxz2 = kx2/kz2;
-  double sqrtAlphaPlusKxz = std::sqrt(alpha + kxz2);
-  Eigen::Vector3d center_posX, center_negX, center_pos, center_neg;
-  double scalarR = radius/sqrtAlphaPlusKxz;
-  center_posX <<  std::sqrt(alpha*kxz2), 0, 1;
-  center_negX << -std::sqrt(alpha*kxz2), 0, 1;
-  center_posX *= scalarR;
-  center_negX *= scalarR;
-  center_pos  = canonizing * center_posX;
-  center_neg  = canonizing * center_negX;
-  centers = {center_pos, center_neg};
-}
-
-void getBackprojectedNormal(const std::array<double, 3>& lambdas,
-                            const Eigen::Matrix3d& canonizing,
-                            std::array<Eigen::Vector3d, 2>& normals) {
-
-  double lambda1 = lambdas.at(0);
-  double lambda2 = lambdas.at(1);
-  double lambda3 = lambdas.at(2);  
-  // X-axis corresponds to semiminor (smaller) axis
-  double kx2 = 1/std::abs(lambda1);
-  double ky2 = 1/std::abs(lambda2);
-  double kz2 = 1/std::abs(lambda3);
-  double alpha = (ky2 - kx2) / (ky2 + kz2);        
-  Eigen::Vector3d normal_posX, normal_negX, normal_pos, normal_neg;
-  double kxz2 = kx2/kz2;
-  double kxz = std::sqrt(kxz2);
-  double sqrtAlphaPlusKxz = std::sqrt(alpha + kxz2);
-  double scalarN = 1/sqrtAlphaPlusKxz;
-  normal_posX <<  std::sqrt(alpha), 0, -kxz;
-  normal_negX << -std::sqrt(alpha), 0, -kxz;
-  normal_posX *= scalarN;
-  normal_negX *= scalarN;
-  normal_pos  = canonizing * normal_posX;
-  normal_neg  = canonizing * normal_negX;
-  normals = {normal_pos, normal_neg};
-}
-
-void conicBackprojection( const Eigen::Matrix3d& conic, const double radius, 
-                          std::array<Eigen::Vector3d, 2>& centers, 
-                          std::array<Eigen::Vector3d, 2>& normals) {
-  // Applying the transforms found in Christian white paper
-  // "Perspective projection of ellipses and ellipsoids with applications to spacecraft navigation"
-  
   // Eigenvalues and eigenvectors
   Eigen::Vector3d eigenval;
   Eigen::Matrix3d eigenvec;
@@ -97,15 +45,12 @@ void conicBackprojection( const Eigen::Matrix3d& conic, const double radius,
     std::cerr << __func__ << "-> backprojection eigenstuff failed.\n";
     return;
   }
-
-  double lambda3, lambda2, lambda1;
-  Eigen::Vector3d g1, g2, u3, u2, u1;
   int mu_d_idx;  
 
   // Find the eigenvalue with the different sign
   // Eqns 3.1.2.5 - 3.1.2.7
   std::vector<int> indices = {0, 1, 2};
-  Shiu::getBackprojectionLambda1(eigenval, eigenvec, mu_d_idx, u3);
+  Preprocessing::getBackprojectionLambda3(eigenval, eigenvec, mu_d_idx, u3);
   lambda3 = eigenval(mu_d_idx);
   // std::cout << "Eigenvalues: " << eigenval.transpose() << std::endl;
   // std::cout << "Eigenvectors:\n" << eigenvec << std::endl;
@@ -115,33 +60,11 @@ void conicBackprojection( const Eigen::Matrix3d& conic, const double radius,
 
   // Get remaining lambdas
   // Eqns 3.1.2.8 - 3.1.2.11
-  Shiu::getBackprojectionLambda2(rem_eigenval, rem_eigenvec, lambda1, lambda2, u2);
+  Preprocessing::getBackprojectionLambda2(rem_eigenval, rem_eigenvec, lambda1, lambda2, u2);
   u1 = u2.cross(u3);
-  Eigen::Matrix3d canonizing;
-  canonizing << u1, u2, u3;
-
-  std::array<double, 3> lambdas = {lambda1, lambda2, lambda3};
-  getBackprojectedCenter(radius, lambdas, canonizing, centers);
-  getBackprojectedNormal(lambdas, canonizing, normals);
 }
 
-} // end namespace Christian
-
-namespace Shiu {
-
-double getBackprojectionDistance(const double lambda1, const double lambda2, const double lambda3, const double radius) {
-  // Calculates the distance from the camera to the backprojected ellipse center
-  // Note: this is generally not the true quadric center
-  double abs_l1 = std::abs(lambda1);
-  double abs_l2 = std::abs(lambda2);
-  double abs_l3 = std::abs(lambda3);
-  double scalar = 1/std::abs(lambda2);
-  double r = scalar * std::sqrt((abs_l1*abs_l3*(abs_l2 + abs_l3))/(abs_l1 + abs_l3));
-  double dist = radius/r;
-  return dist;
-}
-
-void getBackprojectionLambda1(const Eigen::Vector3d& eigenvalues,
+void getBackprojectionLambda3(const Eigen::Vector3d& eigenvalues,
                               const Eigen::Matrix3d& eigenvectors,
                               int& mu_d_idx,
                               Eigen::Vector3d& e3) {
@@ -197,6 +120,92 @@ void getBackprojectionLambda2(const Eigen::Vector2d& eigenvalues,
   //   lambda1 = omega1;
   //   e2 = g2;
   // }
+}
+
+} // namespace Preprocessing
+
+namespace Christian {
+
+void getBackprojectedCenter(const double radius, const std::array<double, 3>& lambdas,
+                            const Eigen::Matrix3d& canonizing, 
+                            std::array<Eigen::Vector3d, 2>& centers) {
+
+  double lambda1 = lambdas.at(0);
+  double lambda2 = lambdas.at(1);
+  double lambda3 = lambdas.at(2);
+  double kx2 = 1/std::abs(lambda1);
+  double ky2 = 1/std::abs(lambda2);
+  double kz2 = 1/std::abs(lambda3);
+  double alpha = (ky2 - kx2) / (ky2 + kz2);
+  double kxz2 = kx2/kz2;
+  double sqrtAlphaPlusKxz = std::sqrt(alpha + kxz2);
+  Eigen::Vector3d center_posX, center_negX, center_pos, center_neg;
+  double scalarR = radius/sqrtAlphaPlusKxz;
+  center_posX <<  std::sqrt(alpha*kxz2), 0, 1;
+  center_negX << -std::sqrt(alpha*kxz2), 0, 1;
+  center_posX *= scalarR;
+  center_negX *= scalarR;
+  center_pos  = canonizing * center_posX;
+  center_neg  = canonizing * center_negX;
+  centers = {center_pos, center_neg};
+}
+
+void getBackprojectedNormal(const std::array<double, 3>& lambdas,
+                            const Eigen::Matrix3d& canonizing,
+                            std::array<Eigen::Vector3d, 2>& normals) {
+
+  double lambda1 = lambdas.at(0);
+  double lambda2 = lambdas.at(1);
+  double lambda3 = lambdas.at(2);  
+  // X-axis corresponds to semiminor (smaller) axis
+  double kx2 = 1/std::abs(lambda1);
+  double ky2 = 1/std::abs(lambda2);
+  double kz2 = 1/std::abs(lambda3);
+  double alpha = (ky2 - kx2) / (ky2 + kz2);        
+  Eigen::Vector3d normal_posX, normal_negX, normal_pos, normal_neg;
+  double kxz2 = kx2/kz2;
+  double kxz = std::sqrt(kxz2);
+  double sqrtAlphaPlusKxz = std::sqrt(alpha + kxz2);
+  double scalarN = 1/sqrtAlphaPlusKxz;
+  normal_posX <<  std::sqrt(alpha), 0, -kxz;
+  normal_negX << -std::sqrt(alpha), 0, -kxz;
+  normal_posX *= scalarN;
+  normal_negX *= scalarN;
+  normal_pos  = canonizing * normal_posX;
+  normal_neg  = canonizing * normal_negX;
+  normals = {normal_pos, normal_neg};
+}
+
+void conicBackprojection( const Eigen::Matrix3d& conic_locus, const double radius, 
+                          std::array<Eigen::Vector3d, 2>& centers, 
+                          std::array<Eigen::Vector3d, 2>& normals) {
+  // Applying the transforms found in Christian white paper
+  // "Perspective projection of ellipses and ellipsoids with applications to spacecraft navigation"
+  double lambda1, lambda2, lambda3;
+  Eigen::Vector3d u1, u2, u3;
+  Preprocessing::getEigenParts(conic_locus, lambda1, lambda2, lambda3, u1, u2, u3);
+  Eigen::Matrix3d canonizing;
+  canonizing << u1, u2, u3;
+
+  std::array<double, 3> lambdas = {lambda1, lambda2, lambda3};
+  getBackprojectedCenter(radius, lambdas, canonizing, centers);
+  getBackprojectedNormal(lambdas, canonizing, normals);
+}
+
+} // end namespace Christian
+
+namespace Shiu {
+
+double getBackprojectionDistance(const double lambda1, const double lambda2, const double lambda3, const double radius) {
+  // Calculates the distance from the camera to the backprojected ellipse center
+  // Note: this is generally not the true quadric center
+  double abs_l1 = std::abs(lambda1);
+  double abs_l2 = std::abs(lambda2);
+  double abs_l3 = std::abs(lambda3);
+  double scalar = 1/std::abs(lambda2);
+  double r = scalar * std::sqrt((abs_l1*abs_l3*(abs_l2 + abs_l3))/(abs_l1 + abs_l3));
+  double dist = radius/r;
+  return dist;
 }
 
 void getBackprojectionNormalCanonical(const double lambda1, const double lambda2, 
@@ -272,38 +281,15 @@ void getBackprojectionCenter( const double radius, const double lambda1, const d
   centers = {center1, center2};
 }                                    
 
-void conicBackprojection( const Eigen::Matrix3d& conic, const double radius, 
+void conicBackprojection( const Eigen::Matrix3d& conic_locus, const double radius, 
                               std::array<Eigen::Vector3d, 2>& centers, 
                               std::array<Eigen::Vector3d, 2>& normals) {
   // Applying the concept of the canonical frame from Shiu:
   // "3D loc. of circular and spherical features by monocular ... vision"
   // Eigenvalues and eigenvectors
-  Eigen::Vector3d eigenvalues;
-  Eigen::Matrix3d eigenvectors;
-  if(!getEigenstuffConic(conic, eigenvalues, eigenvectors)) {
-    std::cerr << __func__ << "-> backprojection eigenstuff failed.\n";
-    return;
-  }
-
-  double lambda3, lambda2, lambda1;
-  Eigen::Vector3d g1, g2, u3, u2, u1;
-  int mu_d_idx;  
-
-  // Find the eigenvalue with the different sign (--+ or -++)
-  // Eqns 3.1.2.5 - 3.1.2.7
-  std::vector<int> indices = {0, 1, 2};
-  getBackprojectionLambda1(eigenvalues, eigenvectors, mu_d_idx, u3);
-  lambda3 = eigenvalues(mu_d_idx);
-  std::cout << "Eigenvalues: " << eigenvalues.transpose() << std::endl;
-  std::cout << "Eigenvectors:\n" << eigenvectors << std::endl;
-  indices.erase(indices.begin() + mu_d_idx);
-  Eigen::Vector2d rem_eigenval = eigenvalues(indices);
-  Eigen::MatrixXd rem_eigenvec = eigenvectors(Eigen::all, indices);
-
-  // Get remaining lambdas
-  // Eqns 3.1.2.8 - 3.1.2.11
-  getBackprojectionLambda2(rem_eigenval, rem_eigenvec, lambda1, lambda2, u2);
-  u1 = u2.cross(u3);
+  double lambda1, lambda2, lambda3;
+  Eigen::Vector3d u1, u2, u3;
+  Preprocessing::getEigenParts(conic_locus, lambda1, lambda2, lambda3, u1, u2, u3);
   // Eqn 3.1.3.6
   // double dist = getBackprojectionDistance(lambda1, lambda2, lambda3, radius);
   Shiu::getBackprojectionCenter(radius, lambda1, lambda2, lambda3, u1, u3, centers);
@@ -318,64 +304,36 @@ void conicBackprojection( const Eigen::Matrix3d& conic, const double radius,
   std::cout << "Center2: " << center2.transpose() << " | Distance: " << center2.norm() << std::endl;
   std::cout << "Normal2: " << normal2.transpose() << std::endl;
 }
+
+double getDistanceFromConicLocus(const Eigen::Matrix3d& conic_locus, const double radius) {
+  double lambda1, lambda2, lambda3;
+  Eigen::Vector3d u1, u2, u3;
+  Preprocessing::getEigenParts(conic_locus, lambda1, lambda2, lambda3, u1, u2, u3);
+  double dist = getBackprojectionDistance(lambda1, lambda2, lambda3, radius);
+  return dist;
+}
+
 } // end namespace Shiu
 
 namespace Kanatani {
+  // TODO: the paper referenced ("3D interpretation of conics and orthogonality"), only
+  // uses one of two possible orientations and centers. Figure out how to use the same
+  // framework to get the other orientation and center.
 void conicBackprojection( const Eigen::Matrix3d& conic_locus, const double radius, 
                           Eigen::Vector3d& normal, double& dist) {
   // Applying the concept of the canonical frame from Kanatani:
   // "3D interpretation of conics and orthogonality"
-  // Eigenvalues and eigenvectors
-  Eigen::Vector3d eigenvalues;
-  Eigen::Matrix3d eigenvectors;
-  if(!getEigenstuffConic(conic_locus, eigenvalues, eigenvectors)) {
-    std::cerr << __func__ << "-> backprojection eigenstuff failed.\n";
-    return;
-  }
-  std::cout << "Eigenvalues: " << eigenvalues(0) << ", " << eigenvalues(1) << ", " << eigenvalues(2) << std::endl;
-  std::cout << "Eigenvectors:\n" << eigenvectors << std::endl;
-  
-  // We (possibly) need to ensure that we have exactly two positive eigenvalues, else flip sign
-  if((eigenvalues(0) * eigenvalues(1) * eigenvalues(2)) > 0) {
-    eigenvalues *= -1.0;
-    // std::swap(eigenvalues(0), eigenvalues(2));
-    // eigenvectors.col(0).swap(eigenvectors.col(2));
-  }
-  std::vector<double> eigen_vec(eigenvalues.data(), eigenvalues.data() + eigenvalues.size());
-  std::vector<size_t> indices = argsort(eigen_vec);
-  std::cout << "******SORT INDICES: " << indices.at(0) << ", "<< indices.at(1) << ", "<< indices.at(2) << std::endl;
-  // eigenvalues = eigenvalues(indices);
-  Eigen::Vector3d sorted_eigenvalues = eigenvalues(indices);
-  Eigen::Matrix3d sorted_eigenvectors;
-  sorted_eigenvectors <<  eigenvectors.col(indices.at(0)), 
-                          eigenvectors.col(indices.at(1)), 
-                          eigenvectors.col(indices.at(2));
-  std::cout << "-->Eigenvalues: " << sorted_eigenvalues.transpose() << std::endl;
-  std::cout << "-->Eigenvectors:\n" << sorted_eigenvectors << std::endl;
+  double lambda1, lambda2, lambda3;
+  Eigen::Vector3d u1, u2, u3;
+  // We need to switch the 1 & 2 indices for Kanatani's method
+  Preprocessing::getEigenParts(conic_locus, lambda2, lambda1, lambda3, u2, u1, u3);
 
-  // lambda3 < 0 < lambda1 <= lambda2
-  // u2 -> lambda2 | u3 -> lambda3
-  Eigen::Vector3d::Index i1=1, i2=2, i3=0;
-  double lambda1 = eigenvalues(i1);
-  double lambda2 = eigenvalues(i2);
-  double lambda3 = eigenvalues(i3);
-  Eigen::Vector3d u1 = eigenvectors.col(i1);
-  Eigen::Vector3d u2 = eigenvectors.col(i2);
-  Eigen::Vector3d u3 = eigenvectors.col(i3);
-  Eigen::Matrix3d swapped;
-  swapped << u1, u2, u3;
-  std::cout << "\nLambdas: " << lambda1 << ", " << lambda2 << ", " << lambda3 << std::endl;
-  std::cout << "Associated u_i:\n" << swapped << std::endl;
-  // assert(lambda3 < 0);
-  // assert(lambda1 > 0);
-  // assert(lambda3 < lambda2);
-  // assert(lambda1 < lambda2);
   double scalar1 = std::sqrt((lambda2 - lambda1)/(lambda2 - lambda3));
   double scalar2 = std::sqrt((lambda1 - lambda3)/(lambda2 - lambda3));
   assert(!std::isnan(scalar1));
   assert(!std::isnan(scalar2));
-  normal = scalar1*u2 + scalar2*u3;
-  std::cout << "Quadric radius: " << radius << std::endl;
+  // TODO: do I need this negative sign?
+  normal = -(scalar1*u2 + scalar2*u3);
   dist = std::pow(std::abs(lambda1), 1.5) * radius;
 }
 
@@ -500,7 +458,7 @@ void reprojectLociiToQuadrics(const std::vector<Quadric>& quadrics,
     std::vector<Eigen::Matrix3d> other_locii = copyAllBut(locii, *it);
     Eigen::Vector3d center1, center2, normal1, normal2;
 
-    std::vector<Eigen::Matrix3d>::iterator it, it_other;
+    std::vector<Eigen::Matrix3d>::iterator it_other;
     const double max_angle = deg2rad(3.);
     for(it_other = other_locii.begin(); it_other != other_locii.end(); it_other++) {
       int index_other = getIndex(other_locii.begin(), it_other);
@@ -590,6 +548,19 @@ void solve_navigation_problem(const std::vector<Quadric>& quadrics,
   std::vector<Eigen::Hyperplane<double, 3> > planes_cam;
   reprojectionsToPlanes(centers, normals, planes_cam);
   calculateHomography(planes_world, planes_cam, attitude, position);
+}
+
+double calcAngleFromEllipseAxes(const double Rmax, const double Rmin, const double f) {
+  // Using Eq 16 from "Constraints on quadratic curves under perspective projection"
+  // by Safaee-Rad, Smith, Benhabib, and Tchoukanov
+  // NOTE: the corrected equation uses a minus sign in the denominator
+  assert(Rmax > Rmin && Rmin > 0);
+  const double f_Rmin_2 = std::pow(f/Rmin, 2);
+  const double f_Rmax_2 = std::pow(f/Rmax, 2);
+  const double num = f_Rmin_2 - f_Rmax_2;
+  const double den = f_Rmin_2 - 1;
+  const double sin_angle = std::sqrt(num/den);
+  return std::asin(sin_angle);
 }
 
 double attitudeError(const Eigen::Quaterniond& Qest, const Eigen::Quaterniond& Qtrue) {

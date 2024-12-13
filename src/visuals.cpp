@@ -22,7 +22,7 @@ void drawEllipse(cv::Mat& image, const Conic& conic, const cv::Scalar& color) {
     return; 
   }
   cv::Size2i img_size(image.cols, image.rows);
-  cv::Point ellipse_center;
+  cv::Point2d ellipse_center;
   conic.getCenter(ellipse_center);
   if(!isInImage(ellipse_center, img_size)) {
     std::cerr << __func__ << ": Ellipse is not in the image: " << ellipse_center << std::endl;
@@ -63,6 +63,18 @@ void drawEllipses(cv::Mat& image, const std::vector<Conic>& conics, const std::v
   }
 }
 
+void drawMoon(cv::Mat& image, const Camera& camera) {
+  Eigen::Matrix3d moon_locus = camera.getMoonConic(R_MOON);
+  Conic moon(moon_locus);
+  // std::cout << "Moon ellipse: " << moon << std::endl;
+  if(camera.isInCameraFrame(moon.getCenter())) {
+    viz::drawEllipse(image, moon, cv::viz::Color::gray());
+  }
+  else {
+    std::cout << "The Moon center is not in the image: " << moon.getCenter().transpose() << std::endl;
+  }
+}
+
 void drawEllipses(cv::Mat& image, const Camera& camera, const std::vector<Quadric>& quadrics, const std::vector<cv::Scalar>& colors) {
   // assert(quadrics.size() <= colors.size());
   std::vector<Conic> conics;
@@ -73,17 +85,45 @@ void drawEllipses(cv::Mat& image, const Camera& camera, const std::vector<Quadri
     // conic.fromLocus(camera.projectQuadricToLocus(quadric.getLocus()));
     conics.push_back(conic);
   }
-  Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
-  Eigen::Matrix3d moon_locus = camera.projectQuadricToLocus(sphere);
-  Conic moon(moon_locus);
-  // std::cout << "Moon ellipse: " << moon << std::endl;
-  if(camera.isInCameraFrame(moon.getCenter())) {
-    viz::drawEllipse(image, moon, cv::viz::Color::gray());
-  }
-  else {
-    std::cout << "The Moon center is not in the image: " << moon.getCenter().transpose() << std::endl;
-  }
+  drawMoon(image, camera);
   drawEllipses(image, conics, colors);
+}
+
+void drawCraters(const Camera& camera, const std::vector<Quadric>& craters) {
+  cv::Mat image = camera.getBlankCameraImage();
+  drawCraters(image, camera, craters);
+
+  // // Showing image inside a window 
+  // cv::Mat outImg;
+  // double scaling = 0.4;
+  // cv::resize(image, outImg, cv::Size(), scaling, scaling);
+  cv::imshow("Projecting Quadrics to Conics", image); 
+  cv::waitKey(0); 
+}
+
+void drawCraters(cv::Mat& image, const Camera& camera, const std::vector<Quadric>& craters) {
+  std::vector<Conic> conics;
+  int count = 0;
+  Eigen::MatrixXd proj_mtx = camera.getProjectionMatrix();
+  for(const Quadric& crater : craters) {
+    Eigen::Matrix3d conic_envelope = proj_mtx * crater.getEnvelope() * proj_mtx.transpose();
+    Eigen::Matrix3d locus = adjugate(conic_envelope);
+    Conic conic(locus);
+    
+    Conic con = crater.projectToImage(camera.getProjectionMatrix());
+    if(camera.isInCameraFrame(crater.getLocation())) {
+      conics.push_back(con);
+    }
+    else {
+      std::cerr << "Crater is not in the image - ID: " << count << std::endl;
+    }
+    count++;
+  }
+
+  // Add the craters
+  viz::drawEllipses(image, conics, viz::CV_colors);
+  Eigen::Vector2d org = camera.world2Pixel(Eigen::Vector3d::Zero());
+  cv::drawMarker(image, cv::Point(org[0], org[1]), cv::viz::Color::celestial_blue());
 }
 
 void drawEllipses(const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors) {
@@ -147,7 +187,7 @@ void drawLines(const std::vector<Eigen::Vector3d>& lines, const std::vector<std:
 void drawPoint(cv::Mat& image, const Eigen::Vector2d& point, const cv::Scalar& color) {
 
     cv::Point2d pt_cv = {point(0), point(1)};
-    cv::drawMarker(image, pt_cv, color);
+    cv::drawMarker(image, pt_cv, color, cv::MARKER_CROSS, 8);
 }
 
 void drawPoints(cv::Mat& image, const std::vector<Eigen::Vector2d>& points, const std::vector<cv::Scalar>& colors) {
@@ -225,9 +265,9 @@ void get3dAxes( const Camera& cam,
                 Eigen::Vector2d& y_axis, Eigen::Vector2d& z_axis) {
   Eigen::Vector3d x, y, z, o;
   o = Eigen::Vector3d::Zero();
-  x = R_MOON/2*Eigen::Vector3d::UnitX();
-  y = R_MOON/2*Eigen::Vector3d::UnitY();
-  z = R_MOON/2*Eigen::Vector3d::UnitZ();
+  x = 1e3*Eigen::Vector3d::UnitX();
+  y = 1e3*Eigen::Vector3d::UnitY();
+  z = 1e3*Eigen::Vector3d::UnitZ();
   cam.world2Pixel(o, origin);
   cam.world2Pixel(x, x_axis);
   cam.world2Pixel(y, y_axis);
@@ -311,10 +351,7 @@ void drawNoisyPoints( const Camera& cam, const std::vector<Conic>& conics,
   }
   cv::Mat image = cam.getBlankCameraImage();
   // Add the moon
-  Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
-  Eigen::Matrix3d moon_locus = cam.projectQuadricToLocus(sphere);
-  Conic moon(moon_locus);
-  drawEllipse(image, moon, cv::viz::Color::gray());
+  drawMoon(image, cam);
   std::vector<cv::Scalar> background(conics.size());
   std::fill(background.begin(), background.end(), cv::viz::Color::black());
   std::vector<cv::Scalar> colors = {cv::viz::Color::red(),

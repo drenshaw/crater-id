@@ -7,6 +7,8 @@
 /*********************************************************/
 /***************  Single Crater Functions  ***************/
 /*********************************************************/
+
+namespace Preprocessing {
 int findOppositeSignedValueIndex(const std::vector<double>& vec);
 bool getEigenstuffConic(const Eigen::Matrix3d& conic, Eigen::Vector3d& eigenval, Eigen::Matrix3d& eigenvec);
 
@@ -22,10 +24,26 @@ std::vector<size_t> argsort(const std::vector<T> &array) {
 
     return indices;
 }
+void getEigenParts( const Eigen::Matrix3d& conic, 
+                    double& lambda1, double& lambda2, double& lambda3, 
+                    Eigen::Vector3d& u1, Eigen::Vector3d& u2, Eigen::Vector3d& u3);
+double getBackprojectionDistance( const double lambda1, 
+                                  const double lambda2, 
+                                  const double lambda3, 
+                                  const double radius);
+void getBackprojectionLambda3(const Eigen::Vector3d& eigenvalues,
+                              const Eigen::Matrix3d& eigenvectors,
+                              int& mu_d_idx,
+                              Eigen::Vector3d& e3);
+void getBackprojectionLambda2(const Eigen::Vector2d& eigenvalues,
+                              const Eigen::MatrixXd& eigenvectors,
+                              double& lambda1, double& lambda2,
+                              Eigen::Vector3d& e2);
+}
 
 namespace Christian {
                                
-void conicBackprojection( const Eigen::Matrix3d& conic, const double radius, 
+void conicBackprojection( const Eigen::Matrix3d& conic_locus, const double radius, 
                               std::array<Eigen::Vector3d, 2>& centers, 
                               std::array<Eigen::Vector3d, 2>& normals);
 void getBackprojectedCenter(const double radius, const std::array<double, 3>& lambdas,
@@ -38,18 +56,6 @@ void getBackprojectedNormal(const std::array<double, 3>& lambdas,
 } // end namespace Christian
 
 namespace Shiu {
-double getBackprojectionDistance( const double lambda1, 
-                                  const double lambda2, 
-                                  const double lambda3, 
-                                  const double radius);
-void getBackprojectionLambda1(const Eigen::Vector3d& eigenvalues,
-                              const Eigen::Matrix3d& eigenvectors,
-                              int& mu_d_idx,
-                              Eigen::Vector3d& e3);
-void getBackprojectionLambda2(const Eigen::Vector2d& eigenvalues,
-                              const Eigen::MatrixXd& eigenvectors,
-                              double& lambda1, double& lambda2,
-                              Eigen::Vector3d& e2);
 void getBackprojectionNormalCanonical(const double lambda1, const double lambda2, 
                                           const double lambda3, Eigen::Vector3d& normal);
 void getBackprojectionNormal( const double lambda1, const double lambda2, const double lambda3,
@@ -60,9 +66,10 @@ void getBackprojectionCenterCanonical(
 void getBackprojectionCenter( const double radius, const double lambda1, const double lambda2, const double lambda3,
                                   const Eigen::Vector3d& e1, Eigen::Vector3d e3, 
                                   std::array<Eigen::Vector3d, 2> centers);
-void conicBackprojection( const Eigen::Matrix3d& conic, const double radius, 
+void conicBackprojection( const Eigen::Matrix3d& conic_locus, const double radius, 
                               std::array<Eigen::Vector3d, 2>& centers, 
                               std::array<Eigen::Vector3d, 2>& normals);
+double getDistanceFromConicLocus(const Eigen::Matrix3d& conic_locus, const double radius);
 } // end namespace Shiu
 
 namespace Kanatani {
@@ -109,4 +116,5 @@ void calculateHomography( const std::vector<Eigen::Hyperplane<double, 3> >& plan
 void solve_navigation_problem(const std::vector<Quadric>& quadrics,
                               const std::vector<Eigen::Matrix3d>& locii,
                               Eigen::Quaterniond& attitude, Eigen::Vector3d& position);
+double calcAngleFromEllipseAxes(const double Rmax, const double Rmin, const double f);
 double attitudeError(const Eigen::Quaterniond& Qest, const Eigen::Quaterniond& Qtrue);

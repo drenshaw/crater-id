@@ -71,6 +71,9 @@ void drawEllipse( const Conic& conic, const cv::Scalar& color=cv::Scalar(0, 255,
 void drawEllipses(cv::Mat& image, const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors={});
 void drawEllipses(cv::Mat& image, const Camera& camera, const std::vector<Quadric>& quadrics, const std::vector<cv::Scalar>& colors={});
 void drawEllipses(const std::vector<Conic>& conics, const std::vector<cv::Scalar>& colors={});
+void drawCraters(cv::Mat& image, const Camera& camera, const std::vector<Quadric>& craters);
+void drawCraters(const Camera& camera, const std::vector<Quadric>& craters);
+void drawMoon(cv::Mat& image, const Camera& camera);
 void drawLine(cv::Mat& image, const Eigen::Vector3d& my_line, const std::string& text, const cv::Scalar& my_color);
 void drawLine(const Eigen::Vector3d& my_line, const std::string& text, const cv::Scalar& my_color);
 void drawLines(cv::Mat& image, const std::vector<Eigen::Vector3d>& lines, const std::vector<std::string>& text, const std::vector<cv::Scalar>& colors);

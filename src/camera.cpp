@@ -1,10 +1,11 @@
+#include "math_utils.h"
+#include "camera.h"
+
 #include <iostream>
 #include <iomanip>
 #include <vector>
 #include <opencv2/viz/types.hpp>
-
-#include "math_utils.h"
-#include "camera.h"
+#include <opencv2/core/eigen.hpp>
 // TODO: Ensure that the "rotation" matrix is a transformation matrix, or transpose it
 
 // This is the base constructor
@@ -18,8 +19,9 @@ Camera::Camera( const double dx,
                 const Eigen::Isometry3d& transform) :  
                   dx_(dx), dy_(dy), skew_(skew), up_(up), vp_(vp),
                   image_size_(image_size) {
-  // TODO: does this work? Or do we need to invert the whole transform?                        
-  state_.linear() = transform.rotation().inverse();
+  // TODO: does this work? Or do we need to invert the whole transform?
+  this->setPosition(transform.translation());
+  this->setAttitude(transform.rotation());
 }
 Camera::Camera( const double dx,
                 const double dy,
@@ -28,10 +30,12 @@ Camera::Camera( const double dx,
                 const double skew,
                 const cv::Size2i& image_size,
                 const Eigen::Quaterniond& attitude,
-                const Eigen::Vector3d& position) :  
-                Camera( dx, dy, up, vp, skew, 
-                        image_size, 
-                        attitude * Eigen::Translation3d(position)) {}
+                const Eigen::Vector3d& position) : 
+                  dx_(dx), dy_(dy), skew_(skew), up_(up), vp_(vp),
+                  image_size_(image_size) {
+  this->setPosition(position);
+  this->setAttitude(attitude);
+}
 
 Camera::Camera() : Camera(1000, 1000, 
                           1296.5, 1024.5, 
@@ -140,6 +144,10 @@ Eigen::Matrix3d Camera::getIntrinsicMatrix() const {
   return intrinsic_matrix;
 }
 
+cv::Mat Camera::getCvIntrinsicMatrix() {
+  return getCvCameraMatrix(this->getIntrinsicMatrix());
+}
+
 Eigen::Matrix3d Camera::getInverseIntrinsicMatrix() const {
   Eigen::Matrix3d inv_intrinsic;
   inv_intrinsic <<  1/dx_, -skew_/(dx_*dy_), (skew_*vp_ - dy_*up_)/(dx_*dy_),
@@ -195,6 +203,19 @@ cv::Mat Camera::getBlankCameraImage() const {
 
 void Camera::resetImage(cv::Mat& image) const {
   image = cv::Scalar(50, 50, 50);
+}
+
+double Camera::getFocalX() const {
+  return this->dx_;
+}
+
+double Camera::getFocalY() const {
+  return this->dy_;
+}
+
+Eigen::Vector2d Camera::getFocalPointUV() const {
+  const Eigen::Vector2d focal_point(this->up_, this->vp_);
+  return focal_point;
 }
 
 double Camera::getImageWidth() const {
@@ -436,10 +457,23 @@ Eigen::Matrix3d Camera::projectQuadricToLocus(const Eigen::Matrix4d& quadric_loc
   return adjugate(proj * adjugate(quadric_locus) * proj.transpose());
 }
 
+Eigen::Vector3d Camera::getPointWrtCameraWorld(const Eigen::Vector3d& point) const {
+  return point - this->getLocation();
+}
+
+Eigen::Vector3d Camera::getPointWrtCamera(const Eigen::Vector3d& point) const {
+  return this->getAttitude() * this->getPointWrtCameraWorld(point);
+}
+
 Eigen::Matrix3d Camera::getImagePlaneLocus(const Eigen::Matrix3d& image_locus) const {
   Eigen::Matrix3d Kinv = this->getInverseIntrinsicMatrix();
   Eigen::Matrix3d envelope = adjugate(image_locus);
   return adjugate(Kinv * envelope * Kinv.transpose());
+}
+
+Eigen::Matrix3d Camera::getMoonConic(const double radius) const {
+  Eigen::Matrix4d sphere = makeSphere(double(R_MOON));
+  return this->projectQuadricToLocus(sphere);
 }
 
 
@@ -577,4 +611,10 @@ bool isInImage(const cv::Point& pt_uv, const cv::MatSize image_size) {
   img_size.width = image_size[0];
   img_size.height = image_size[1];
   return isInImage(pt_uv, img_size);
+}
+
+cv::Mat getCvCameraMatrix(const Eigen::Matrix3d& K) {
+  cv::Mat cameraMatrix(3,3,cv::DataType<double>::type);
+  cv::eigen2cv(K, cameraMatrix);
+  return cameraMatrix;
 }
