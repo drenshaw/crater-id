@@ -17,8 +17,8 @@ Quadric::Quadric( const Eigen::Vector3d& position,
                     id_(id),
                     radius_(radius),
                     center_{position},
-                    plane_(surface_normal.normalized(), position.norm()
-                  ) {
+                    plane_(surface_normal.normalized(), position.norm()) 
+{
   // TODO: Uses only Moon radius; change if using another body (e.g., Mars)
   if(radius > R_MOON) {
     throw std::runtime_error("The crater radius is larger than the Moon.");

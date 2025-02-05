@@ -117,4 +117,5 @@ void solve_navigation_problem(const std::vector<Quadric>& quadrics,
                               const std::vector<Eigen::Matrix3d>& locii,
                               Eigen::Quaterniond& attitude, Eigen::Vector3d& position);
 double calcAngleFromEllipseAxes(const double Rmax, const double Rmin, const double f);
+double calcAngleFromEllipseAxes(const Eigen::Matrix3d& conic_locus);
 double attitudeError(const Eigen::Quaterniond& Qest, const Eigen::Quaterniond& Qtrue);

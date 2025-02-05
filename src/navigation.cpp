@@ -554,13 +554,27 @@ double calcAngleFromEllipseAxes(const double Rmax, const double Rmin, const doub
   // Using Eq 16 from "Constraints on quadratic curves under perspective projection"
   // by Safaee-Rad, Smith, Benhabib, and Tchoukanov
   // NOTE: the corrected equation uses a minus sign in the denominator
-  assert(Rmax > Rmin && Rmin > 0);
+  assert(Rmax >= Rmin && Rmin >= 0);
   const double f_Rmin_2 = std::pow(f/Rmin, 2);
   const double f_Rmax_2 = std::pow(f/Rmax, 2);
   const double num = f_Rmin_2 - f_Rmax_2;
   const double den = f_Rmin_2 - 1;
   const double sin_angle = std::sqrt(num/den);
   return std::asin(sin_angle);
+}
+
+double calcAngleFromEllipseAxes(const Eigen::Matrix3d& conic_locus) {
+  // Using Eq 3.1.3.9 from "3D location of circular and spherical features by
+  // monocular model-based vision" by Shiu and Ahmed
+  double lambda1, lambda2, lambda3;
+  Eigen::Vector3d u1, u2, u3;
+  Preprocessing::getEigenParts(conic_locus, lambda1, lambda2, lambda3, u1, u2, u3);
+  const double abs_l1 = std::abs(lambda1);
+  const double abs_l2 = std::abs(lambda2);
+  const double abs_l3 = std::abs(lambda3);
+  const double radical = (abs_l1 - abs_l2)/(abs_l2 + abs_l3);
+  const double phi = std::atan(std::sqrt(radical));
+  return phi;
 }
 
 double attitudeError(const Eigen::Quaterniond& Qest, const Eigen::Quaterniond& Qtrue) {

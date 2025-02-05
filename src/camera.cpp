@@ -450,11 +450,13 @@ Eigen::Matrix3d Camera::projectQuadric(const Eigen::Matrix4d& quadric_envelope) 
   return proj * quadric_envelope * proj.transpose();
 }
 
-Eigen::Matrix3d Camera::projectQuadricToLocus(const Eigen::Matrix4d& quadric_locus) const {
+Eigen::Matrix3d Camera::projectQuadricToLocus(const Eigen::Matrix4d& quadric_envelope) const {
   // TODO: account for whether the crater rim is occluded by the lunar surface
-  // Returns the envelope of the projected conic
+  // NOTE: Do NOT pass in the quadric locus! This function\n
+  // uses the quadric envelope, which is the dual of the locus.
+  // Returns the locus of the projected conic
   Eigen::MatrixXd proj = this->getProjectionMatrix();
-  return adjugate(proj * adjugate(quadric_locus) * proj.transpose());
+  return adjugate(proj * quadric_envelope * proj.transpose());
 }
 
 Eigen::Vector3d Camera::getPointWrtCameraWorld(const Eigen::Vector3d& point) const {
