@@ -541,24 +541,6 @@ TEST_F(NavigationTest, Triangulation) {
 
 
 TEST_F(NavigationTest, RealImage) {
-
-  std::vector<Conic> conics;
-  std::vector<Eigen::Matrix3d> locii_noisy;
-  std::vector<std::vector<std::array<double, 2> > >::const_iterator crater;
-  for(crater = craters.begin(); crater != craters.end(); crater++) {
-    Eigen::MatrixXd crater_pts = toEigenArray(*crater);
-    std::array<double, IMPLICIT_PARAM> impl = ellipseFitLstSq(crater_pts);
-    conics.push_back(Conic(impl));
-    locii_noisy.push_back(Conic(impl).getLocus());
-  }
-
-  Eigen::Quaterniond attitude;
-  Eigen::Vector3d position;
-  solve_navigation_problem(quadrics, locii_noisy, attitude, position);
-  std::cout << "ESTIMATION:"
-            << "\n\tLocation: " << position.transpose()
-            << "\n\tAttitude: " << attitude << std::endl;
-
   double f = 165714.2857142857;
   double dx = f, dy = f, skew = 0;
   // double dx = 7291.6666, dy = 7291.6666, skew = 0;
@@ -574,6 +556,29 @@ TEST_F(NavigationTest, RealImage) {
     cassini_pos << 360276.0,  90684.3, -44379.2;
     Eigen::Quaterniond cassini_att(0.58826, 0.524272, -0.407365, -0.461674);
   Camera camera(dx, dy, up, vp, skew, image_size);
+  const Eigen::Matrix3d Kinv = camera.getInverseIntrinsicMatrix();  
+
+  std::vector<Conic> conics;
+  std::vector<Eigen::Matrix3d> locii_noisy;
+  std::vector<std::vector<std::array<double, 2> > >::const_iterator crater;
+  for(crater = craters.begin(); crater != craters.end(); crater++) {
+    Eigen::MatrixXd crater_pts = toEigenArray(*crater);
+    std::array<double, IMPLICIT_PARAM> impl = ellipseFitLstSq(crater_pts);
+    Conic conic_from_impl(impl);
+    Eigen::Matrix3d plane_conic = Kinv * conic_from_impl.getLocus() * Kinv.transpose();
+
+    conics.push_back(conic_from_impl);
+    std::cout << conic_from_impl << std::endl;
+    locii_noisy.push_back(plane_conic);
+  }
+
+  Eigen::Quaterniond attitude;
+  Eigen::Vector3d position;
+  solve_navigation_problem(quadrics, locii_noisy, attitude, position);
+  std::cout << "ESTIMATION:"
+            << "\n\tLocation: " << position.transpose()
+            << "\n\tAttitude: " << attitude << std::endl;
+
   camera.moveX(360276.0);
   camera.moveY( 90684.3);
   camera.moveZ(-44379.2);
