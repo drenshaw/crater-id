@@ -4,7 +4,7 @@ Read a crater data file, create triads of craters with associated invariants, se
 Starting with a set (3+) of identified craters on the lunar surface, we backproject the image ellipses to the disk quadrics which represent the crater rims. This backprojection gives the distance from the camera to the quadric, albeit with two possible orientations for the normal. Using the relationship between the known quadrics lets us choose the correct normals. With the quadrics known in both the camera and world frame, we can estimate (in the least squares sense) the camera's pose (position and orientation).
 
 ## Installing
-This program requires OpenCV and Eigen3 libraries, which manage the 2D visualizations and matrix operations, respectively. If you want to have VTK for 3D visualization, this is useful to see where things are in 3D space. I have the Python scripts that use PyVista, which is a wrapper for VTK and is very useful. 
+This program requires OpenCV and Eigen3 libraries, which manage the 2D visualizations and matrix operations, respectively. If you want to have VTK for 3D visualization, this is useful to see where things are in 3D space. I have the Python scripts that use PyVista, which is a wrapper for VTK and is very useful. You can also explore more with libraries like Boost or libspatialindex, which have tools like logging and RTree capabilities, but they are not required for running this toolkit.
 
 I use Meson as the build tool which is good for my purposes here. To download and install,
 
@@ -27,3 +27,6 @@ I have a set of over 100 unit tests testing everything from basic matrix math to
 ```bash
 ./test/test_cid
 ```
+
+## Using `compile_commands.json` with Meson
+If you are looking for the `compile_commands.json`, which is what tools like Intellisense or clangd use to find definitions within your projects so that you can use autocomplete or show tooltips (or just get rid of errors when it can't find your header files). You can find this file within the build directory that you created earlier; you need to move or copy this file to the main project directory. You might also need to restart your IDE for the changes to take effect.
